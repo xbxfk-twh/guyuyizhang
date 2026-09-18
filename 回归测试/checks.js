@@ -930,21 +930,23 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
        /结算前确认/.test(GAME) && /不能再结算其他结局/.test(GAME) && /确定结算/.test(GAME) && /再想想/.test(GAME));
     G.S().flags.metaSettled = 0;
     G.reviveToday();
-    ck('★ 复活可以绕过定局（作者 2026-09-19：死亡标记不锁定结局）',
-       !G.S().flags.settledEnding, 'settledEnding=' + G.S().flags.settledEnding);
-    ck('复活不会清掉"这个结局已经结算过"的单条标记（同一个结局不能刷两次魂点）',
-       G.S().flags.settled_A === 1, 'settled_A=' + G.S().flags.settled_A);
-    // 复活之后：定局没了 → 别的结局又能结算；但已经结算过的 A 不会再出现在按钮里
+    ck('★ 复活不能绕过定局（作者 2026-09-19 定死）',
+       G.S().flags.settledEnding === 'A', 'settledEnding=' + G.S().flags.settledEnding);
+    ck('复活也不会清掉"这个结局已经结算过"的单条标记', G.S().flags.settled_A === 1, 'settled_A=' + G.S().flags.settled_A);
+    // 复活之后：定局还在 → 别的结局仍然只给"本局已收尾"的按钮；结算过的 A 照样不出现
     G.S().flags.ended_C = 1;
     const idsAfter = G.checkEndingActions().map(a => a.id);
-    ck('★ 复活后「秘辛」的结算按钮回来了，而结算过的「归乡」不再出现',
-       idsAfter.includes('settle_endC') && !idsAfter.includes('settle_endA'), idsAfter.join('/'));
+    ck('★ 复活后「秘辛」的按钮仍是锁着的，结算过的「归乡」不再出现',
+       (() => { const a = G.checkEndingActions().find(x => x.id === 'settle_endC');
+                return !!a && a.locked === true && idsAfter.indexOf('settle_endA') < 0; })(),
+       G.checkEndingActions().map(a => a.id + (a.locked ? '(锁)' : '')).join('/'));
     const rAfter = G.settleEnding('endC');
-    ck('★ 复活后确实能结算另一个结局（新定局 = 秘辛）',
-       rAfter.ok && G.S().flags.settledEnding === 'C', 'ok=' + rAfter.ok + ' settledEnding=' + G.S().flags.settledEnding);
+    ck('★ 复活后照样结算不了别的结局（定局仍是归乡、不发光）',
+       rAfter.ok === false && /只能结算一个结局/.test(rAfter.reason) && G.S().flags.settledEnding === 'A' && G.S().flags.settled_C !== 1,
+       'ok=' + rAfter.ok + ' settledEnding=' + G.S().flags.settledEnding);
     G.continueRun();
     G.save(); G.load();
-    ck('定局标记跟着存档走：读档之后还是一局只能结算一个', G.S().flags.settledEnding === 'C',
+    ck('定局标记跟着存档走：读档之后还是一局只能结算一个', G.S().flags.settledEnding === 'A',
        'settledEnding=' + G.S().flags.settledEnding);
     // 死亡结局 D 不占名额：死过一次（D 已结算）之后再结算 A，照样能成
     {
