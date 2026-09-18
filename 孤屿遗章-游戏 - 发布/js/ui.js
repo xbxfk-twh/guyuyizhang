@@ -2653,7 +2653,13 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       showModal('backup');
     });
     m.querySelectorAll('[data-delslot]').forEach(b => b.onclick = () => { const r = Game.delSlot(+b.dataset.delslot); addLog(r.ok ? `已删除备份槽 ${+b.dataset.delslot + 1}。` : r.reason, r.ok ? 'good' : 'warn'); centerToast(r.ok ? `已删除槽 ${+b.dataset.delslot + 1}` : r.reason); showModal('backup'); });
-    m.querySelectorAll('[data-ld]').forEach(b => b.onclick = () => { const r = Game.loadSlot(+b.dataset.ld); if (r.ok) { closeModal(); begin(); } else addLog(r.reason, 'warn'); });
+    m.querySelectorAll('[data-ld]').forEach(b => b.onclick = () => {
+      // 「从此继续」= 用备份槽这份覆盖当前这一局，先说清再动
+      const cur = S();
+      if (cur && cur.day > 1 && !confirm(`「从此继续」会用这份备份覆盖你当前这一局（第 ${cur.day} 天）。确定吗？`)) return;
+      const r = Game.loadSlot(+b.dataset.ld);
+      if (r.ok) { closeModal(); begin(); } else addLog(r.reason, 'warn');
+    });
     m.querySelectorAll('[data-buybp]').forEach(b => b.onclick = () => { const r = Game.buyBackupPoint(); if (r.ok) { addLog('购买了 1 个备份点。', 'good'); } else addLog(r.reason, 'warn'); showModal('backup'); });
     m.querySelectorAll('[data-codex]').forEach(b => b.onclick = () => showModal('codex', { mode: b.dataset.codex, code: b.dataset.codex === 'export' ? Game.exportCode() : '' }));
     const ccopy = m.querySelector('#codex-copy'); if (ccopy) ccopy.onclick = () => { const t = m.querySelector('#codex-text'); try { t.select(); document.execCommand('copy'); centerToast('已复制，快去粘贴保存吧'); } catch (e) { centerToast('复制失败，请长按文本框手动复制'); } };
@@ -3270,7 +3276,17 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     }
     html += `</div><button id="sel-back">返回</button><div id="modal"></div></div>`;
     app.innerHTML = html;
-    app.querySelectorAll('.identity').forEach(b => b.onclick = () => { const i = +b.dataset.slot; const s = Game.slotList()[i]; if (s) { const r = Game.loadSlot(i); if (r.ok) begin(); else addLog(r.reason, 'warn'); } else { lastSlot = i; showIdentity(); } });
+    app.querySelectorAll('.identity').forEach(b => b.onclick = () => {
+      const i = +b.dataset.slot;
+      const s = Game.slotList()[i];
+      if (s) { const r = Game.loadSlot(i); if (r.ok) begin(); else addLog(r.reason, 'warn'); return; }
+      // ⚠️ 开新游戏会覆盖"当前进行中的那一份"（备份槽不受影响）——先说清再动，
+      //    玩家反馈"我新开了游戏，在读以前的档，没跳出来覆盖咋办"。
+      let d = 0;
+      try { const j = JSON.parse(localStorage.getItem('guyuyizhang_save') || 'null'); d = (j && j.day) || 0; } catch (e) {}
+      if (d > 1 && !confirm(`你有一份进行中的存档（第 ${d} 天）——开新游戏会覆盖它（「备份 · 读档」里的备份槽不受影响）。确定开始新游戏吗？`)) return;
+      lastSlot = i; showIdentity();
+    });
     app.querySelectorAll('[data-titlebuybp]').forEach(b => b.onclick = () => showModal('buybp'));
     $('#sel-back').onclick = showTitle;
   }

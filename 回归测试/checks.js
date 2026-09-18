@@ -3529,9 +3529,14 @@ section('9. 技能树（B1：框架 + 主干三选一 + 遗忘 + 采集/制造�
   {
     G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null;
     s.exp.craft = 999; s.exp.combat = 999; s.exp.gather = 999;
-    ck('战斗主干：选 3 次防 = +1.5 防御', (() => { s.skillPicks.combat = ['def','def','def']; return Math.abs(G.skillDefBonus ? 0 : 0) === 0 && Math.abs((G.playerDef() - (function(){ s.skillPicks.combat = []; return G.playerDef(); })()) - 1.5) < 1e-6; })());
-    ck('战斗主干：选 2 次暴击 = 10% → 20%', (() => { s.skillPicks.combat = ['crit','crit']; return Math.abs(G.skillCritRate() - 0.20) < 1e-6; })());
-    s.skillPicks.combat = [];
+    // ⚠️ 等级和成长选项要一起设：treeState() 会把"选项比等级多"的多余项裁掉（自愈逻辑）
+    ck('战斗主干：选 3 次防 = +1.5 防御', (() => {
+      s.skill.combat = 3; s.skillPicks.combat = ['def','def','def'];
+      const d3 = G.playerDef();
+      s.skill.combat = 0; s.skillPicks.combat = [];
+      return Math.abs(d3 - (G.playerDef() + 1.5)) < 1e-6; })());
+    ck('战斗主干：选 2 次暴击 = 10% → 20%', (() => { s.skill.combat = 2; s.skillPicks.combat = ['crit','crit']; return Math.abs(G.skillCritRate() - 0.20) < 1e-6; })());
+    s.skill.combat = 0; s.skillPicks.combat = [];
     ck('精细采集：产出 +20%、体力 +15%',
        (() => { s.skill.gather = 4; s.skillPicks.gather = ['yield','yield','yield','yield']; G.skillNodeLearn('gather','g_fine');
          return Math.round(G.gatherYieldMul() * 100) / 100 === 1.6 && Math.round(G.gatherEnergyMul() * 100) / 100 === 1.15; })());
@@ -3753,6 +3758,37 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
        G.durOf('axeStone') === 24 && G.durOf('axeSteel') === 77,
        '石斧 ' + G.durOf('axeStone') + ' / 钢斧 ' + G.durOf('axeSteel'));
   }
+  // ⑤ 从「备份 · 读档」继续：备份槽里存的可能是技能改版前的老格式 → 也要跑迁移/自愈
+  {
+    G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null;
+    // (a) 老格式：有旧等级、没有 tree → 应该被折算成经验（双倍）+ 等级归零
+    const legacy = JSON.parse(JSON.stringify(s));
+    legacy.day = 66; legacy.skill = { craft: 3, gather: 2, combat: 4 };
+    legacy.exp = { gather: 100, craft: 100, combat: 100 };
+    delete legacy.tree; delete legacy.skillPicks;
+    const m = G.metaState(); m.slots = m.slots || [null, null, null]; m.slots[0] = { day: 66, settled: false, data: legacy };
+    const r1 = G.loadSlot(0);
+    ck('★ 从备份槽继续：老格式的技能等级被折算成经验（等级归零 + 双倍返还）',
+       r1.ok && G.S().skill.combat === 0 && G.S().exp.combat >= 100 + 2 * (12 + 28 + 50 + 80) && !!G.S().tree,
+       'combat 等级 ' + G.S().skill.combat + '、经验 ' + G.S().exp.combat);
+    // (b) 新格式但等级和成长选项脱节（玩家反馈的那种档）→ 自愈补齐，等级必须真的给属性
+    const broken = JSON.parse(JSON.stringify(s));
+    broken.day = 66; broken.skill = { craft: 0, gather: 0, combat: 4 }; broken.skillPicks = { gather: [], craft: [], combat: [] };
+    broken.tree = { gather: {}, craft: {}, combat: {} };
+    const m2 = G.metaState(); m2.slots[1] = { day: 66, settled: false, data: broken };
+    G.loadSlot(1);
+    const defWith = G.playerDef(), atkWith = G.playerAtk();
+    ck('★ 等级没有成长选项的档（会白升）→ 自动按旧效果补齐，等级真的给属性',
+       G.trunkPicks('combat') === 4 && defWith > 2 && atkWith > 5,
+       '补了 ' + G.trunkPicks('combat') + ' 点 → 攻 ' + atkWith + ' / 防 ' + defWith);
+    ck('自愈只提示一次（日志里有一条说明）',
+       (G.S().log || []).some(l => /技能等级缺少成长选项/.test(l.text || '')));
+  }
+  // ⑥ 开新游戏/从备份继续都要先说清"会覆盖现在这份进度"
+  ck('★ 开新游戏前会提示"会覆盖当前存档"（备份槽不受影响）',
+     /开新游戏会覆盖它（「备份 · 读档」里的备份槽不受影响）/.test(UI));
+  ck('★ 「从此继续」前会提示"会用这份备份覆盖当前这一局"',
+     /会用这份备份覆盖你当前这一局/.test(UI));
 }
 
 section('9f. 音效与配乐（玩家反馈"叮铃太频繁、有些音效拉胯"）');

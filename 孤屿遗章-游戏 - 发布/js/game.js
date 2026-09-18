@@ -678,6 +678,26 @@ function change() {
   }
 
   // ---------- 存档 ----------
+  // 技能改版迁移（旧等级 → 经验返还，双倍）。
+  // ⚠️ load() 和 loadSlot() 都要跑：备份槽里存的是"当时那份 S"，可能是技能改版前的老格式。
+  //    以前只在 load() 里迁移，于是"从备份继续"会拿到"有等级、没有成长选项"的档 ——
+  //    等级还在但一点属性都不给（玩家反馈"前面升的级属于加了没？打雪鹰才 10 点血"）。
+  function migrateSkills() {
+    if (S.tree) return;                       // 已经迁移过（新存档在 newGame 里就有 S.tree）→ 幂等
+    const who = { gather:'采集', craft:'制造', combat:'战斗' };
+    for (const k of ['gather','craft','combat']) {
+      const old = Math.min(5, (S.skill && S.skill[k]) || 0);
+      if (!old) continue;
+      let newTo = 0;
+      for (let i = 0; i < Math.min(old, SKILL_TRUNK_COST.length); i++) newTo += SKILL_TRUNK_COST[i];
+      const back = Math.round(newTo * 2);
+      S.exp = S.exp || {}; S.exp[k] = Math.round(((S.exp[k] || 0) + back) * 10) / 10;
+      S.skill[k] = 0;
+      log(`【技能改版】${who[k]}技能旧等级 ${old} 已折算成 ${back} 点${who[k]}经验——打开「技能」自己重新加点。`, 'good');
+    }
+    S.tree = { gather:{}, craft:{}, combat:{} };
+    S.skillPicks = { gather:[], craft:[], combat:[] };
+  }
   function snapshot(kind) {
     S._snap = S._snap || {};
     S._snap[kind] = JSON.parse(JSON.stringify({
@@ -812,25 +832,7 @@ function change() {
       if (!S.weaponNames) S.weaponNames = {};
       if (S.houseExt === undefined) S.houseExt = 0;
       if (S.coopExt === undefined) S.coopExt = 0;   // 老存档：鸡舍没扩建过
-      // ---- 技能树迁移（B1，作者 2026-09-17 定稿）----
-      // 老存档的旧技能等级【折算成经验，让玩家自己重新点】（作者原话），不自动折算属性。
-      // 折算 = 新曲线升到同一等级所需经验 × 2（给足余量，保证老玩家不会比改版前弱）。
-      // 只在 S.tree 不存在时跑一次（新存档在 newGame 里已经有 S.tree）→ 幂等。
-      if (!S.tree) {
-        const who = { gather:'采集', craft:'制造', combat:'战斗' };
-        for (const k of ['gather','craft','combat']) {
-          const old = Math.min(5, (S.skill && S.skill[k]) || 0);
-          if (!old) continue;
-          let newTo = 0;
-          for (let i = 0; i < Math.min(old, SKILL_TRUNK_COST.length); i++) newTo += SKILL_TRUNK_COST[i];
-          const back = Math.round(newTo * 2);
-          S.exp = S.exp || {}; S.exp[k] = Math.round(((S.exp[k] || 0) + back) * 10) / 10;
-          S.skill[k] = 0;
-          log(`【技能改版】${who[k]}技能旧等级 ${old} 已折算成 ${back} 点${who[k]}经验——打开「技能」自己重新加点。`, 'good');
-        }
-        S.tree = { gather:{}, craft:{}, combat:{} };
-        S.skillPicks = { gather:[], craft:[], combat:[] };
-      }
+      migrateSkills();
       if (S.storeExt === undefined) S.storeExt = 0;
       if (S.gatherCount === undefined) S.gatherCount = 0;
       if (S.craftCount === undefined) S.craftCount = 0;
@@ -1963,6 +1965,20 @@ function change() {
     for (const k in SKILL_TREES) {
       if (!S.tree[k] || typeof S.tree[k] !== 'object') S.tree[k] = {};
       if (!Array.isArray(S.skillPicks[k])) S.skillPicks[k] = [];
+      // ⚠️ 自愈：主干等级和"已投的点"必须一一对应（N 级 = 投过 N 点）。
+      //    从旧版备份槽读进来的档会出现"等级是旧系统留下的、picks 是空的"，
+      //    那几级就白升了（玩家反馈"前面升的级属于加了没？打雪鹰才 10 点血"）。
+      //    这里按旧系统的效果补齐：采集补「熟手」、制造补「熟手（省时）」、战斗一半「攻」一半「防」。
+      const lv = S.skill[k] || 0, pk = S.skillPicks[k];
+      if (pk.length < lv) {
+        const fill = ({ gather: ['yield'], craft: ['speed'], combat: ['atk', 'def'] })[k] || ['yield'];
+        while (pk.length < lv) pk.push(fill[pk.length % fill.length]);
+        if (!S.flags) S.flags = {};
+        if (!S.flags._treeHealed) {
+          S.flags._treeHealed = 1;
+          log(`【技能】这份存档的技能等级缺少成长选项，已按旧效果自动补齐（${SKILL_TREES[k].name}主干 ${lv} 级）。`, 'good');
+        }
+      } else if (pk.length > lv) pk.length = lv;
     }
     return S.tree;
   }
@@ -4101,6 +4117,24 @@ function change() {
     if (data.ending) data.ending = undefined;   // 从备份继续 = 接着玩，别把结算状态带进来
     if (data.death) data.death = undefined;
     S = data;
+    // ⚠️ 备份槽里存的是"当时那份 S"，可能是技能改版前的老格式 —— 必须补字段 + 跑技能迁移，
+    //    否则会出现"等级还在、成长选项没有"（那几级白升）。这些字段 load() 里都有，这里不能漏。
+    if (!S.skill) S.skill = { craft:0, gather:0, combat:0 };
+    if (!S.exp) S.exp = { gather:0, craft:0, combat:0 };
+    if (!S.inv) S.inv = {};
+    if (!S.toolDurs) S.toolDurs = {};
+    if (!S.dur) S.dur = {};
+    if (!S.equipIdx) S.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
+    if (!S.equipment) S.equipment = { weapon:null, weapon2:null, armor:null, cloth:null, accessory:null };
+    if (!S.statuses) S.statuses = { bleed:0, poison:0, cold:false, fear:0 };
+    if (!S.stats) S.stats = { hp:100, stamina:100, hunger:100, thirst:100, spirit:100 };
+    if (!S.toolkit) S.toolkit = [null, null, null];
+    if (!S.flags) S.flags = {};
+    if (!S.log) S.log = [];
+    if (S.coopExt === undefined) S.coopExt = 0;
+    if (S.storeExt === undefined) S.storeExt = 0;
+    migrateSkills();
+    for (const id in ITEMS) if (DURA[id] !== undefined) durList(id);
     return { ok:true, day: data.day };
   }
 
