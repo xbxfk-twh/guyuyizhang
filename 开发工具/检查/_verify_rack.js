@@ -47,7 +47,7 @@ sec('B. 挂上去：只花 30 分钟，不当场给成品');
   console.log('    日志: ' + JSON.stringify(LOGS));
 }
 
-sec('C. 晾晒期间不能晾别的（主人明确要求）');
+sec('C. 晾晒期间不能晾别的（作者明确要求）');
 {
   const S = setup();
   Game.craft(RACK);

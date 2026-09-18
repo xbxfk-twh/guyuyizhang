@@ -105,7 +105,7 @@ ck('竹林深处的热点已右移（x=82 y=22 右上角）', bam && bam.x === 8
 const sceneHotspotPinned = /classList\.add\('pinned'/.test(UI);
 ck('场景热点没有做成"贴边浮动"（位置固定在图上、靠拖动看）', /function applyScenePan\(\)/.test(UI) && /applyBox\('#hotspots', box, scenePanY\)/.test(UI) && !/hotspot[\s\S]{0,80}pinned/.test(UI));
 ck('热点百分比锚在图片内容盒上（不因铺满裁切而错位）', /function coverBox\(iw, ih, bw, bh, zoom\)/.test(UI) && /applyBox\('#hotspots'/.test(UI));
-// 主人明确要求：热点要"像印在地图上"——随图滑动、被屏幕裁掉就自然滑出去，
+// 作者明确要求：热点要"像印在地图上"——随图滑动、被屏幕裁掉就自然滑出去，
 // **不许突然出现/消失（不做显隐判定）、不许有任何独立位移**。
 ck('大地图热点完全锁定在地图上（不显隐、不独立位移、不贴边浮动）',
    /a\.classList\.remove\('offscreen'\)/.test(UI) && !/classList\.add\('offscreen'\)/.test(UI) &&
@@ -327,6 +327,6 @@ console.log('通过 ' + ok + ' 项，失败 ' + bad.length + ' 项');
 if (bad.length) { console.log('失败项：'); bad.forEach(b => console.log(' - ' + b)); }
 console.log(bad.length ? 'RESULT:FAIL' : 'RESULT:PASS');
 /* ⚠️⚠️ 历史脚本（2026-09 早期）—— 已被 回归测试\audit.js 取代，**别拿它的 FAIL 当 bug**。
-   里面好几条要求后来被主人推翻了（例："不要自动居中"→ 后来改成"进图一定要自动居中"；
+   里面好几条要求后来被作者推翻了（例："不要自动居中"→ 后来改成"进图一定要自动居中"；
    "横扫 CD 20 次出手"→ 后来改成时间制 20 秒；地图尺寸也改成"宽度=屏幕宽度"）。
    现在打包前的权威门禁是：回归测试\audit.js + 开发工具\检查\_audit_announcement.js + _smoke_test.js。 */

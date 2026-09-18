@@ -14,7 +14,7 @@ function ck(name, cond, extra) {
     const r = _rawNewGame(a, b);
     const st = Game.S();
     // 回归测试专用开关（游戏里没有这个字段）：拦路是按概率触发的，会把"走到某地做某事"的用例随机打断。
-    // ⚠️ 不能再用 settings.roadAmbush —— 主人 2026-09-17 定了"赶路遇袭不给关"，那个字段已经被游戏忽略。
+    // ⚠️ 不能再用 settings.roadAmbush —— 作者 2026-09-17 定了"赶路遇袭不给关"，那个字段已经被游戏忽略。
     if (st) st._testNoAmbush = true;
     return r;
   };
@@ -366,7 +366,7 @@ section('5. 农场 / 建造 / 饮食');
   ck('水壶建成', !!S9.furniture.tank);
   ck('水壶不占家具位', G.furnitureUsed() === 0, '家具位 ' + G.furnitureUsed());
   G.buildFurniture('rainfilter');
-// ⚠️ 主人 2026-09-16 定调：滤雨器是"在水壶上加装滤网"，**水壶本身要留着** ——
+// ⚠️ 作者 2026-09-16 定调：滤雨器是"在水壶上加装滤网"，**水壶本身要留着** ——
 //    以前这里会把 tank 删掉，导致 -20% 口渴效果失效、属性面板显示"未建"（玩家反馈一团糟的那三个问题）。
 ck('滤雨器建成后水壶仍在（升级不再删掉水壶）', !!S9.furniture.rainfilter && !!S9.furniture.tank);
   ck('滤雨器不占家具位', G.furnitureUsed() === 0, '家具位 ' + G.furnitureUsed());
@@ -1558,7 +1558,7 @@ section('7c. 蓝牛（体力药水）与精神机制');
     const noBed = gainFor(null, 0), grass = gainFor('bed1', 0), big = gainFor('bed4', 3);
     ck('床真的有用：没床 < 草床 < 大床（体力恢复）', noBed < grass && grass < big, `无床 ${noBed} < 草床 ${grass} < 大床 ${big}`);
   ck('引擎与睡眠面板用同一套体力系数', /\(0\.45 \+ houseRest \* 0\.12 \+ bedRest \* 0\.32\)/.test(GAME) && /\(0\.45 \+ houseRest \* 0\.12 \+ bedRest \* 0\.32\)/.test(UI));
-      // 主人 2026-09-15：安稳睡觉统一 8 小时（以前好床睡得更短：8/7/6/5，玩家觉得别扭）；
+      // 作者 2026-09-15：安稳睡觉统一 8 小时（以前好床睡得更短：8/7/6/5，玩家觉得别扭）；
       // 床的好坏现在只体现在体力恢复比例与精神恢复上。
       ck('安稳睡觉统一 8 小时（引擎与面板一致）',
          /nap \? 2 : \(bed \? \(bf\.sleepH \|\| 8\) : 8\)/.test(GAME) && /const hours = bf \? \(bf\.sleepH \|\| 8\) : 8;/.test(UI) &&
@@ -2068,7 +2068,7 @@ section('7l. 牧场（鸡舍/羊圈）与草地陷阱');
   const s1 = setup(3, 3);
   ck('鸡舍 / 羊圈各能装填 3 只，满了就拒绝', G.liveInfo('pen').count === 3 && G.liveInfo('coop').count === 3 && G.addSheep().ok === false && G.addChick().ok === false);
   ck('上限是 3（liveInfo 里带 cap）', G.liveInfo('pen').cap === 3 && G.liveInfo('coop').cap === 3);
-  // ---- 鸡舍扩建：3 → 4 → 5（主人 2026-09-17 要求；羊圈不扩建）----
+  // ---- 鸡舍扩建：3 → 4 → 5（作者 2026-09-17 要求；羊圈不扩建）----
   {
     const s = setup(0, 0);
     s.furniture.coop = true;
@@ -2338,7 +2338,7 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
 {
   const CSS = fs.readFileSync(ROOT + '/css/style.css', 'utf8');
   ck('画面区铺满（舞台不再锁 16:9，左右不留黑边）', /stage\.style\.width = w \+ 'px';/.test(UI) && !/Math\.round\(w \* 9 \/ 16\)/.test(UI));
-  // 主人 2026-09-15 最终定调：大地图 **宽度 = 屏幕宽度**（手机/平板/电脑同一套规则），
+  // 作者 2026-09-15 最终定调：大地图 **宽度 = 屏幕宽度**（手机/平板/电脑同一套规则），
   // 高度按原图比例算出来、多出来的上下拖动看；横向锁死，绝不左右裁掉内容。
   ck('★ 大地图按"宽度 = 屏幕宽度"算（mapBox），不再用 cover 那套盖满屏幕',
      /function mapBox\(iw, ih, bw, bh\)/.test(UI) &&
@@ -2361,7 +2361,7 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
      /applyBox\('#map-img', box, mapPanY, 0\)/.test(UI) && /applyBox\('#map-arrows', box, mapPanY, 0\)/.test(UI) &&
      /mapPanX = 0;/.test(UI));
   ck('场景也铺满，热点/建筑跟着图片内容一起缩放', /applyBox\('#scene-img', box, scenePanY\)/.test(UI) && /applyBox\('#hotspots', box, scenePanY\)/.test(UI) && /applyBox\('#camp-buildings', box, scenePanY\)/.test(UI));
-  // 主人明确要求：热点像印在地图上，随图滑动、被屏幕裁掉就自然滑出去，
+  // 作者明确要求：热点像印在地图上，随图滑动、被屏幕裁掉就自然滑出去，
   // **不许突然出现/消失，不许有独立位移**。（曾做过"滑出画面的整条隐藏"，已拆掉）
   ck('热点不做任何显隐判定（滑出画面就跟着地图滑出去，不突然消失）',
      /a\.classList\.remove\('offscreen'\)/.test(UI) && !/classList\.add\('offscreen'\)/.test(UI) &&
@@ -2387,7 +2387,7 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
      /a\.style\.left = a\.dataset\.pctL; a\.style\.top = a\.dataset\.pctT;/.test(UI));
   ck('没有任何"按屏幕边缘堆叠/左右错开"的浮动排版残留',
      !/i \* 34/.test(UI) && !/side \* 90/.test(UI) && !/点击让地图对准这里/.test(UI));
-  // 主人 2026-09-15 定调（推翻了 v1.06 的"完全不做自动居中"）：
+  // 作者 2026-09-15 定调（推翻了 v1.06 的"完全不做自动居中"）：
   //   进地图**要**自动居中到"你现在所在的地方"（从营地出来就该看到营地），
   //   但**绝不突破地图边界** —— 不许出现黑边。热点本身仍然钉死在图上。
   ck('★ 进入地图自动居中到当前所在地（从营地出来就该看到营地）',
@@ -2425,7 +2425,7 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
   ck('★ 纵向余量算得出来（高度超出舞台才可上下拖，且拖不出空白）',
      /mapPanY = Math\.max\(-box\.maxPan, Math\.min\(box\.maxPan, mapPanY\)\);/.test(UI) &&
      !/MAP_KEY_L/.test(UI) && !/MAP_KEY_R/.test(UI));
-  // 玩家/主人反馈的坐标微调：山顶要贴山峰上部、竹林不许贴左边缘（还要和采石场错开，别让标签连成一片）
+  // 玩家/作者反馈的坐标微调：山顶要贴山峰上部、竹林不许贴左边缘（还要和采石场错开，别让标签连成一片）
   {
     const MA = (DATA.match(/const MAP_ARROWS = \{([\s\S]*?)\n\};/) || ['', ''])[1];
     const get = (k) => { const m = MA.match(new RegExp(k + ":\\s*\\{\\s*x:(\\d+),\\s*y:(\\d+)")); return m ? { x: +m[1], y: +m[2] } : null; };
@@ -2611,7 +2611,7 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
     ck('神弓与猎弓数值完全一致（不靠数值膨胀，特权才是本体）',
        ITEMS[BOW].atk === ITEMS.bow.atk && ITEMS[BOW].spd === ITEMS.bow.spd && ITEMS[BOW].ranged === 1,
        '神弓 ' + ITEMS[BOW].atk + '/' + ITEMS[BOW].spd + ' vs 猎弓 ' + ITEMS.bow.atk + '/' + ITEMS.bow.spd);
-    // 主人 2026-09-15：神弓与手枪的耐久对调（神弓 50→120、手枪 120→50）
+    // 作者 2026-09-15：神弓与手枪的耐久对调（神弓 50→120、手枪 120→50）
     ck('神弓耐久 120、带 divineCrit（和手枪的耐久对调过）',
        DURA[BOW] === 120 && ITEMS[BOW].divineCrit === 1 && ITEMS[BOW].alwaysFit === 1,
        '耐久 ' + DURA[BOW] + ' divineCrit=' + ITEMS[BOW].divineCrit);
@@ -3712,6 +3712,10 @@ section('9e. 三层存档（本地 + cookie + TapTap 云存档 v4）');
   ck('★ 存档名是英文（官方要求不许汉字）+ 上传前先写本地文件',
      /const CLOUD_NAME = 'guyuyizhang_save';/.test(_GAME_SRC) && /getFileSystemManager\(\); const p = cloudPath\(\); fs2\.writeFileSync\(p, payload, 'utf8'\)/.test(_GAME_SRC));
   ck('save() 和 metaSave() 都会排一次云同步', (_GAME_SRC.match(/cloudPush\(false\)/g) || []).length >= 2);
+  ck('★ 每次保存 / 备份都会顺手排一次云同步，并给玩家明确反馈',
+     /刚同步过（平台限制一分钟一次）/.test(_GAME_SRC) &&
+     /已保存。' \+ \(cs\.supported \? `云存档：\$\{cs\.msg\}`/.test(UI) &&
+     /已备份到备份槽 \$\{\+b\.dataset\.bk \+ 1\}（第 \$\{r\.day\} 天）。` \+ \(cs\.supported/.test(UI));
   ck('启动时会初始化云存档（浏览器里自动跳过）', /metaLoad\(\);\s*cloudInit\(\);/.test(_GAME_SRC));
   ck('设置面板有云存档说明行，支持时还能手动上传',
      /<b>云存档<\/b>/.test(UI) && /data-cloudpush/.test(UI) && /Game\.cloudPush\(true\)/.test(UI));

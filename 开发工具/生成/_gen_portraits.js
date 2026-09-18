@@ -6,7 +6,7 @@
      （可选环境变量：PORTRAIT_MODEL 默认 qwen-image-3.0；PORTRAIT_SIZE 默认 1024*1536）
 
    输出：孤屿遗章-游戏 - 发布/assets/img/identities-card/<身份id>.png
-   风格：照主人给的样板 —— 日系全彩卡面、暖光、同主题道具背景、构图饱满、无文字无边框。
+   风格：照作者给的样板 —— 日系全彩卡面、暖光、同主题道具背景、构图饱满、无文字无边框。
 */
 const fs = require('fs');
 const path = require('path');

@@ -39,16 +39,16 @@ ck('图鉴账号级、没存档也能看', /const st = S\(\) \|\| \{ seen: \{\},
 
 console.log('\n【大地图】');
 ck('舞台铺满（不再锁 16:9）', /stage\.style\.width = w \+ 'px';/.test(UI) && !/Math\.round\(w \* 9 \/ 16\)/.test(UI));
-// 主人 2026-09-15 定调：大地图【宽度=屏幕宽度】、只有上下能拖（横向锁死），热点跟着地图一起走
+// 作者 2026-09-15 定调：大地图【宽度=屏幕宽度】、只有上下能拖（横向锁死），热点跟着地图一起走
 ck('地图宽度贴合屏幕 + 可上下拖（横向锁死）+ 热点跟着一起走',
    /function mapBox\(iw, ih, bw, bh\)/.test(UI) && /function bindPan\(sel, getPan, setPan, settle\)/.test(UI) &&
    /applyBox\('#map-arrows', box, mapPanY, 0\)/.test(UI) && /mapPanX = 0;/.test(UI));
-// 曾试过"贴边浮动标签"和"滑出画面整条隐藏"，都不对。主人最终要求：
+// 曾试过"贴边浮动标签"和"滑出画面整条隐藏"，都不对。作者最终要求：
 // 热点像印在地图上 —— 随图滑动、被屏幕裁掉就自然滑出去，不突然消失、不独立位移。
 ck('地图热点完全锁定在地图上（不显隐、不独立位移、不贴边浮动）',
    /a\.classList\.remove\('offscreen'\)/.test(UI) && !/classList\.add\('offscreen'\)/.test(UI) &&
    /a\.style\.marginLeft = ''/.test(UI) && !/classList\.add\('pinned'/.test(UI) && !/\.map-arrow\.pinned \{/.test(CSS));
-// 主人 2026-09-15 定调：回地图**要**自动对准当前所在地，但绝不越界（不出现黑边）；
+// 作者 2026-09-15 定调：回地图**要**自动对准当前所在地，但绝不越界（不出现黑边）；
 // 热点本身仍然钉死在地图坐标上，不许有任何独立位移或动画（山顶、珍珠洞窟也一样）。
 ck('★ 回地图自动对准当前所在地 + 不越界（热点仍只钉在地图坐标上）',
    /function centerMapOnHere/.test(UI) && /mapPendingCenter/.test(UI) &&

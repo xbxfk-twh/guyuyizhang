@@ -601,7 +601,7 @@ const RECIPES = [
   { id:'r_smoke', name:'简易烟雾弹', out:{ smokeBomb:1 }, in:{ sulfur:1, niter:1, branch:2 }, station:'work1', time:20 },
   { id:'r_supplybox', name:'打包补给箱', out:{ supplybox:1 }, in:{ smokedMeat:20, water:20 }, station:'work2', time:60 },
   // 限时活动 · 神弓（26.9.15-26.9.30）：全账号唯一（手上有或邮箱里有就不再显示）。
-  // ⚠️ 主人 2026-09-17 要求"把神弓的制造放到最下面"——所以它固定在 RECIPES 数组的**最后一条**
+  // ⚠️ 作者 2026-09-17 要求"把神弓的制造放到最下面"——所以它固定在 RECIPES 数组的**最后一条**
   //    （列表是按数组顺序渲染的，放最后就是精工工作台/制造页最底下一格）。
   // 活动结束后：把这一条配方删掉即可（物品定义与领取逻辑不用动，已做出的神弓照常可用）。
   { id:'r_divinebow', name:'限定 · 神弓（26.9.15-26.9.30）', out:{ divineBow:1 }, station:'work2', time:180, uniqueItem:'divineBow',
@@ -671,7 +671,7 @@ const FURNITURE = [
   { id:'fr3', name:'高炉', station:'furn3', mats:{ stonebrick:12, ironpart:4 }, time:360, needPrev:'fr2', needBp:'bpFurnace', desc:'熔炼玄铁秘银的高炉。' },
   { id:'sm1', name:'烟熏炉', station:'smoke1', mats:{ stone:6, wood:4 }, time:60, desc:'熏鱼熏肉，保鲜七日。' },
   { id:'sm2', name:'熏制房', station:'smoke2', mats:{ stonebrick:8, ironpart:2 }, time:180, needPrev:'sm1', desc:'批量熏制，能做肉干。' },
-  // ⚠️ sleepH 统一 8 小时（主人 2026-09-15）：床的好坏体现在"体力恢复比例 rest"和"精神恢复 spirit"上，
+  // ⚠️ sleepH 统一 8 小时（作者 2026-09-15）：床的好坏体现在"体力恢复比例 rest"和"精神恢复 spirit"上，
   //    不再让好床睡得更短（以前 8/7/6/5，玩家会觉得"买了好床反而睡得更少"）。
   { id:'bed1', name:'草床', rest:0.7, sleepH:8, spirit:6, mats:{ thatch:10, wood:4 }, time:30, desc:'草铺的床。' },
   { id:'bed2', name:'木床', rest:0.9, sleepH:8, spirit:7, mats:{ plank:4, cloth:2 }, time:60, needPrev:'bed1', desc:'木床睡得踏实。' },
@@ -1286,7 +1286,7 @@ const ENDINGS = {
 };
 
 // ---------- 局外成长：历代遗章（传承魂点永久加成） ----------
-// ---------- 技能树（主人 2026-09-17 二次定稿；分批实现，B1 = 框架 + 主干 + 采集/制造分支） ----------
+// ---------- 技能树（作者 2026-09-17 二次定稿；分批实现，B1 = 框架 + 主干 + 采集/制造分支） ----------
 // 主干：等级 0→SKILL_TRUNK_MAX，每升一级从 trunk 里**选一个**选项（可重复叠加，记在 S.skillPicks）。
 // 分支节点：need=主干等级门槛、needNode=前置节点、mutex=互斥节点、max=最高等级、cost[级]。
 // ⚠️ 效果文案写在 desc 里给玩家看，真正的数值钩子在 game.js 的 skillFx* 系列函数里按 id 查。
@@ -1376,7 +1376,7 @@ const META_NODES = [
   { id:'whet', name:'磨刀石', desc:'攻击 +3% / +6% / +10%', max:3, cost:[30,80,180] },
   { id:'tough', name:'坚韧', desc:'受到的伤害 -5% / -10% / -15%', max:3, cost:[30,80,180] },
   { id:'kit', name:'家传补给', desc:'开局携带 火把/草药膏 ×1 / ×2 / ×3', max:3, cost:[40,100,220] },
-  // 主人 2026-09-17：技能经验不跨局，但《历代遗章》可以给"各技能模块初始经验"
+  // 作者 2026-09-17：技能经验不跨局，但《历代遗章》可以给"各技能模块初始经验"
   { id:'startG', name:'采集心得', desc:'每局开局获得 采集经验 +30 / +60 / +100', max:3, cost:[30,80,180] },
   { id:'startC', name:'制造心得', desc:'每局开局获得 制造经验 +30 / +60 / +100', max:3, cost:[30,80,180] },
   { id:'startF', name:'战斗心得', desc:'每局开局获得 战斗经验 +30 / +60 / +100', max:3, cost:[30,80,180] },

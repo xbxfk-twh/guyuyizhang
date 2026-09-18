@@ -132,7 +132,7 @@ async function main() {
     await tryGo('雷暴天', s => { s.weather = 'storm'; });
     await tryGo('没穿保暖衣', s => { s.equipment.cloth = null; });
     out.三种失败情况 = tries;
-    // 最后把"结算画面"留在屏幕上，Node 侧截一张图（主人要看结算画面长什么样）
+    // 最后把"结算画面"留在屏幕上，Node 侧截一张图（作者要看结算画面长什么样）
     Game.newGame('fisher', 'normal'); const sp = Game.S(); sp.tut = null;
     sp.day = 64; sp.flags.ended_C = 1;
     sp.diary = (sp.diary || []).concat([{ day:60, line:'山顶的祭坛亮了。' }, { day:64, line:'该记下的都记下了。' }]);

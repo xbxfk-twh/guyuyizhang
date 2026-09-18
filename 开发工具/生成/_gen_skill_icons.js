@@ -1,4 +1,4 @@
-/* 技能图标：一张图 3×3 = 9 个图标，批量出图（主人建议的"3×3 画法"）
+/* 技能图标：一张图 3×3 = 9 个图标，批量出图（作者建议的"3×3 画法"）
    用法：$env:DASHSCOPE_API_KEY='sk-...'; node 开发工具\生成\_gen_skill_icons.js
    可选：$env:ICON_SHEET='1' 只重画某一张；$env:ICON_FORCE='1' 强制重画
    原图 → 归档\素材实验\技能图标原图\sheetN.png，再由 _slice_skill_icons.py 切成

@@ -382,7 +382,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   let mapPanY = 0;            // 大地图上下平移（像素）
   let mapPanX = 0;            // 大地图左右平移（恒为 0：宽度已经和屏幕一致，横向锁死）
   let _lastView = null;
-  // ---------- 大地图的尺寸规则（主人 2026-09-15 最终定调）----------
+  // ---------- 大地图的尺寸规则（作者 2026-09-15 最终定调）----------
   // 【宽度 = 屏幕宽度】（手机 / 平板 / 电脑一视同仁），高度按原图比例算出来，
   //  多出来的部分靠上下拖动看。横向锁死（不留横向拖动，也不会左右裁掉内容）。
   //  ⛔ 以前用的是 cover（等比放大到"盖住整屏"）：为了让高度也铺满，图片被放得比屏幕宽，
@@ -529,7 +529,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   // 这里按实际渲染位置逐个修正：顶出上边缘的翻成"箭头在上、标签在下"；顶到左右的往内推。
   // 地图热点：**完全锁定在地图上** —— 位置只由"地图百分比 + 地图自身的位移/缩放"决定。
   // 不做显示/隐藏判定、不做任何独立位移（曾经用 display:none 藏滑出画面的热点、
-  // 用 marginLeft 把压边的标签推回画面，结果热点看起来"乱飘、还会突然消失"，主人明确要求拆掉）。
+  // 用 marginLeft 把压边的标签推回画面，结果热点看起来"乱飘、还会突然消失"，作者明确要求拆掉）。
   // 现在滑出画面的热点就跟着地图一起滑出画面（被 #map-wrap 的 overflow:hidden 裁掉），拖回来自然重现。
   // 热点完全固定：位置只由地图坐标决定，不做任何显隐判定、不做任何独立位移。
   // ⚠️ 这里以前还有一条"贴顶时把箭头换到标签上方"的做法，拖动时会在阈值附近来回切换、
@@ -547,7 +547,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     });
   }
   // ---------- 进地图：自动居中到"你现在所在的地方" ----------
-  // 主人要求：进地图一定要自动居中（从营地出来就该看到营地），但**不许突破地图边界**——
+  // 作者要求：进地图一定要自动居中（从营地出来就该看到营地），但**不许突破地图边界**——
   //   拖出黑边那种事不能干。所以：先算出"把锚点放到舞台正中"需要的平移量，
   //   再夹到"整张图仍然盖满舞台"的范围里。地图本身不够大时（宽屏上纵向常常只多几十像素），
   //   就居中到能居中的极限，锚点保证在画面里，绝不会出现空白。
@@ -1387,14 +1387,14 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     return `<div class="modal-title">技能 <span style="font-size:11px">采集／制造／战斗 · 点卡片展开技能树</span></div>${skillBody()}<div class="modal-actions"><button id="modal-close">关 闭</button></div>`;
   }
   // ---------- 技能树（树状图：主干竖着一串，专项从两侧伸出来）----------
-  // 主人 2026-09-18：要的就是"从上往下一串基础升级，两侧延伸专项升级，大量互斥"的树状图。
+  // 作者 2026-09-18：要的就是"从上往下一串基础升级，两侧延伸专项升级，大量互斥"的树状图。
   // 布局：每一级一行（三栏：左侧专项 | 中间主干节点 | 右侧专项），主干用一条竖线串起来，
   //       专项节点按 need（需要主干几级）挂到对应行，互斥的一对强制分居左右、中间画红色虚线。
   function stNodeCard(kind, n) {
     const dots = '●'.repeat(n.lv) + '○'.repeat(Math.max(0, n.max - n.lv));
     const reqTag = n.req ? ` <span class="st-req">需${n.req}</span>` : '';
     const ico = n.icon ? `<img class="st-icon" src="assets/img/skills/${n.icon}.png" alt="" onerror="this.style.display='none'">` : '';
-    // 学习按钮：**不管能不能点，都把要花的经验写上**（主人 2026-09-18：按钮上要有消耗）
+    // 学习按钮：**不管能不能点，都把要花的经验写上**（作者 2026-09-18：按钮上要有消耗）
     const act = n.canLearn
       ? `<button class="mini-btn" data-nodelearn="${kind}:${n.id}">学习（花 ${n.cost} 经验）</button>`
       : `<button class="mini-btn lockedb" disabled>学习（需 ${n.cost === null ? '—' : n.cost} 经验）</button>`;
@@ -1582,7 +1582,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       const have = Game.invCount('chick');
       const canAdd = have > 0 && i.count < i.cap;
       html += `<div class="help-item"><b>装填小鸡</b><span>背包里有 ${have} 只（外岛·盐镇杂货商 80 贝壳一只）</span><button class="mini-btn" data-liveadd="1" ${canAdd ? '' : 'disabled'}>放 进 鸡 舍</button></div>`;
-      // 扩建：3 只 → 4 只 → 5 只（主人 2026-09-17 要求）
+      // 扩建：3 只 → 4 只 → 5 只（作者 2026-09-17 要求）
       const ex = i.ext || 0, exMax = i.extMax || 2;
       if (ex < exMax) {
         const emats = Game.coopExtMats(ex + 1) || {};
@@ -2261,7 +2261,6 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
           <div class="modal-actions">${btn('log:always', '常驻', logMode === 'always')}${btn('log:fade', '3 秒后淡出', logMode === 'fade')}${btn('log:hidden', '隐藏', logMode === 'hidden')}</div></div>
         <div class="help-item"><b>日志栏大小</b><span>窄一点能多看画面，宽一点看得清文字</span>
           <div class="modal-actions">${btn('logw:narrow', '窄', logSize === 'narrow')}${btn('logw:mid', '中', logSize === 'mid')}${btn('logw:wide', '宽', logSize === 'wide')}</div></div>
-        <div class="help-item"><b>赶路遇袭</b><span>去危险度 ≥3 的区域（采石场/草地/荒漠/山洞/海域/山顶/对岸）时，路上可能被狼或熊拦路——能打也能退。<b>这个不能关</b>（主人 2026-09-17 定了）。</span></div>
         <div class="help-item"><b>皮肤包</b><span>当前：<b>${skinName()}</b>${skin === 'ink' ? ' · 纯黑白木刻' : ' · 深海navy + 琥珀金'}</span>
           <div class="modal-actions">${SKINS.map(s => btn('skin:' + s.id, s.name, skin === s.id)).join('')}</div></div>
         <div class="help-item"><b>图鉴 · 每日签到</b><span>图鉴是账号级的，不开局也能翻；签到每天可领 魂点 ×30 + 备份点 ×2。</span>
@@ -2644,7 +2643,15 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     m.querySelectorAll('[data-toolslot]').forEach(b => b.onclick = () => { const tk = (Game.S().toolkit || []); const id = tk[+b.dataset.toolslot]; if (id) { Game.unequipTool(id); showModal('equip'); } });
     m.querySelectorAll('[data-equiptool]').forEach(b => b.onclick = () => { const r = Game.equipTool(b.dataset.equiptool); if (!r.ok) addLog(r.reason, 'warn'); rerenderEquip(); });
     m.querySelectorAll('[data-emptyslot]').forEach(b => b.onclick = () => addLog('请从下方已拥有的神物中点击装备。', 'warn'));
-    m.querySelectorAll('[data-bk]').forEach(b => b.onclick = () => { const r = Game.backupSlot(+b.dataset.bk); if (r.ok) { addLog(`已备份到备份槽 ${+b.dataset.bk + 1}（第 ${r.day} 天）。`, 'good'); centerToast(`已备份到槽 ${+b.dataset.bk + 1}`); } else { addLog(r.reason, 'warn'); centerToast(r.reason); } showModal('backup'); });
+    m.querySelectorAll('[data-bk]').forEach(b => b.onclick = () => {
+      const r = Game.backupSlot(+b.dataset.bk);
+      if (r.ok) {
+        const cs = Game.cloudStatus();   // 备份也会顺带排一次云同步
+        addLog(`已备份到备份槽 ${+b.dataset.bk + 1}（第 ${r.day} 天）。` + (cs.supported ? `云存档：${cs.msg}` : '（这台设备没有云存档，备份存在本机）'), 'good');
+        centerToast(`已备份到槽 ${+b.dataset.bk + 1}`);
+      } else { addLog(r.reason, 'warn'); centerToast(r.reason); }
+      showModal('backup');
+    });
     m.querySelectorAll('[data-delslot]').forEach(b => b.onclick = () => { const r = Game.delSlot(+b.dataset.delslot); addLog(r.ok ? `已删除备份槽 ${+b.dataset.delslot + 1}。` : r.reason, r.ok ? 'good' : 'warn'); centerToast(r.ok ? `已删除槽 ${+b.dataset.delslot + 1}` : r.reason); showModal('backup'); });
     m.querySelectorAll('[data-ld]').forEach(b => b.onclick = () => { const r = Game.loadSlot(+b.dataset.ld); if (r.ok) { closeModal(); begin(); } else addLog(r.reason, 'warn'); });
     m.querySelectorAll('[data-buybp]').forEach(b => b.onclick = () => { const r = Game.buyBackupPoint(); if (r.ok) { addLog('购买了 1 个备份点。', 'good'); } else addLog(r.reason, 'warn'); showModal('backup'); });
@@ -2657,7 +2664,12 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     m.querySelectorAll('[data-demolish]').forEach(b => b.onclick = () => { Game.demolishFurniture(b.dataset.demolish); showModal('camp'); });
     m.querySelectorAll('[data-savemenu]').forEach(b => b.onclick = () => {
       const v = b.dataset.savemenu;
-    if (v === 'save') { Game.save(); addLog('已存档。', 'sys'); showModal('savemenu'); }
+    if (v === 'save') {
+      Game.save();
+      const cs = Game.cloudStatus();                       // 保存 = 本地 + cookie + 尝试云同步（平台限制一分钟一次）
+      addLog('已保存。' + (cs.supported ? `云存档：${cs.msg}` : '（这台设备没有云存档，已存到本地 + cookie）'), 'sys');
+      showModal('savemenu');
+    }
     else if (v === 'sign') showModal('sign');
     else if (v === 'diary') showModal('diary');
       else if (v === 'col') showModal('collection');
@@ -3297,7 +3309,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     $('#sel-back').onclick = showIdentity;
   }
   // ---------- 开场分镜（只在"新的旅程"开新存档时播一次）----------
-  // 主人 2026-09-17：新存档开头要有几格漫画交代来历 ——
+  // 作者 2026-09-17：新存档开头要有几格漫画交代来历 ——
   //   听说亚克兰蒂斯遗址的传说 → 出海 → 特大风暴 → 被海水淹没晕过去 → 醒来就在这座荒岛。
   // 图在 assets/img/comic/（黑白木刻版画，跟游戏同一套视觉）；缺图自动回退到已有的场景图，绝不空白。
   // 只在新存档播：读档 / 继续上次游戏 / 备份恢复 / 死后重新开始 都走不到这里（freshRun 只在选难度那一下置位）。

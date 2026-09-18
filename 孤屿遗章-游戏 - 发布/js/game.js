@@ -802,8 +802,8 @@ function change() {
       if (!S.weaponNames) S.weaponNames = {};
       if (S.houseExt === undefined) S.houseExt = 0;
       if (S.coopExt === undefined) S.coopExt = 0;   // 老存档：鸡舍没扩建过
-      // ---- 技能树迁移（B1，主人 2026-09-17 定稿）----
-      // 老存档的旧技能等级【折算成经验，让玩家自己重新点】（主人原话），不自动折算属性。
+      // ---- 技能树迁移（B1，作者 2026-09-17 定稿）----
+      // 老存档的旧技能等级【折算成经验，让玩家自己重新点】（作者原话），不自动折算属性。
       // 折算 = 新曲线升到同一等级所需经验 × 2（给足余量，保证老玩家不会比改版前弱）。
       // 只在 S.tree 不存在时跑一次（新存档在 newGame 里已经有 S.tree）→ 幂等。
       if (!S.tree) {
@@ -892,7 +892,7 @@ function change() {
     // 历代遗章：家传补给
     const mbK = metaBonus();
     if (mbK.kit > 0) { addItem('torch', mbK.kit, true); addItem('herbPaste', mbK.kit, true); }
-    // 《历代遗章》·各技能模块初始经验（主人 2026-09-17）：技能经验本身不跨局，改由传承给开局经验
+    // 《历代遗章》·各技能模块初始经验（作者 2026-09-17）：技能经验本身不跨局，改由传承给开局经验
     if (mbK.startG) S.exp.gather = Math.round(((S.exp.gather || 0) + mbK.startG) * 10) / 10;
     if (mbK.startC) S.exp.craft  = Math.round(((S.exp.craft  || 0) + mbK.startC) * 10) / 10;
     if (mbK.startF) S.exp.combat = Math.round(((S.exp.combat || 0) + mbK.startF) * 10) / 10;
@@ -1061,7 +1061,7 @@ function change() {
   // 返回 true 表示"拦路了，这次移动先不落地"（等玩家在弹窗里选）
   // force=true 供测试用：跳过概率判定直接触发（不要去固定 Math.random，否则连"选哪种怪"也会被定死）
   function rollTravelAmbush(id, force) {
-    // 主人 2026-09-17：设置里不再允许关闭赶路遇袭 —— 老存档里 settings.roadAmbush=false 也忽略
+    // 作者 2026-09-17：设置里不再允许关闭赶路遇袭 —— 老存档里 settings.roadAmbush=false 也忽略
     if (S._testNoAmbush) return false;   // ⚠️ 只给回归测试用（checks.js 会设它），玩家存档里不存在这个字段
     if (id === 'atlantis' || S.scene === 'atlantis') return false;   // 海底有自己那套，这里只管第一章陆地
     const sc = sceneOf(id);
@@ -1356,7 +1356,7 @@ function change() {
     let huntTarget = null;
     if (p.type === 'hunt') {
       // 过滤器：夜行猎物白天不出现；带 minDay 的（洞穴熊=第30天起）没到日子也不出现
-      // ⚠️ 山洞里的洞穴熊：主人 2026-09-17 定「山洞内一直有概率出现洞穴熊」——所以洞内狩猎点
+      // ⚠️ 山洞里的洞穴熊：作者 2026-09-17 定「山洞内一直有概率出现洞穴熊」——所以洞内狩猎点
       //    （p.id 以 cave_ 开头）不吃 minDay 门槛，洞外拦路那条还按第 30 天起算。
       const caveNow = /^cave_/.test(p.id || '');
       const pool = p.enemies.map(e => ENEMIES[e]).filter(e => e && !(e.nightOnly && !isNight()) && (caveNow || !e.minDay || S.day >= e.minDay));
@@ -1981,7 +1981,7 @@ function change() {
   function cxCrit() { return 0.10 + 0.05 * trunkPicks('combat','crit'); }
   // —— 战斗分支（B2 第一批）：阔刃横扫（时间制 CD）/ 处决、嗜血狂刀 / 复仇 ——
   // 攻速口径：每 100 时间单位出手「攻速」次 → 每出手一次推进 100/攻速 时间单位。
-  // 横扫 CD 用同一套时间单位：基础 20「秒」，每级 -2（= 主人的"减到 1/10"一档）。
+  // 横扫 CD 用同一套时间单位：基础 20「秒」，每级 -2（= 作者的"减到 1/10"一档）。
   const SWEEP_CD_BASE = 20;
   function sweepNodeLv() { return nodeLv('combat','f_sweep'); }
   function sweepCdTotal() { return Math.max(2, SWEEP_CD_BASE - 2 * sweepNodeLv()); }     // 20 / 18 / 16 / 14
@@ -2051,7 +2051,7 @@ function change() {
     save(); change();
     return { ok:true, lv: S.tree[kind][id], cost: chk.cost };
   }
-  // 末端判定：没有任何"已经学会"的节点挂在它下面，才允许遗忘（主人要求：只能从最末端往外剥）
+  // 末端判定：没有任何"已经学会"的节点挂在它下面，才允许遗忘（作者要求：只能从最末端往外剥）
   function nodeIsLeaf(kind, id) {
     const t = treeDef(kind); if (!t) return false;
     if (nodeLv(kind, id) <= 0) return false;
@@ -2384,7 +2384,7 @@ function change() {
 
     C.enemies = C.enemies.filter(e => e.ehp > 0);
     C.ehp = C.enemies.length ? C.enemies[0].ehp : 0;
-    // 横扫冷却改成【时间制】（主人 2026-09-18）：每次出手推进 100/攻速 个时间单位。
+    // 横扫冷却改成【时间制】（作者 2026-09-18）：每次出手推进 100/攻速 个时间单位。
     // 例：攻速 10 → 一次出手 10 秒 → CD 20 秒 = 两次出手后又能扫。
     if (act !== 'sweep' && C.sweepCd > 0) {
       C.sweepCd = Math.max(0, C.sweepCd - 100 / Math.max(1, combatSpeed()));
@@ -2698,7 +2698,7 @@ function change() {
     return table[(n || 1) - 1] || table[table.length - 1];
   }
   // ---------- 扩建鸡舍（3 只 → 4 只 → 5 只）----------
-  // 主人 2026-09-17 要求：鸡舍能花材料扩建到 4 只，再花更多材料扩建到 5 只。
+  // 作者 2026-09-17 要求：鸡舍能花材料扩建到 4 只，再花更多材料扩建到 5 只。
   function coopExtMats(n) {
     const table = [
       { plank:8,  nail:10, thatch:20 },                    // 第 1 次：扩到 4 只
@@ -2807,7 +2807,7 @@ function change() {
       if (!ok) return { ok:false, reason:`需要建造${stationName}` };
       }
     }
-    // 晾肉架：一副架子一次只晾一批。晾晒期间不能晾别的（主人明确要求），要先去把上一批取下来
+    // 晾肉架：一副架子一次只晾一批。晾晒期间不能晾别的（作者明确要求），要先去把上一批取下来
     if (r.hang) {
       const d = dryOf(r.station);
       if (d) return { ok:false, reason: nowTick() >= d.readyAt
@@ -3570,6 +3570,7 @@ function change() {
     const now = Date.now();
     if (!force && now - cloud.lastPush < CLOUD_MIN_MS) {
       cloud.dirty = true;
+      cloud.msg = '刚同步过（平台限制一分钟一次），这次的改动会排队，稍后自动补传';
       if (!cloud.timer) cloud.timer = setTimeout(() => { cloud.timer = 0; if (cloud.dirty) cloudPush(true); }, CLOUD_MIN_MS - (now - cloud.lastPush) + 50);
       return false;
     }

@@ -74,7 +74,7 @@ const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —
        'top=' + init.top + ' vs 未平移 ' + init.未平移top);
   }
   ck('所有热点都保持地图坐标（没被搬走）', s.moved === 0, '被搬走 ' + s.moved + ' 个');
-  // 主人要求：热点像印在地图上，滑出画面就跟着一起滑出去，不许突然消失、不许独立位移
+  // 作者要求：热点像印在地图上，滑出画面就跟着一起滑出去，不许突然消失、不许独立位移
   ck('没有热点被隐藏（不做显隐判定）', s.hidden === 0, '隐藏 ' + s.hidden + ' / 共 ' + s.total);
   ck('全部热点都在渲染（含已滑出画面的）', s.visible === s.total, '可见 ' + s.visible + ' / 共 ' + s.total);
   const mlDrift = s.rows.filter(r => r.ml && r.ml !== '0px').length;
