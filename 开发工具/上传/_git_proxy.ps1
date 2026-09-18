@@ -1,12 +1,16 @@
-# git 代理开关（Windows / Clash Verge 默认端口 7897）
+# git proxy switch for Windows / Clash Verge (default mixed port 7897).
 #
-# 背景：git 默认【不读】Windows 的系统代理设置，所以 Clash 开着也可能出现
-#       "Failed to connect to github.com port 443" —— 得单独告诉 git 走代理。
+# Why: git does NOT read the Windows system proxy. So even with Clash Verge running,
+#      `git push` can fail with "Failed to connect to github.com port 443".
+#      This script tells git to use the local proxy (or to go direct again).
 #
-# 用法（在项目根目录）：
-#   powershell -ExecutionPolicy Bypass -File 开发工具\上传\_git_proxy.ps1 on     # 让 git 走 Clash
-#   powershell -ExecutionPolicy Bypass -File 开发工具\上传\_git_proxy.ps1 off    # 还原成直连
-#   powershell -ExecutionPolicy Bypass -File 开发工具\上传\_git_proxy.ps1 test   # 测一下通不通
+# Usage (from the project root):
+#   powershell -ExecutionPolicy Bypass -File 开发工具\上传\_git_proxy.ps1 on
+#   powershell -ExecutionPolicy Bypass -File 开发工具\上传\_git_proxy.ps1 off
+#   powershell -ExecutionPolicy Bypass -File 开发工具\上传\_git_proxy.ps1 test
+#
+# NOTE: keep every string in this file ASCII-only. PowerShell 5.1 reads .ps1 as ANSI
+#       unless it has a UTF-8 BOM, and non-ASCII literals then break the parser.
 param([string]$cmd = 'test', [string]$port = '7897')
 
 $proxy = "http://127.0.0.1:$port"
@@ -15,23 +19,22 @@ switch ($cmd.ToLower()) {
   'on' {
     git config --global http.proxy $proxy
     git config --global https.proxy $proxy
-    Write-Host "已让 git 走代理 $proxy"
-    Write-Host "（如果哪天 Clash 关了、git 报连接被拒绝，就跑一次 ... off）"
+    Write-Host "git now uses proxy $proxy"
+    Write-Host "If Clash is off later and git says 'connection refused', run this script with 'off'."
   }
   'off' {
     git config --global --unset http.proxy 2>$null
     git config --global --unset https.proxy 2>$null
-    Write-Host "已还原：git 直连（国内访问 GitHub 可能失败，属于正常）"
+    Write-Host "git restored to direct connection (github.com may be unreachable without a proxy)."
   }
   default {
     $h = git config --global --get http.proxy
-    Write-Host ("当前 git 代理：" + $(if ($h) { $h } else { "（没设，直连）" }))
+    if ($h) { Write-Host "current git proxy: $h" } else { Write-Host "current git proxy: (none, direct)" }
     $ok = $false
-    try { $t = Test-NetConnection -ComputerName 127.0.0.1 -Port $port -WarningAction SilentlyContinue; $ok = $t.TcpTestSucceeded } catch {}
-    if (-not $ok) { try { $c = New-Object System.Net.Sockets.TcpClient; $c.Connect('127.0.0.1', [int]$port); $ok = $c.Connected; $c.Close() } catch { $ok = $false } }
-    Write-Host ("本地代理端口 $port：" + $(if ($ok) { "在监听 ✓" } else { "没在监听 ✗（Clash Verge 没开？）" }))
+    try { $c = New-Object System.Net.Sockets.TcpClient; $c.Connect('127.0.0.1', [int]$port); $ok = $c.Connected; $c.Close() } catch { $ok = $false }
+    if ($ok) { Write-Host "local proxy port $port : listening OK" } else { Write-Host "local proxy port $port : NOT listening (is Clash Verge running?)" }
     if ($ok) {
-      Write-Host "测一下 GitHub："
+      Write-Host "GitHub reachability test:"
       git -c http.proxy=$proxy ls-remote https://github.com/xbxfk-twh/guyuyizhang.git 2>&1 | Select-Object -First 2
     }
   }
