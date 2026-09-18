@@ -3479,7 +3479,7 @@ function change() {
         if (lockKey) {
           acts.push({ id:'settle_' + id, locked:true,
             name:`结算 · 结局「${nm}」（本局已收尾）`,
-            desc:`本存档已经用结局「${lockName}」收尾了——一个存档只能结算一个结局。` });
+            desc:`本存档已经用结局「${lockName}」收尾了——一个存档只能结算一个结局（死一次、用 50 魂点复活，就能重新挑一个结局收尾）。` });
         } else {
           acts.push({ id:'settle_' + id, name:`结算 · 结局「${nm}」`, desc:'看结局画面与结算文字（这一生折成魂点汇入《历代遗章》），看完还能继续玩。' });
         }
@@ -3535,7 +3535,7 @@ function change() {
       const lockName = (ENDINGS[lockKey] || {}).name || lockKey;
       showOverlay({
         title: '结局达成 · ' + name,
-        text: `《${name}》达成了——不过这个存档已经用结局「${lockName}」收尾了。\n\n一个存档只能结算一个结局，所以《${name}》这一局不能再结算（达成记录、日记和成就照样算数）。\n\n想让它成为结算结局的话，开新的一局吧。`,
+        text: `《${name}》达成了——不过这个存档已经用结局「${lockName}」收尾了。\n\n一个存档只能结算一个结局，所以《${name}》这一局不能再结算（达成记录、日记和成就照样算数）。\n\n想换一个结局收尾有两条路：死一次、花 50 魂点复活（复活会把这页翻过去，传奇难度没有复活），或者开新的一局。`,
         choices: [ { label:'知道了', ok: () => {} } ],
       });
       return;
@@ -4067,10 +4067,12 @@ function change() {
     meta.soul -= 50; metaSave();
     if (!S._snap || !S._snap.day) { location.reload(); return; }
     const sn = S._snap.day;
-    // ⚠️ 复活 = 回到当天日出，但"本存档已用哪个结局收尾"不能跟着回滚，
-    //    否则玩家结算完再死一次复活，就又能去结算别的结局了（一局一个结局的规矩会被绕过）
+    // 作者 2026-09-19：**复活可以绕过"一局一个结局"**——死亡标记不锁定结局，只有结算过
+    // 非死亡结局才会锁定；花 50 魂点复活 = 把这一页翻过去，还能再去追别的结局。
+    // （传奇难度根本不能复活，所以那条路上锁会一直留到本局结束。）
+    // 但"某个结局已经结算过"的单条标记要留着：同一个结局不能结算两次刷魂点。
     const settledKeep = {};
-    for (const k in (S.flags || {})) if (k === 'settledEnding' || k.indexOf('settled_') === 0) settledKeep[k] = S.flags[k];
+    for (const k in (S.flags || {})) if (k.indexOf('settled_') === 0) settledKeep[k] = S.flags[k];
     Object.assign(S, JSON.parse(JSON.stringify(sn)));
     S.stats = JSON.parse(JSON.stringify(sn.stats));
     S.statuses = { bleed:0, poison:0, cold:false, fear:0 };
@@ -4078,6 +4080,7 @@ function change() {
     S.ending = undefined;
     S.flags = S.flags || {};
     for (const k in settledKeep) S.flags[k] = settledKeep[k];
+    delete S.flags.settledEnding;   // 复活 = 绕过定局：可以再挑一个结局收尾
     S.flags.metaSettled = 0;   // 本局继续，下次死亡可再次结算
     log('你用 50 魂点换回了今天——从日出重新开始。', 'sys');
     change();

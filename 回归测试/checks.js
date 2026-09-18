@@ -930,11 +930,32 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
        /结算前确认/.test(GAME) && /不能再结算其他结局/.test(GAME) && /确定结算/.test(GAME) && /再想想/.test(GAME));
     G.S().flags.metaSettled = 0;
     G.reviveToday();
-    ck('★ 复活（回到当天日出）不会把"已收尾"的定局一起回滚',
-       G.S().flags.settledEnding === 'A', 'settledEnding=' + G.S().flags.settledEnding);
+    ck('★ 复活可以绕过定局（作者 2026-09-19：死亡标记不锁定结局）',
+       !G.S().flags.settledEnding, 'settledEnding=' + G.S().flags.settledEnding);
+    ck('复活不会清掉"这个结局已经结算过"的单条标记（同一个结局不能刷两次魂点）',
+       G.S().flags.settled_A === 1, 'settled_A=' + G.S().flags.settled_A);
+    // 复活之后：定局没了 → 别的结局又能结算；但已经结算过的 A 不会再出现在按钮里
+    G.S().flags.ended_C = 1;
+    const idsAfter = G.checkEndingActions().map(a => a.id);
+    ck('★ 复活后「秘辛」的结算按钮回来了，而结算过的「归乡」不再出现',
+       idsAfter.includes('settle_endC') && !idsAfter.includes('settle_endA'), idsAfter.join('/'));
+    const rAfter = G.settleEnding('endC');
+    ck('★ 复活后确实能结算另一个结局（新定局 = 秘辛）',
+       rAfter.ok && G.S().flags.settledEnding === 'C', 'ok=' + rAfter.ok + ' settledEnding=' + G.S().flags.settledEnding);
+    G.continueRun();
     G.save(); G.load();
-    ck('定局标记跟着存档走：读档之后还是一局只能结算一个', G.S().flags.settledEnding === 'A',
+    ck('定局标记跟着存档走：读档之后还是一局只能结算一个', G.S().flags.settledEnding === 'C',
        'settledEnding=' + G.S().flags.settledEnding);
+    // 死亡结局 D 不占名额：死过一次（D 已结算）之后再结算 A，照样能成
+    {
+      G.newGame('fisher', 'normal');
+      const sD = G.S(); sD.tut = null;
+      sD.flags.ended_A = 1; sD.flags.metaSettled = 1; sD.ending = 'D';
+      const rD = G.settleEnding('endA');
+      ck('★ 死亡结局 D 不占用"一局一个结局"的名额（结算过 D 之后照样能结算 A）',
+         rD.ok && G.S().flags.settledEnding === 'A', 'ok=' + rD.ok + ' settledEnding=' + G.S().flags.settledEnding);
+      G.continueRun();
+    }
     // 老存档（旧版本结算过、没有 settledEnding 这个字段）读进来也要补上定局，不能借读档绕开规矩
     const sOld = G.S();
     sOld.flags.settledEnding = undefined; sOld.flags.settled_A = 1;
