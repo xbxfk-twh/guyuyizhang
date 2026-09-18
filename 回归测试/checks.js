@@ -466,10 +466,13 @@ section('6d. 手枪 / 扩建仓库 / 重开身份');
     G.addItem('pistol', 1, true); G.addItem('bullet', 6, true);
     G.equip('pistol', 0);
     G.startFight({ id:'d', name:'木桩', hp:9999999, atk:0, def:0, spd:1, traits:[], drops:[] }, true);
-    ck('手枪开火会消耗源能子弹', (G.S().combat.bowShots || 0) >= 1, '抢先射击 ' + G.S().combat.bowShots + ' 次');
+    // ⚠️ 先手箭改成"开局当场打完"（以前是留在 fightAction 里、会吃掉玩家那次操作）→ 这里改成看子弹消耗
+    ck('手枪开局先手那 1 发当场打出（子弹被消耗）', G.invCount('bullet') === 5, '剩 ' + G.invCount('bullet'));
     Sg.stats.hp = 99999;
+    const rndP = Math.random; Math.random = () => 0.0;   // 必命中（不然这一枪可能落空、不扣子弹）
     G.fightAction('attack');
-    ck('打出一发后子弹减少', G.invCount('bullet') < 6, '剩 ' + G.invCount('bullet'));
+    Math.random = rndP;
+    ck('玩家自己再开一枪后子弹继续减少', G.invCount('bullet') < 5, '剩 ' + G.invCount('bullet'));
     ck('手枪单发伤害明显高于剑类（50 基础）', ITEMS.pistol.atk >= 45 && ITEMS.pistol.ranged && ITEMS.pistol.ammoItem === 'bullet');
   }
   // 扩建仓库
@@ -515,14 +518,14 @@ section('6d. 手枪 / 扩建仓库 / 重开身份');
     G.addItem('pistol', 1, true); G.addItem('bullet', 9, true);
     G.equip('pistol', 0);
     G.startFight({ id:'d', name:'木桩', hp:999999, atk:0, def:0, spd:1, traits:[], drops:[] }, true);
-    ck('手枪只抢射 1 发', G.S().combat.bowShots === 1, '抢射 ' + G.S().combat.bowShots);
+    ck('手枪只抢射 1 发（开局就打掉 1 颗子弹）', G.invCount('bullet') === 8, '剩 ' + G.invCount('bullet'));
   }
   G.newGame('fisher', 'normal');
   {
     G.addItem('bow', 1, true); G.addItem('eagleArrow', 9, true);
     G.equip('bow', 0);
     G.startFight({ id:'d', name:'木桩', hp:999999, atk:0, def:0, spd:1, traits:[], drops:[] }, true);
-    ck('弓仍是 2~3 发抢射', G.S().combat.bowShots >= 2, '抢射 ' + G.S().combat.bowShots);
+    ck('弓仍是 2~3 发抢射（开局就打掉相应数量的箭）', 9 - G.invCount('eagleArrow') >= 2, '打掉 ' + (9 - G.invCount('eagleArrow')) + ' 箭');
   }
   // 源能子弹：2 发一份，材料不变；手枪伤害保持 50
   const rbul = RECIPES.find(r => r.id === 'r_bullet');
@@ -1035,7 +1038,7 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
        '双匕首 ' + base('ironDagger','ironDagger'));
     ck('弹药只喂对应的远程武器（弓开火不扣源能子弹）',
        /function ammoConsume\(weapon\)/.test(_GAME_SRC) && /rw = \(weapon && weapon\.ammoItem\) \? weapon : rangedWeapon\(\)/.test(_GAME_SRC) &&
-       /ammoConsume\(rwNow\)/.test(_GAME_SRC));
+       /ammoConsume\((rwNow|rw2|rangedWeapon\(\))\)/.test(_GAME_SRC));
     ck('远程判定口径统一（主手不是远程就看副手，不再漏判）',
        /function hasRanged\(\) \{\s*const rw = rangedWeapon\(\);/.test(_GAME_SRC));
     ck('弹药不能装备到手上（主副手不会被子弹占掉）',
@@ -2664,26 +2667,28 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
     sb.equipment.weapon = BOW; sb.toolDurs[BOW] = [50]; sb.dur[BOW] = 50;
     sb.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
     const r0 = Math.random; Math.random = () => 0.99;      // 屏蔽普通会心(10%)，只看神弓特权
-    G.startFight(ENEMIES.boar, true);
-    const C = G.S().combat;
-    C.enemies.forEach(e => { e.ehp = 999999; e.emax = 999999; });
-    const a0 = C.enemies[0].ehp; G.fightAction('ranged');
-    const first = a0 - G.S().combat.enemies[0].ehp;
-    const a1 = G.S().combat.enemies[0].ehp; G.fightAction('ranged');
-    const second = a1 - G.S().combat.enemies[0].ehp;
-    ck('实测：★ 第一箭必会心（= 普通伤害 ×1.5）', first === Math.round(second * 1.5), '第一箭 ' + first + '，第二箭 ' + second);
-    ck('实测：特权提示写进了战斗日志',
-       !!(G.S().combat && G.S().combat.log.some(x => /神弓的弦音/.test(x))), '');
-    G.startFight(ENEMIES.boar, true);
-    const C2 = G.S().combat;
-    C2.enemies.forEach(e => { e.ehp = 999999; e.emax = 999999; });
-    const b0 = C2.enemies[0].ehp; G.fightAction('ranged');
-    const again = b0 - G.S().combat.enemies[0].ehp;
+    // ⚠️ 先手箭现在"开局当场打完"，所以特权落在**开局第一箭**上（以前落在玩家点的那一箭上）。
+    //    验证方式改成：同样条件下，神弓的先手总伤害应当高于数值完全相同的猎弓。
+    const volley = (wid) => {
+      clearMail(); mkFresh();
+      G.addItem(wid, 1, true); G.addItem('arrow', 30, true);
+      const s2 = G.S();
+      s2.equipment.weapon = wid; s2.toolDurs[wid] = [120]; s2.dur[wid] = 120;
+      s2.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
+      G.startFight({ id:'d', name:'木桩', hp:9999999, atk:0, def:0, spd:1, traits:[], drops:[] }, true);
+      const Cx = G.S().combat;
+      if (!Cx) return null;
+      return { dmg: 9999999 - Cx.enemies[0].ehp, crit: Cx.log.some(x => /神弓的弦音/.test(x)) };
+    };
+    const dv = volley(BOW), nm = volley('bow');
     Math.random = r0;
-    ck('实测：★ 新战斗会重置（又一次必会心）', again === Math.round(second * 1.5), '新战斗第一箭 ' + again);
+    ck('实测：★ 开局先手那几箭就吃到"第一次命中必会心"（总伤害高于同数值的猎弓）',
+       !!(dv && nm && dv.dmg > nm.dmg && dv.crit && !nm.crit), `神弓 ${dv && dv.dmg} vs 猎弓 ${nm && nm.dmg}`);
+    ck('实测：特权提示写进了战斗日志',
+       !!(G.S().combat && G.S().combat.log.some(x => /神弓的弦音/.test(x))) || !!(dv && dv.crit), '');
     ck('代码里神弓特权同时覆盖「远程先手」与「普通射击」两条路径',
        /function divineCritRoll\(C, weapon, dealt\)/.test(_GAME_SRC) &&
-       (_GAME_SRC.match(/divineCritRoll\(/g) || []).length >= 3, '调用 ' + ((_GAME_SRC.match(/divineCritRoll\(/g) || []).length - 1) + ' 处');
+       (_GAME_SRC.match(/divineCritRoll\(/g) || []).length >= 2, '调用 ' + ((_GAME_SRC.match(/divineCritRoll\(/g) || []).length - 1) + ' 处');
     ck('存入邮箱时耐久在 removeItem 之前读取（否则会存成全新一把）',
        /必须在 removeItem 之前读/.test(_GAME_SRC) && /const dur = \(S\.toolDurs && S\.toolDurs\.divineBow[\s\S]{0,120}removeItem\('divineBow', 1\)/.test(_GAME_SRC));
     // ★ 玩家反馈"神弓有耐久丢失问题"：实测 —— 耐久在存档 / 读档 / 备份槽 / 邮箱 / 存档码里都不会丢，
@@ -3685,6 +3690,68 @@ section('9d. 战斗技能树（B2 第一批：阔刃横扫 / 处决 ⇄ 嗜血�
        /\.st-icon \{ width: 21px; height: 21px;/.test(fs.readFileSync(ROOT + '/css/style.css', 'utf8')));
     ck('图标文件总量控制住了（27 个 < 1MB）',
        fs.readdirSync(ROOT + '/assets/img/skills').filter(x => x.endsWith('.png')).length === 27);
+  }
+}
+
+section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉操作/工具耐久扣错）');
+{
+  // ① 制造界面必须显示"实际要扣的材料"（受技能树加成影响），否则会出现"显示要 2、实际扣 3"
+  ck('★ 制造列表显示的是实际材料（含流水线/精工细作加成），不再显示配方原价',
+     /Object\.entries\(Game\.craftIn\(r\)\)\.map/.test(UI) && !/Object\.entries\(r\.in\)\.map\(\(\[k,v\]\)/.test(UI));
+  ck('★ 精工细作会把材料算进去（烧木炭 2 → 3）',
+     (() => { G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
+       s.exp.craft = 9999; s.skill.craft = 4; s.skillPicks.craft = ['speed','speed','speed','speed'];
+       const r = RECIPES.find(x => x.id === 'r_charcoal');
+       G.skillNodeLearn('craft', 'c_finework');
+       const c = G.craftIn(r);
+       return c.wood === 3; })());
+  // ② 【精算】退款必须真的把材料加回去
+  {
+    G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
+    s.exp.craft = 99999; s.skill.craft = 5; s.skillPicks.craft = ['refund','refund','refund','refund','refund'];
+    G.addItem('vine', 60, true);
+    const r = RECIPES.find(x => x.id === 'r_rope');         // 搓绳索：藤蔓×3
+    let ok = 0, tried = 0;
+    for (let i = 0; i < 30 && G.invCount('vine') >= 3; i++) {
+      const before = G.invCount('vine');
+      const rnd = Math.random; Math.random = () => 0.0;      // 强制触发退款
+      G.craft(r);
+      Math.random = rnd;
+      tried++;
+      if (before - G.invCount('vine') === 2) ok++;           // 成本 3、退回 1 → 净 -2
+    }
+    ck('★ 【精算】退款真的加回了材料：净消耗 = 成本-1（3→净扣 2）', tried > 0 && ok === tried, ok + '/' + tried + ' 次');
+  }
+  // ③ 先手箭不能再吃掉玩家那次操作：代码里 fightAction 不许再有"射一箭就 return"
+  ck('★ 弓/枪的先手箭改成开局当场打完，不再吞掉玩家的 攻击/逃跑/防御/道具',
+     /for \(let k = 0; k < shots; k\+\+\)/.test(_GAME_SRC) &&
+     !/if \(C\.bowShots > 0\) \{[\s\S]{0,900}?onFight\('update', C\); change\(\); return;/.test(_GAME_SRC));
+  {
+    G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
+    G.addItem('bow', 1, true); G.addItem('arrow', 30, true); G.addItem('ironSword', 1, true);
+    G.equip('bow'); G.equip('ironSword', 0, 'weapon2');
+    const s2 = G.S(); s2.stats.hp = 9999;
+    G.startFight({ id:'d', name:'木桩', hp:999999, atk:0, def:0, spd:1, traits:[], drops:[] }, true);
+    const bowDur0 = G.durOf('bow'), swDur0 = G.durOf('ironSword');
+    const rnd = Math.random; Math.random = () => 0.1;
+    G.fightAction('attack');
+    Math.random = rnd;
+    ck('★ 装备弓 + 副手近战：点「攻击」真的用副手砍（副手掉耐久）',
+       G.durOf('ironSword') < swDur0, '副手 ' + swDur0 + ' → ' + G.durOf('ironSword') + '；弓 ' + bowDur0 + ' → ' + G.durOf('bow'));
+    ck('先手那几箭在开局就已经打出去了（弓耐久开局就掉）', bowDur0 < 120, '弓 ' + bowDur0);
+  }
+  // ④ 采集磨损必须扣"工具栏里在用的那把"，不是背包里最好的那把
+  ck('★ 采集磨损扣工具栏里那把（不是背包里等级最高的）',
+     /const inKit = \(S\.toolkit \|\| \[\]\)\.filter\(id => id && ITEMS\[id\] && ITEMS\[id\]\.tool && ITEMS\[id\]\.tool\.kind === kind/.test(_GAME_SRC));
+  {
+    G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
+    G.addItem('axeStone', 1, true); G.addItem('axeSteel', 1, true);
+    s.toolDurs.axeStone = [25]; s.toolDurs.axeSteel = [77];
+    s.toolkit = ['axeStone', null, null]; s.dur.axeStone = 25; s.dur.axeSteel = 77;
+    G.drainTool('axe');
+    ck('实测：栏里装石斧、背包放钢斧 → 掉的是石斧的耐久',
+       G.durOf('axeStone') === 24 && G.durOf('axeSteel') === 77,
+       '石斧 ' + G.durOf('axeStone') + ' / 钢斧 ' + G.durOf('axeSteel'));
   }
 }
 

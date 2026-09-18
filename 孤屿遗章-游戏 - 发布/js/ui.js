@@ -1744,7 +1744,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
         const hasIt = Game.invCount(Object.keys(r.out)[0]) > 0;
         html += `<div class="recipe ${chk.ok ? '' : 'locked'}">
           <div class="recipe-name">${r.name} ${hasIt ? `<span class="owned">×${Game.invCount(Object.keys(r.out)[0])}</span>` : ''}</div>
-          <div class="recipe-mats">${Object.entries(r.in).map(([k,v]) => `${ITEMS[k].name} ${Game.invCount(k)}/${v}`).join(' · ')}</div>
+          <div class="recipe-mats">${Object.entries(Game.craftIn(r)).map(([k,v]) => `${ITEMS[k].name} ${Game.invCount(k)}/${v}`).join(' · ')}</div>
           ${r.out.lotusPill ? `<div class="recipe-mats">本局已炼 ${S().lotusMade || 0}/3</div>` : ''}
           ${r.uniqueItem ? `<div class="recipe-mats">限时活动 26.9.15-26.9.30 · 活动结束后不能再造（已做出的永久可用）</div>` : ''}
           <button class="mini-btn ${chk.ok ? '' : 'lockedb'}" data-recipe="${r.id}" ${chk.ok ? '' : `data-reason="${esc(chk.reason)}"`}>制作${r.hang ? `（挂 ${r.time} 分）` : ` ${r.time}分`}</button>

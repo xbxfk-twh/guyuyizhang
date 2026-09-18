@@ -189,10 +189,20 @@ function change() {
     S.toolkit[i] = null; log(`把${ITEMS[id].name}收回了背包。`, 'sys'); change(); return { ok:true };
   }
   function drainTool(kind) {
+    // ⚠️ 采集用的是【工具栏里的】工具：bestToolTier() 和 hasTool() 都只看 S.toolkit。
+    //    所以磨损也必须扣工具栏里那把 —— 以前这里从整个背包挑等级最高的，
+    //    于是"栏里装石斧、背包里放钢斧"时扣的是背包那把的耐久（玩家反馈"扣耐久扣的不是装备上去的"）。
+    const inKit = (S.toolkit || []).filter(id => id && ITEMS[id] && ITEMS[id].tool && ITEMS[id].tool.kind === kind && invCount(id) > 0);
+    if (inKit.length) {
+      inKit.sort((a, b) => (ITEMS[b].tool.tier || 1) - (ITEMS[a].tool.tier || 1));
+      drainById(inKit[0]);   // 只消耗一件（按实例），坏了会自动从背包补同款（drainById 里已 syncToolkit）
+      return;
+    }
+    // 兜底：栏里没有这种工具（刚做出来还没装、老存档）→ 还是按"背包里最好的那把"
     const ids = Object.keys(S.inv).filter(k => ITEMS[k] && ITEMS[k].tool && ITEMS[k].tool.kind === kind);
     if (!ids.length) return;
     ids.sort((a,b) => (ITEMS[b].tool.tier||1) - (ITEMS[a].tool.tier||1));
-    drainById(ids[0]);   // 只消耗一件（按实例），不再整体扣耐久
+    drainById(ids[0]);
   }
   let _swingTurn = 0;
   // 双持近战时，"本轮轮到哪把武器出手"。伤害、耐久磨损、日志标注三处都读这里，
@@ -2147,8 +2157,25 @@ function change() {
     if (rn !== null) {
       const rw0 = rangedWeapon();
       const isGun = !!(rw0 && rw0.ammoItem);
-      C.bowShots = isGun ? 1 : ((playerAtk() >= 8 || S.skill.combat >= 2) ? 3 : 2);   // 手枪只抢射 1 发，弓保持 2~3 发
+      const shots = isGun ? 1 : ((playerAtk() >= 8 || S.skill.combat >= 2) ? 3 : 2);   // 手枪只抢射 1 发，弓保持 2~3 发
+      C.bowShots = 0;
       C.log.push(isGun ? '你抬枪就射，敌人还没靠近。' : '你搭弓就射，敌人还没靠近。');
+      // ⚠️ 先手这几发必须【当场打完】，不能留到 fightAction 里"边射边 return"：
+      //    老写法是每次点操作先射一箭然后直接 return，把玩家那一次操作整个吃掉 ——
+      //    装备弓/神弓时"逃跑、防御、道具"点了全都没反应（玩家反馈"装备弓不给我逃跑""只能射箭"）。
+      for (let k = 0; k < shots; k++) {
+        const rw2 = rangedWeapon();
+        const ammoOk = rw2 ? (rw2.ammoItem ? invCount(rw2.ammoItem) > 0 : (invCount('eagleArrow') > 0 || invCount('arrow') > 0)) : false;
+        const tg0 = C.enemies.find(e => e.ehp > 0);
+        if (!rw2 || !ammoOk || !tg0) break;
+        let dmg = Math.max(1, rangedAtk(rw2) - C.def);
+        const dCrit = divineCritRoll(C, rw2, dmg);          // 神弓特权：先手这几箭也算
+        if (dCrit !== null) { dmg = dCrit; C.log.push('神弓的弦音一响，这一箭必中要害！'); }
+        tg0.ehp -= dmg; ammoConsume(rw2);
+        C.log.push((rw2.ammoItem ? `你抢先开枪，造成 ${dmg} 点伤害。` : `你抢先射出一箭，造成 ${dmg} 点伤害。`));
+        if (tg0.ehp <= 0) { tg0.ehp = 0; C.log.push(`${tg0.name}被击倒了！`); }
+      }
+      C.log.push(`${enemy.name}咆哮着逼近了！${meleeWeapons().length ? '你握紧手中武器迎击。' : ((rw0 && rw0.ammoItem) ? '你再次给手枪上膛。' : '你再次搭上箭矢。')}`);
     }
     if (enemy.nightBuff && isNight()) {
       C.atk = Math.round(C.atk * 1.3);
@@ -2158,6 +2185,7 @@ function change() {
     C.spdP = combatSpeed(); C.spdE = enemy.spd; C.spdBank = 0;
     S.combat = C;
     if (onFight) onFight('start', C);
+    if (!C.enemies.some(e => e.ehp > 0)) { endFight(true); return; }   // 先手几箭就打死了：直接结算
     change();
   }
 
@@ -2346,25 +2374,9 @@ function change() {
       C.defending = false;
     };
 
-    // 回合顺序
-    if (C.bowShots > 0) {
-      const rn = hasRanged();
-      const rwNow = rangedWeapon();
-      const ammoOk = rwNow ? (rwNow.ammoItem ? invCount(rwNow.ammoItem) > 0 : (invCount('eagleArrow') > 0 || invCount('arrow') > 0)) : false;
-      if (rn !== null && ammoOk) {
-        let dmg = Math.max(1, rangedAtk(rwNow) - C.def);   // 用真正开火的那把算伤害（弓别吃到手枪的 50 攻）
-        // 神弓特权：先手这几箭也算数（否则开局先手会把特权"吃掉"却没有任何效果）
-        const dCrit = divineCritRoll(C, rwNow, dmg);
-        if (dCrit !== null) { dmg = dCrit; roundLines.push('神弓的弦音一响，这一箭必中要害！'); }
-        const t2 = C.enemies[0]; if (t2) t2.ehp -= dmg; C.bowShots--; ammoConsume(rwNow);
-        roundLines.push((rwNow && rwNow.ammoItem) ? `你抢先开枪，造成 ${dmg} 点伤害！` : `你抢先射出一箭，造成 ${dmg} 点伤害！`);
-        if (t2 && t2.ehp <= 0) t2.ehp = 0;
-        if (C.bowShots <= 0) roundLines.push(`${en.name}咆哮着逼近了！${meleeWeapons().length ? '你握紧手中武器迎击。' : ((rwNow && rwNow.ammoItem) ? '你再次给手枪上膛。' : '你再次搭上箭矢。')}`);
-        C.log.push(roundLines.join(' ')); if (C.log.length > 20) C.log.shift(); C.round++;
-        if (!C.enemies.some(e => e.ehp > 0)) { endFight(true); return; }
-        if (onFight) onFight('update', C); change(); return;
-      } else C.bowShots = 0;
-    }
+    // 先手箭已经在 startFight 里一次性打完了（见那里的说明）：这里只做兜底清零，
+    // 绝不能再 return —— 否则玩家点的这一次操作会被吃掉。
+    C.bowShots = 0;
     if (act === 'ranged' && first) first = false;
     // ---------- 出手时间表（时间追赶）：速度 = 每单位时间的出手次数 ----------
     // 你点一次 = 你出手一次；这期间敌人按 敌速/我速 的比例积累出手次数。
