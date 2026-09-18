@@ -2,7 +2,7 @@
 # 版本号在下面这一行改；同时记得改 index.html 的 BUILD_VER（两者要一致，回归里有断言盯着）
 import os, zipfile, zlib, hashlib
 
-VER = 'v1.09'
+VER = 'v1.08'
 SRC = r'C:\Users\34297\Desktop\孤屿遗章\孤屿遗章-游戏 - 发布'
 OUT = r'C:\Users\34297\Desktop\孤屿遗章\孤屿遗章_发布版_' + VER + '.zip'
 TOP = 'guyuyizhang'
