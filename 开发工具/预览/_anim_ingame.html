@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>游戏内睡觉动画（含 style.css 的滤镜）</title>
+<!-- 直接引游戏本体的样式表，这样这里看到的就是游戏里的真实效果（含滤镜/动画） -->
+<link rel="stylesheet" href="../../孤屿遗章-游戏 - 发布/css/style.css">
+<style>
+  body { margin:0; background:#0b0b09; display:flex; gap:10px; padding:10px; }
+  .fake { position:relative; width:420px; height:420px; background:rgba(8,8,6,0.62); display:flex; align-items:center; justify-content:center; }
+  .cap { position:absolute; left:8px; top:6px; color:#eae6da; font:12px system-ui; opacity:.85; }
+</style>
+</head>
+<body>
+  <div class="fake">
+    <span class="cap">睡觉 sleep_night（游戏里）</span>
+    <div class="busy-box">
+      <div class="busy-scene sleep">
+        <img class="busy-img sleep_night calm" src="../../孤屿遗章-游戏 - 发布/assets/img/anim/sleep_night.png" alt="">
+        <span class="busy-slash" style="display:none"></span>
+      </div>
+      <div class="busy-label">安稳睡觉</div>
+      <div class="busy-dots"><i></i><i></i><i></i></div>
+    </div>
+  </div>
+  <div class="fake">
+    <span class="cap">小睡 sleep_nap（游戏里）</span>
+    <div class="busy-box">
+      <div class="busy-scene sleep">
+        <img class="busy-img sleep_nap calm" src="../../孤屿遗章-游戏 - 发布/assets/img/anim/sleep_nap.png" alt="">
+        <span class="busy-slash" style="display:none"></span>
+      </div>
+      <div class="busy-label">小睡</div>
+      <div class="busy-dots"><i></i><i></i><i></i></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1117 @@
+/* ============================================================
+   荒岛日记 · 黑白沉浸主题
+   ============================================================ */
+:root {
+  --paper: #eae6da;
+  --paper2: #ddd8c8;
+  --ink: #16150f;
+  --ink2: #2c2a20;
+  --gray: #8a8676;
+  --line: #1a1912;
+  --danger-bg: #16150f;
+  --logw: min(230px, 22vw);
+  --danger-fg: #eae6da;
+  --navh: 30px;          /* 底栏高度：日志"贴底"的基准也是它 */
+  /* 物品图标是纯黑墨画的，必须始终待在浅色底上（换皮肤也不能压暗，否则图标直接隐形） */
+  --tile: #eae6da;
+  --accent: #9c6b1f;
+  /* 状态条：生命用淡米红、体力用淡米黄（比纯白/灰更好认，又不跳出黑白版画的调子） */
+  --hp: #d9a094;
+  --sta: #dcc9a2;
+}
+
+/* ============================================================
+   皮肤包 · 深海琥珀（skin-accent）
+   做法：只覆盖颜色变量，不碰任何布局 —— 所以全站 100 处
+   var(--paper) / 69 处 var(--ink) 一次性换肤，不会漏。
+   注意 --tile 保持浅色：黑白墨线图标在这上面才看得见。
+   ============================================================ */
+body.skin-accent {
+  --paper: #ece2cc;        /* 主底色：暖羊皮纸 */
+  --paper2: #ddd0b4;
+  --ink: #101c30;          /* 主墨色：深海navy */
+  --ink2: #1b2c47;
+  --gray: #6b6350;
+  --line: #0c1626;
+  --danger-bg: #3a1512;
+  --danger-fg: #f0dfc0;
+  --tile: #efe6d2;         /* 图标底：始终浅色 */
+  --accent: #c08a2e;       /* 琥珀金 */
+  background: #08101d;
+}
+/* 皮肤下的"强调色"：原本散落的暖金/亮色统一到琥珀金，避免和 navy 打架 */
+body.skin-accent .inv-item.st-1 { border-color: #8a7346 !important; }
+body.skin-accent .inv-item.st-2 { border-color: #c08a2e !important; }
+body.skin-accent .inv-item.st-3 { border-color: #d4923a !important; }
+body.skin-accent .inv-item.st-4 { border-color: #c25a3c !important; }
+body.skin-accent .inv-item.st-5 { border-color: #a8382a !important; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: #0b0b09;
+  color: var(--ink);
+  font-family: "Songti SC", "Noto Serif SC", "STSong", "SimSun", "Source Han Serif SC", Georgia, serif;
+  overflow: hidden;
+  /* 纸张噪点 */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+button { font-family: inherit; cursor: pointer; }
+
+/* ---------- 标题画面 ---------- */
+#title-screen {
+  /* ⚠️ 这里必须是 100%：外层 #app 已经是 100vh 且带 30px 上内边距，
+     再用 100vh 会整整多出 30px，整页被顶下去、底部「备份点」那行被切在屏幕外。 */
+  position: relative; height: 100%; width: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #0b0b09;
+  text-align: center;
+}
+#title-screen img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  filter: grayscale(1) contrast(1.08) brightness(0.6);
+  opacity: 0.85;
+  animation: kenburns 36s ease-in-out infinite alternate;
+}
+@keyframes kenburns { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.12) translate(-1.5%, -1%); } }
+#title-name {
+  position: relative; font-size: clamp(44px, 9vw, 96px); letter-spacing: 0.35em; text-indent: 0.35em;
+  color: var(--paper); text-shadow: 0 0 24px rgba(0,0,0,0.9); font-weight: 700;
+}
+#title-name .tt { cursor: pointer; transition: color 0.2s; }
+#title-name .tt:hover { color: #b9c8d9; }
+#title-sub {
+  position: relative; color: var(--paper2); letter-spacing: 0.5em; text-indent: 0.5em;
+  margin-top: 14px; font-size: clamp(13px, 2vw, 18px); opacity: 0.9;
+}
+#title-btns { position: relative; margin-top: 36px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+#title-btns button {
+  background: transparent; color: var(--paper); border: 1.5px solid var(--paper);
+  padding: 8px 22px; font-size: 13.5px; letter-spacing: 0.2em; text-indent: 0.2em;
+  transition: all 0.25s;
+}
+#title-btns button:hover { background: var(--paper); color: #0b0b09; }
+#title-btns button:active { background: var(--paper); color: #0b0b09; }
+/* 手机 / 小平板：按钮尺寸跟桌面【同一档】，一起缩 1/3（主人 2026-09-17：
+   "这个手机端也缩小"）。这里只收紧间距，不再给小屏单独放大字号
+   —— 上一版反着做了（小屏放大回 14.5px），已经被主人否掉。
+   ⚠️ 横屏手机宽度 800+ 但高度只有 390 左右，所以按"窄"或"矮"任意一条命中都算小屏。 */
+@media (max-width: 700px), (max-height: 520px) {
+  #title-btns { margin-top: 24px; gap: 10px; }
+  #title-btns button { padding: 8px 20px; font-size: 13.5px; }
+}
+#title-tip { position: absolute; bottom: 26px; width: 100%; color: rgba(234,230,218,0.55); font-size: 12px; letter-spacing: 0.2em; }
+
+/* ---------- 开局选择 ---------- */
+#select-screen {
+  height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;   /* 同上：100vh 会多出 30px */
+  background: var(--paper); gap: 10px; padding: max(5vh, 34px) 0 30px; overflow-y: auto;
+}
+.select-title { font-size: 20px; letter-spacing: 0.22em; font-weight: 700; }
+.identity-list { display: flex; flex-direction: column; gap: 8px; width: min(520px, 94vw); }
+.identity {
+  display: flex; flex-direction: row; align-items: center; gap: 11px; text-align: left;
+  background: var(--paper); border: 1.5px solid var(--ink); padding: 8px 14px; font-size: 13px;
+  transition: all 0.2s; position: relative; overflow: hidden;
+}
+/* 主人 2026-09-18：角色图别画那么大 —— 从"整张立绘铺满卡片"改成左侧小头像 + 右侧名字/说明 */
+.identity .id-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.identity b { font-size: 15px; letter-spacing: 0.16em; }
+.identity span { color: #55523f; font-size: 11.5px; }
+.identity .id-desc { line-height: 1.6; }
+/* 身份选择：立绘卡面（皮肤包"彩绘卡面"会整套替换，缺图自动回退默认立绘） */
+.identity .id-card { display: block; flex: none; width: 58px; height: 78px; background: rgba(10,10,8,0.06);
+  border: 1px solid rgba(22,21,15,0.35); border-radius: 3px; overflow: hidden; }
+.identity .id-card img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.identity::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: transparent; transition: background .2s; }
+.identity:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); box-shadow: 0 3px 12px rgba(0,0,0,0.22); }
+.identity:hover::before { background: #c9a227; }
+.identity:hover span { color: var(--paper2); }
+#sel-back { background: transparent; border: none; text-decoration: underline; font-size: 12px; letter-spacing: 0.14em; }
+
+/* ---------- 主界面 ---------- */
+#app { height: 100vh; display: flex; flex-direction: column; position: relative; padding-top: 30px; box-sizing: border-box; }
+#topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: nowrap;
+  background: var(--ink); color: var(--paper);
+  padding: 4px 10px; font-size: 11.5px; letter-spacing: 0.04em;
+  position: fixed; top:0; left:0; right:0; z-index: 55;   /* 弹窗打开时状态条仍清晰可见（不被模糊） */
+  box-sizing: border-box;
+  border-bottom: 1px solid #000; height: 30px;
+}
+/* 状态区：自己占满剩余宽度并且【可以横向滚动】。
+   窄屏上状态条比屏幕宽，以前是顶栏 overflow:hidden 直接把它和邮箱一起裁掉；
+   现在裁只裁状态区，邮箱按钮独立在外、永远贴在右上角。 */
+#topstats {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+}
+#topstats::-webkit-scrollbar { display: none; }
+.top-mail-btn { flex: 0 0 auto; }
+#topbar .stat { display: flex; align-items: center; gap: 3px; }
+.stat-name { width: 14px; text-align: center; opacity: 0.85; font-size: 11px; }
+.stat-bar { width: 42px; height: 6px; border: 1px solid var(--paper); background: transparent; }
+.stat-num { font-size: 10px; min-width: 19px; text-align: right; opacity: 0.9; }
+.stat-fill { height: 100%; transition: width 0.4s; }
+.stat-fill.hp { background: var(--hp); }
+.stat-fill.st { background: var(--sta); }
+.stat-fill.hu { background: #8a8676; }
+.stat-fill.th { background: #5c594b; }
+.stat-fill.sp { background: repeating-linear-gradient(45deg, #d8d3c2 0 3px, transparent 3px 6px); }
+#status-badges { margin-left: auto; display: flex; gap: 5px; }
+.badge { font-size: 11px; padding: 2px 7px; border: 1px solid var(--paper); letter-spacing: 0.15em; }
+.badge.danger { background: var(--paper); color: var(--ink); font-weight: 700; }
+#cap { font-size: 12px; opacity: 0.85; }
+
+#main { flex: 1; position: relative; overflow: hidden; background: #0b0b09; display: flex; align-items: center; justify-content: center; }
+/* 舞台：保持 16:9 完整显示整张图，四周墨色留白如装裱 */
+.stage { position: relative; overflow: hidden; border: 1px solid rgba(234,230,218,0.18); box-shadow: 0 0 60px rgba(0,0,0,0.65); }
+#stage-inner { position: absolute; inset: 0; transform-origin: center center; }
+#stage-hint {
+  position: absolute; right: 10px; bottom: 8px; z-index: 7;
+  font-size: 11px; color: rgba(234,230,218,0.45); letter-spacing: 0.12em; pointer-events: none;
+  text-shadow: 0 1px 4px #000;
+}
+/* 场景名中的危险点 */
+.name-danger { font-size: 8px; letter-spacing: 2px; opacity: 0.85; }
+/* 天气覆盖层（雨丝/雪飘/雾） */
+#weather-overlay {
+  position: absolute; inset: 0; pointer-events: none; z-index: 4; overflow: hidden;
+  /* 天气层单独成一个绘制单元：雨/雪动的是 background-position，会把整层重画，
+     不隔离的话底下那张全屏场景图也会被一起重画（手机端最容易被这个拖卡）。 */
+  contain: paint;
+  /* 雨丝贴图：又短又细，长短/角度/明暗都不规则；三层各自不同大小与速度，破掉"整齐雨帘" */
+  --rainA: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='470'><g stroke='rgba(230,238,252,0.60)' stroke-width='1.6' stroke-linecap='round'><line x1='26' y1='38' x2='21' y2='51'/><line x1='124' y1='16' x2='119' y2='29'/><line x1='214' y1='62' x2='209' y2='75'/><line x1='58' y1='102' x2='53' y2='115'/><line x1='268' y1='128' x2='263' y2='141'/><line x1='160' y1='158' x2='155' y2='171'/><line x1='92' y1='208' x2='87' y2='221'/></g><g stroke='rgba(224,232,248,0.36)' stroke-width='1.2' stroke-linecap='round'><line x1='34' y1='258' x2='29' y2='271'/><line x1='186' y1='286' x2='181' y2='299'/><line x1='244' y1='330' x2='239' y2='343'/><line x1='112' y1='368' x2='107' y2='381'/><line x1='20' y1='410' x2='15' y2='423'/><line x1='272' y1='204' x2='267' y2='217'/></g></svg>");
+  --rainB: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='460' height='760'><g stroke='rgba(236,240,250,0.24)' stroke-width='1.3' stroke-linecap='round'><line x1='52' y1='64' x2='46' y2='80'/><line x1='228' y1='140' x2='222' y2='156'/><line x1='360' y1='102' x2='354' y2='118'/><line x1='130' y1='286' x2='124' y2='302'/><line x1='312' y1='368' x2='306' y2='384'/><line x1='86' y1='500' x2='80' y2='516'/><line x1='262' y1='604' x2='256' y2='620'/></g></svg>");
+  --rainC: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='620' height='960'><g stroke='rgba(238,242,252,0.15)' stroke-width='1.2' stroke-linecap='round'><line x1='72' y1='110' x2='65' y2='127'/><line x1='322' y1='78' x2='315' y2='95'/><line x1='486' y1='252' x2='479' y2='269'/><line x1='158' y1='404' x2='151' y2='421'/><line x1='398' y1='548' x2='391' y2='565'/><line x1='238' y1='742' x2='231' y2='759'/></g></svg>");
+}
+/* 场景装裱暗角 */
+#scene-vignette {
+  position: absolute; inset: 0; pointer-events: none; z-index: 3;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(8,8,6,0.55) 100%);
+}
+#weather-overlay.rain {
+  background-image: var(--rainA), var(--rainB);
+  background-size: 300px 470px, 460px 760px;
+  background-repeat: repeat, repeat;
+  animation: rainfall 0.66s linear infinite;
+  will-change: background-position;
+  opacity: 0.72;
+}
+#weather-overlay.rain::before {
+  content: ''; position: absolute; inset: -8% -4%;
+  background-image: var(--rainC);
+  background-size: 620px 960px; background-repeat: repeat;
+  animation: rainfallslow 2.05s linear infinite;   /* 第三层又慢又淡：密度和节奏都不再整齐 */
+  opacity: 0.6;
+}
+/* 雷暴：同一套短雨丝，更急更亮 + 间歇闪电 */
+#weather-overlay.storm {
+  background-image: var(--rainA), var(--rainB);
+  background-size: 300px 470px, 460px 760px;
+  background-repeat: repeat, repeat;
+  animation: rainfall 0.42s linear infinite;
+  will-change: background-position;
+  opacity: 0.86; filter: brightness(1.18) contrast(1.04);
+}
+#weather-overlay.storm::before {
+  content: ''; position: absolute; inset: -8% -4%;
+  background-image: var(--rainC);
+  background-size: 620px 960px; background-repeat: repeat;
+  animation: rainfallslow 1.1s linear infinite;
+  opacity: 0.55;
+}
+#weather-overlay.storm::after { content: ''; position: absolute; inset: 0; background: #eaf1ff; opacity: 0; animation: lightning 8s ease-in-out infinite; }
+@keyframes lightning { 0%,90%,100% { opacity: 0; } 91% { opacity: 0.30; } 92% { opacity: 0; } 93.5% { opacity: 0.22; } 94.5% { opacity: 0; } }
+#weather-overlay.snow {
+  background-image:
+    radial-gradient(circle at 15% 25%, rgba(255,255,255,0.60) 0 1.6px, transparent 2.6px),
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.45) 0 1.2px, transparent 2.2px),
+    radial-gradient(circle at 40% 80%, rgba(255,255,255,0.35) 0 1.0px, transparent 2.0px);
+  background-size: 80px 80px, 122px 122px, 176px 176px;
+  animation: snowmove 5.2s linear infinite, snowsway 10s ease-in-out infinite alternate;
+  will-change: background-position;
+}
+#weather-overlay.fog { background: rgba(225,223,214,0.13); }
+#weather-overlay.fog::after {
+  content: ''; position: absolute; inset: -22%;
+  background:
+    radial-gradient(ellipse at 30% 42%, rgba(242,242,236,0.17), transparent 62%),
+    radial-gradient(ellipse at 72% 62%, rgba(236,236,230,0.12), transparent 66%);
+  animation: fogdrift 28s linear infinite alternate;
+}
+@keyframes rainfall { from { background-position: 0 0, 0 0; } to { background-position: -16px 470px, -28px 760px; } }
+@keyframes rainfallslow { from { background-position: 0 0; } to { background-position: -34px 960px; } }
+@keyframes snowmove { from { background-position: 0 0, 0 0, 0 0; } to { background-position: 0 80px, 0 122px, 0 176px; } }
+@keyframes snowsway { from { background-position-x: 0, 0, 0; } to { background-position-x: 16px, -12px, 22px; } }
+@keyframes fogdrift { from { transform: translateX(-6%); } to { transform: translateX(6%); } }
+
+/* 场景视图 */
+#scene-wrap { position: relative; width: 100%; height: 100%; }
+#scene-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: filter 1.2s; animation: scenein 0.6s ease; }
+@keyframes scenein { from { opacity: 0; transform: scale(1.015); } to { opacity: 1; transform: none; } }
+#scene-name {
+  position: absolute; top: 10px; left: 12px;
+  color: var(--paper); font-size: 13px; letter-spacing: 0.2em;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.9); background: rgba(10,10,8,0.45);
+  padding: 3px 11px 3px 13px; border-left: 3px solid var(--paper);
+  pointer-events: none;   /* 纯装饰标签，别挡下面的点击 */
+}
+#zones { position: absolute; bottom: 12px; left: 14px; display: flex; gap: 8px; }
+.zone-btn {
+  background: rgba(10,10,8,0.6); color: var(--paper); border: 1px solid var(--paper);
+  padding: 7px 16px; font-size: 13px; letter-spacing: 0.2em; transition: all 0.2s;
+}
+.zone-btn.active { background: var(--paper); color: var(--ink); font-weight: 700; }
+.zone-btn.locked { opacity: 0.6; }
+
+/* 地图视图 */
+#map-wrap { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0b0b09; }
+/* 箭头层也是整块地图大小：层本身穿透，只有箭头接收点击（同 #hotspots） */
+#map-arrows { pointer-events: none; }
+#map-img { width: 100%; height: 100%; object-fit: contain; background: #0b0b09; filter: grayscale(1) contrast(1.05) brightness(0.92); }
+#map-img.cover { object-fit: cover; }   /* 海底大地图：铺满舞台（上下各裁一点），左右不留黑边 */
+#map-vignette {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(8,8,6,0.95) 100%);
+  transition: opacity 1.5s;
+}
+#map-caption {
+  position: absolute; bottom: 10px; right: 14px;
+  color: rgba(234,230,218,0.8); font-size: 12px; letter-spacing: 0.2em;
+  background: rgba(10,10,8,0.5); padding: 4px 10px;
+  pointer-events: none;   /* 纯装饰说明，别挡住地图箭头的点击 */
+}
+.map-arrow {
+  position: absolute; transform: translate(-50%, -100%);
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  /* z-index 高于日志栏（#log=9）：地图左侧那条上的箭头也会被日志压住，抬上来才看得见/点得到 */
+  cursor: pointer; z-index: 10; transition: transform 0.2s, filter 0.3s;
+  padding: 10px 12px; min-width: 64px; min-height: 46px;
+  pointer-events: auto;   /* 配 #map-arrows 的 pointer-events:none：只有箭头本身接收点击 */
+}
+.map-arrow .arrow-glyph {
+  font-size: 22px; line-height: 1; color: var(--ink);
+  text-shadow: 0 1px 7px rgba(234,230,218,0.95);
+}
+.map-arrow .arrow-label {
+  font-size: 15px; letter-spacing: 0.12em; color: var(--paper);
+  background: #000;              /* 纯黑不透明：黑白版画上不再"透底"迷眼 */
+  border: 1.5px solid rgba(234,230,218,0.85);
+  padding: 5px 11px; white-space: nowrap; display: flex; align-items: center; gap: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.8);
+}
+.map-arrow .arrow-danger { font-size: 8px; letter-spacing: 2px; color: var(--paper); text-shadow: 0 0 4px #000; }
+/* 地图上日志照样能上下滑（热点/箭头仍然优先，见 ui.js 的 bindLogGrip） */
+body.on-map #log { pointer-events: none; }
+body.on-map #logbody { pointer-events: auto; }
+body.on-map #btn-backmap { pointer-events: auto; }
+.map-arrow.unlocked:hover { transform: translate(-50%, -100%) scale(1.18); filter: brightness(1.25); }
+.map-arrow.locked { filter: grayscale(1) brightness(0.45); cursor: not-allowed; }
+.map-arrow.locked .arrow-label { border-style: dashed; }
+.map-arrow.here .arrow-glyph { animation: pulse 1.6s infinite; }
+.map-arrow.here .arrow-label { outline: 2px solid rgba(234,230,218,0.9); background: rgba(234,230,218,0.14); border-radius: 6px; }
+.map-arrow.here .arrow-label::after { content: ' · 你在这里'; font-size: 10px; }
+/* 贴顶的箭头（如「↑ 返回孤岛」「珍珠洞窟」）：箭头在上、标签在下，避免被舞台顶边裁掉 */
+.map-arrow.offscreen { display: none; }/* 锚点已经滑出画面的箭头：整条藏起来（上下拖动才会重新出现，不再显示成"半截标签"） */
+/* 锚点滑出画面的热点：不再整条隐藏，改成贴边浮动标签（点一下地图对准它） */
+/* 滑出地图画面的热点：整条隐藏（不浮动、不贴边）。热点位置钉死在地图上，
+   想看到靠上/靠下的热点，就按住画面上下拖动把它拖进视野。 */
+.map-arrow.offscreen { display: none; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* 营地可点击热点（储物箱/篝火/出营地） */
+.hotspot {
+  /* ⚠️ z-index 必须高于日志栏（#log 是 9）：日志栏固定 250px 宽、压住屏幕左侧一条，
+     以前热点是 6 → 落在左边那条上的热点就被日志盖住（看不清、还可能点不到）。
+     抬到 10 之后热点永远画在日志之上，配合它自带的深色标签底板，压着也读得清、点得到。 */
+  position: absolute; transform: translate(-50%, -50%); z-index: 10;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  cursor: pointer; transition: transform 0.15s;
+}
+.hotspot .hot-glyph { font-size: 20px; color: var(--paper); text-shadow: 0 0 7px rgba(0,0,0,0.95); animation: pulse 2.2s infinite; }
+.hotspot .hot-label {
+  font-size: 11px; letter-spacing: 0.12em; color: var(--paper);
+  background: rgba(10,10,8,0.72); border: 1px solid rgba(234,230,218,0.75);
+  padding: 1px 7px; white-space: nowrap;
+}
+.hotspot:hover { transform: translate(-50%, -50%) scale(1.14); filter: brightness(1.3); }
+.hotspot.point .hot-glyph { font-size: 18px; color: var(--paper); opacity: 0.95; text-shadow: 0 0 7px rgba(0,0,0,0.95); }
+.hotspot.point .hot-label { font-size: 11px; }
+.hotspot.locked { opacity: 0.5; cursor: not-allowed; }
+/* 山顶祭坛：材料齐了会重新亮起，给它一圈脉冲，别让玩家漏看 */
+.hotspot.altar-ready .hot-label { outline: 2px solid rgba(234,230,218,0.85); background: rgba(234,230,218,0.16); border-radius: 6px; }
+.hotspot.altar-ready .hot-glyph { animation: pulse 1.2s infinite; }
+/* 地图上的建筑精灵（mix-blend 融入底图） */
+.build-plate {
+  position: absolute; transform: translate(-50%, -50%); z-index: 4;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none;
+}
+.build-sprite { filter: brightness(0.82) contrast(1.06); opacity: 0.97; }
+.build-sprite.build-new { animation: buildin 0.7s ease; }
+@keyframes buildin { from { opacity: 0; transform: translateY(18px) scale(0.9); } to { opacity: 1; transform: none; } }
+.helpbtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%; padding: 0; margin-left: 8px;
+  border: 1.5px solid var(--ink); background: var(--paper); color: var(--ink);
+  font-size: 14px; line-height: 1; vertical-align: middle; font-family: inherit;
+  transition: all 0.15s;
+}
+.helpbtn:hover { background: var(--ink); color: var(--paper); }
+.travel-layer { position: absolute; inset: 0; pointer-events: none; z-index: 8; }
+.travel-dot { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #f4f2e8; box-shadow: 0 0 12px rgba(0,0,0,0.7); transform: translate(-50%, -50%); }
+.help-list { display: flex; flex-direction: column; gap: 8px; max-height: 62vh; overflow-y: auto; }
+.help-item { border: 1px solid var(--ink); padding: 8px 10px; background: #f0ecdf; }
+.help-item b { display: block; margin-bottom: 3px; font-size: 14.5px; }
+.help-item span { font-size: 13px; color: #44412f; line-height: 1.7; }
+.help-item .help-sub { display: block; font-size: 11.5px; color: #7a7561; margin-top: 3px; }
+.relic-slots { display: flex; gap: 10px; }
+.relic-slot { flex: 1; min-height: 66px; border: 2px solid var(--ink); background: var(--paper); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 24px; transition: all 0.15s; }
+.relic-slot .slot-dur { font-size: 9.5px; letter-spacing: 0; opacity: .8; white-space: nowrap; }
+.relic-slot .slot-dur.broken { color: #a8382a; font-weight: 700; opacity: 1; }
+.relic-slot small { font-size: 10px; color: #55523f; }
+.relic-slot.locked { opacity: 0.62; }
+.relic-slot.locked:hover { background: var(--ink); color: var(--paper); }
+.relic-slot.filled { background: var(--ink); color: var(--paper); }
+.relic-slot.filled:hover { background: var(--paper); color: var(--ink); }
+.relic-slot.empty { border-style: dashed; }
+.build-label {
+  font-size: 11px; letter-spacing: 0.1em; color: var(--paper);
+  background: rgba(10,10,8,0.72); border: 1px solid rgba(234,230,218,0.55);
+  padding: 0 6px; white-space: nowrap;
+}
+
+/* 动作动画覆盖层 + 二倍速按钮 */
+#busy {
+  position: fixed; inset: 0; z-index: 70; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(8,8,6,0.62); backdrop-filter: blur(2px);
+}
+#busy.open { display: flex; }
+.busy-box { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+@keyframes sealSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+/* 动作主画面：工具抬起→劈下 + 白色刀光 */
+.busy-scene { position: relative; width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; }
+.busy-img {
+  width: 150px; height: 150px; object-fit: contain; filter: grayscale(1) contrast(1.08);
+  transform-origin: 50% 88%;
+  animation: toolSwing 0.72s ease-in-out infinite;
+}
+@keyframes toolSwing {
+  0% { transform: translateY(6px) rotate(0deg); }
+  32% { transform: translateY(-22px) rotate(-52deg); }
+  54% { transform: translateY(2px) rotate(24deg); }
+  70% { transform: translateY(0) rotate(4deg); }
+  100% { transform: translateY(6px) rotate(0deg); }
+}
+.busy-slash {
+  position: absolute; left: 50%; top: 50%; width: 120px; height: 3px;
+  background: linear-gradient(90deg, transparent, #fff, transparent);
+  transform: translate(-50%,-50%) rotate(-38deg); opacity: 0;
+  animation: slashFlash 0.72s ease-in-out infinite;
+}
+/* 睡觉时这片刀光不显示（calm 会内联 display:none），但位置要留着给飘 Z 定位 */
+.busy-img.sleep_nap + .busy-slash, .busy-img.sleep_night + .busy-slash { opacity: 0 !important; animation: none; }
+@keyframes slashFlash { 0%,50% { opacity: 0; } 56% { opacity: 0.95; } 62% { opacity: 0; } 100% { opacity: 0; } }
+.busy-img.pot { transform-origin: 50% 55%; animation: potToss 0.7s ease-in-out infinite; }
+@keyframes potToss { 0%,100% { transform: translateY(9px) rotate(2deg); } 50% { transform: translateY(-18px) rotate(-3deg); } }
+/* 睡觉：缓慢呼吸起伏；小睡那张本身画得浅，压暗一点免得在暗底上发灰 */
+.busy-img.sleep_nap, .busy-img.sleep_night { transform-origin: 50% 70%; animation: sleepBreath 2.6s ease-in-out infinite; }
+/* 这两张图已经在文件里修过对比度（原图备份在 归档/素材实验/anim_原图/），
+   这里只保留"保证黑白"，不再叠加对比度/亮度 —— 否则等于二次压暗，把细节吃掉。 */
+.busy-img.sleep_nap, .busy-img.sleep_night { filter: grayscale(1); }
+@keyframes sleepBreath {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.035); }
+}
+/* 飘 Z：两个伪元素错开时间往上飘淡出（比静态图更"像在睡"） */
+.busy-img.sleep_nap + .busy-slash::before,
+.busy-img.sleep_night + .busy-slash::before,
+.busy-img.sleep_nap + .busy-slash::after,
+.busy-img.sleep_night + .busy-slash::after {
+  content: 'z'; position: absolute; font-size: 22px; font-weight: 700; color: rgba(245,242,232,0.95);
+  text-shadow: 0 0 6px rgba(0,0,0,0.9); opacity: 0;
+}
+.busy-img.sleep_nap + .busy-slash::before,
+.busy-img.sleep_night + .busy-slash::before { left: 64px; top: -22px; animation: zFloat 2.6s ease-out infinite; }
+.busy-img.sleep_nap + .busy-slash::after,
+.busy-img.sleep_night + .busy-slash::after { left: 78px; top: -6px; font-size: 15px; animation: zFloat 2.6s ease-out infinite 1.3s; }
+@keyframes zFloat {
+  0% { opacity: 0; transform: translate(0, 6px) scale(0.85); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate(10px, -34px) scale(1.15); }
+}
+.busy-img.calm { transform-origin: 50% 60%; animation: calmBob 1.4s ease-in-out infinite; }
+@keyframes calmBob { 0%,100% { transform: translateY(2px) scale(1); } 50% { transform: translateY(-5px) scale(1.01); } }
+.busy-label { font-size: 20px; letter-spacing: 0.4em; text-indent: 0.4em; color: var(--paper); text-shadow: 0 1px 8px #000; }
+.busy-dots { display: flex; gap: 8px; }
+.busy-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--paper); animation: dotPulse 1.1s infinite; }
+.busy-dots i:nth-child(2) { animation-delay: 0.2s; }
+.busy-dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dotPulse { 0%,100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+#anim-speed {
+  position: fixed; right: 14px; top: 50%; transform: translateY(-50%); z-index: 80;
+  width: 27px; height: 27px; border-radius: 50%;
+  background: rgba(10,10,8,0.8); color: var(--paper);
+  border: 1.2px solid rgba(234,230,218,0.8); font-size: 9px; letter-spacing: 0.04em;
+  transition: all 0.15s;
+}
+#anim-speed:hover { background: var(--paper); color: var(--ink); }
+.ad-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.92); display: flex; align-items: center; justify-content: center; }
+.ad-box { text-align: center; }
+.ad-title { font-size: 18px; color: var(--paper); letter-spacing: 0.12em; }
+.ad-count { font-size: 64px; color: var(--paper); font-weight: 700; margin: 10px 0; }
+.ad-hint { font-size: 12px; color: rgba(234,230,218,0.7); letter-spacing: 0.1em; }
+
+/* ---------- 日志（叠加在画面上：白字、从下往上浮现、向上淡出、不挡点击） ---------- */
+#log {
+  position: fixed; left: 0; top: 0; bottom: 0; z-index: 9; pointer-events: none; overflow: hidden;
+  background: transparent;
+  font-size: 12px; line-height: 1.5; padding: 80px 8px 8px 10px; box-sizing: border-box;   /* 顶部留出「返回地图」按钮的高度；底部只留一点点，让最新一行贴底 */
+  display: flex; flex-direction: column;
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 78%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,1) 78%, rgba(0,0,0,0) 100%);
+}
+/* 画面铺满后，日志直接压在画面上：垫一层很淡的横向渐隐，保证白字读得清 */
+#log.overlap { top: 30px; bottom: var(--navh); background: linear-gradient(90deg, rgba(8,8,6,0.55) 0%, rgba(8,8,6,0.30) 62%, rgba(8,8,6,0) 100%); }
+/* 日志栏显示方式（设置里可切）：淡出 / 隐藏 */
+#log { transition: opacity 0.8s ease; }
+#log.dim { opacity: 0; pointer-events: none; }
+body.log-hidden #log, body.log-hidden #logbody { display: none !important; }
+/* 日志栏收起/展开按钮：紧贴「返回地图」右侧、高度与它一致（视觉上同一排按钮）。
+   位置与高度由 ui.js 的 fitStage() 实测「返回地图」的尺寸后套用，这里只定外观。 */
+#log-grip {
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; letter-spacing: 0;
+  z-index: 12;   /* 日志收起按钮要始终在最上层，别被热点或日志压住 */
+}
+body.log-collapsed #log, body.log-collapsed #logbody { opacity: 0; pointer-events: none; }
+/* 行进动画期间淡出日志：地图左下角会被日志盖住（含行进线的起点），盖住就看不出"从哪个热点出发" */
+body.traveling #log, body.traveling #logbody { opacity: 0 !important; pointer-events: none !important; }
+/* 邮箱里的公告正文（换行保留一点行距） */
+.mail-body { font-size: 13px; line-height: 1.75; color: #44412f; margin: 4px 0 8px; }
+#objective {
+  position: absolute; z-index: 10; pointer-events: none;
+  color: var(--paper); font-size: 9px; letter-spacing: 0.03em; line-height: 1.5;
+  text-shadow: 0 1px 7px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.9);
+}
+#objective .obj-mark { color: var(--paper); margin-right: 6px; }
+#logbody { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; color: var(--paper); text-shadow: 0 1px 6px rgba(0,0,0,0.9); }
+.logline { animation: logrise 0.4s ease; padding: 1px 0; }
+.logtime { color: rgba(234,230,218,0.78); font-size: 11px; margin-right: 7px; letter-spacing: 0.04em; }
+.logline.good { font-weight: 700; }
+.logline.danger { color: #fff; font-weight: 700; background: rgba(20,18,10,0.35); padding: 1px 6px; margin: 2px 0; }
+.logline.warn { color: rgba(234,230,218,0.85); font-style: italic; }
+.logline.sys { color: rgba(234,230,218,0.72); font-size: 12.5px; }
+.logline.blue { color: #6ec6ff; font-weight: 600; }
+.logline.orange { color: #e8a33d; font-weight: 600; }
+@keyframes logrise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+/* 图片上的浮动操作按钮（缩小到和小按钮一致） */
+#btn-backmap, #btn-rest, #log-grip {
+  position: fixed; z-index: 10; border-radius: 4px; box-sizing: border-box;
+  background: rgba(10,10,8,0.75); color: var(--paper);
+  border: 1.2px solid rgba(234,230,218,0.8); font-size: 10.5px; letter-spacing: 0.04em;
+  padding: 3px 8px; transition: all 0.15s; white-space: nowrap; min-height: 21px; opacity: 0.9;
+}
+#log-grip { z-index: 11; }   /* 略高于场景按钮，保证收起状态下也点得到 */
+#btn-backmap { left: 12px; top: 50px; }   /* 稍微往下一点，别跟顶栏的天气挤在一起 */
+#rest-bar { display: flex; align-items: center; gap: 6px; }
+#btn-rest, #btn-rest-h { position: static; font-size: 10px; }
+#btn-rest-h {
+  border-radius: 4px; background: rgba(10,10,8,0.75); color: var(--paper);
+  border: 1.2px solid rgba(234,230,218,0.8); letter-spacing: 0.04em;
+  padding: 3px 7px; min-height: 21px; transition: all 0.15s; opacity: 0.9; font-weight: 700;
+}
+#btn-rest-h:hover { background: var(--paper); color: var(--ink); }
+#btn-backmap:hover, #btn-rest:hover, #log-grip:hover { background: var(--paper); color: var(--ink); }
+
+/* ---------- 行动面板（已改为画面上浮动按钮） ---------- */
+.objective {
+  width: 100%; background: var(--ink); color: var(--paper);
+  padding: 5px 10px; font-size: 12px; letter-spacing: 0.04em; line-height: 1.5;
+  border-left: 4px double var(--paper);
+}
+.obj-mark { color: var(--paper); margin-right: 6px; }
+.action-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  background: var(--paper); border: 1.5px solid var(--ink);
+  padding: 3px 8px; min-width: 96px; text-align: left; transition: all 0.15s;
+  flex: 0 0 auto;
+}
+.action-btn:hover:not(.disabled) { background: var(--ink); color: var(--paper); }
+.action-btn .act-name { font-size: 12.5px; letter-spacing: 0.05em; white-space: nowrap; }
+.action-btn .act-desc { font-size: 10px; color: #66624e; white-space: nowrap; }
+.action-btn:hover:not(.disabled) .act-desc { color: var(--paper2); }
+.action-btn.danger { border-width: 1.5px; }
+.action-btn.danger:hover:not(.disabled) { background: var(--ink); }
+.action-btn.adv { border-style: dashed; }
+.action-btn.ending { background: var(--ink); color: var(--paper); font-weight: 700; }
+.action-btn.ending:hover { background: var(--paper); color: var(--ink); }
+.action-btn.ending .act-desc { color: var(--paper2); }
+.action-btn.sleep { border-width: 2px; }
+.action-btn.disabled { opacity: 0.45; cursor: not-allowed; }
+.hint { color: var(--gray); font-size: 12px; letter-spacing: 0.08em; }
+
+/* ---------- 底部导航 ---------- */
+#nav {
+  display: flex; gap: 2px; padding: 2px 3px 3px;
+  background: linear-gradient(#1c1c19, #0b0b09);
+  border-top: 1px solid #000; height: var(--navh); box-sizing: border-box;
+}
+#nav button {
+  flex: 1; position: relative; border-radius: 0;   /* 棱角分明：直角、硬边，不做圆角 */
+  color: #e9e4d6; font-size: 10px; letter-spacing: 0.08em;
+  padding: 0 4px; cursor: pointer; transition: transform 0.06s, filter 0.12s, box-shadow 0.06s;
+  /* 黑白灰立体：不要上沿高光，只靠"面上浅下深 + 下沿一道硬阴影"做出斜面感 */
+  background: linear-gradient(#3a3a36 0%, #292926 55%, #1d1d1b 100%);
+  border: 1px solid #060606;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.75), 0 1px 0 rgba(0,0,0,0.65);
+}
+#nav button:hover { filter: brightness(1.28); }
+#nav button:active, #nav button.active {
+  transform: translateY(1px);
+  background: linear-gradient(#242422 0%, #191917 100%);
+  box-shadow: inset 0 2px 0 rgba(0,0,0,0.85), 0 0 0 1px rgba(0,0,0,0.7);
+  color: #fff;
+}
+
+/* ---------- 弹窗 ---------- */
+#modal {
+  position: fixed; inset: 0; z-index: 50; display: none;
+  background: rgba(8,8,6,0.72); backdrop-filter: blur(2px);
+  align-items: center; justify-content: center; padding: 18px;
+}
+#modal.open { display: flex; padding-top: 32px; box-sizing: border-box; }
+.modal-content {
+  position: relative;
+  background: var(--paper); border: 3px solid var(--ink); box-shadow: 8px 8px 0 rgba(0,0,0,0.5);
+  max-width: min(760px, 96vw); max-height: 88vh; width: 720px;
+  overflow-y: auto; padding: 20px 22px;
+  animation: modalin 0.25s;
+}
+.modal-x {
+  /* 吸顶：面板滚到中间时也能一键关掉（反馈：以前得滑回顶部/底部） */
+  position: sticky; top: -8px; float: right; margin: -12px -12px 4px 10px;
+  width: 30px; height: 30px; z-index: 6;
+  border: 2px solid var(--ink); background: var(--paper); color: var(--ink);
+  font-size: 18px; line-height: 1; font-weight: 700; text-align: center;
+  transition: all 0.15s; cursor: pointer;
+}
+.modal-x:hover { background: var(--ink); color: var(--paper); }
+@keyframes modalin { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.modal-title { font-size: 21px; letter-spacing: 0.3em; font-weight: 700; margin-bottom: 12px; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+.modal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; justify-content: center; }
+.choice-label { display: block; }
+.choice-hint { display: block; font-size: 12px; color: #55523f; margin-top: 2px; letter-spacing: 0; }
+.modal-actions button:hover .choice-hint { color: var(--paper2); }
+.modal-actions button, .mini-btn, .tab {
+  background: var(--paper); border: 2px solid var(--ink); color: var(--ink);
+  padding: 7px 16px; font-size: 14px; letter-spacing: 0.08em; transition: all 0.15s;
+}
+.modal-actions button:hover:not(:disabled), .mini-btn:hover:not(:disabled), .tab:hover { background: var(--ink); color: var(--paper); }
+.mini-btn { padding: 3px 10px; font-size: 12px; }
+.mini-btn.lockedb { opacity: 0.45; filter: grayscale(0.5); }
+.button.demolish, .mini-btn.demolish { border-color: var(--ink); background: var(--paper2); color: #3a2; }
+.mini-btn.demolish:hover { background: var(--ink); color: var(--paper); }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+.danger-btn { background: var(--ink); color: #ff6b5e; border: 1.5px solid #ff6b5e; }
+.danger-btn:hover { background: #ff6b5e; color: var(--ink); }
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.tab.active { background: var(--ink); color: var(--paper); font-weight: 700; }
+.tab.locked { opacity: 0.5; }
+.overlay-text { font-size: 15.5px; line-height: 1.9; white-space: pre-wrap; }
+
+/* 营地建造 */
+.camp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.camp-col { border: 1.5px solid var(--ink); padding: 10px; background: var(--paper2); }
+.camp-col-title { font-weight: 700; letter-spacing: 0.2em; margin-bottom: 6px; }
+.camp-cur { font-size: 14px; margin-bottom: 6px; }
+.build-next { font-size: 13px; margin: 6px 0; }
+.mats { color: #55523f; font-size: 12px; margin-left: 6px; }
+.furn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }.furn { border: 1px solid var(--ink); padding: 8px; display: flex; flex-direction: column; gap: 4px; background: #f0ecdf; }
+.furn.built { background: var(--ink); color: var(--paper); }
+/* 已建成卡片是深底浅字，里面的按钮却是浅底 —— 不显式给 color 会继承父级的浅色，变成浅底浅字看不见 */
+.furn.built .mini-btn { color: var(--ink); }
+.furn.built .mini-btn:hover:not(:disabled) { color: var(--paper); }
+.furn-name { font-weight: 700; font-size: 14px; }
+.furn-mats { font-size: 11px; color: #55523f; }
+
+/* 制造 */
+.recipe-list { display: flex; flex-direction: column; gap: 8px; max-height: 56vh; overflow-y: auto; }
+.recipe { border: 1.5px solid var(--ink); padding: 9px 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.recipe.locked { opacity: 0.55; }
+.recipe-name { font-weight: 700; min-width: 110px; font-size: 14.5px; }
+.recipe-mats { flex: 1; font-size: 12.5px; color: #44412f; }
+.recipe-lock { width: 100%; font-size: 12px; color: var(--gray); }
+.owned { font-size: 11px; border: 1px solid var(--ink); padding: 0 4px; margin-left: 4px; }
+
+/* 背包 */
+.inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+@media (max-width: 900px) { .inv-grid { grid-template-columns: repeat(6, 1fr); gap: 5px; } }
+.inv-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: var(--paper); border: 1.5px solid var(--ink); padding: 8px 4px;
+}
+/* hover / 已装备：默认皮肤保留原本的"整块反白"（黑底白字，手感最强） */
+.inv-item:hover { background: var(--ink); color: var(--paper); }
+.inv-item.equiped { background: var(--ink); color: var(--paper); }
+/* 上色皮肤下反白会让深色小字糊在墨底上 → 改成"浅底 + 琥珀描边"，
+   同时黑墨图标始终待在浅色 --tile 上不会隐形 */
+body.skin-accent .inv-item:hover { background: var(--tile); color: var(--ink); border-color: var(--accent); }
+body.skin-accent .inv-item.equiped { background: var(--tile); color: var(--ink); border-color: var(--accent); }
+.inv-item.st-1 { border-color: #d8c98a !important; }
+.inv-item.st-2 { border-color: #e6d558 !important; }
+.inv-item.st-3 { border-color: #e8a24c !important; }
+.inv-item.st-4 { border-color: #d9534a !important; }
+.inv-item.st-5 { border-color: #a81010 !important; }
+.inv-glyph { font-size: 22px; }
+.inv-name { font-size: 12px; }
+.inv-qty { font-size: 11px; opacity: 0.8; }
+.inv-dur { width: 34px; height: 3px; background: rgba(0,0,0,0.16); border-radius: 2px; overflow: hidden; margin: 1px 0; }
+.inv-dur i { display: block; height: 100%; background: var(--ink); }
+.inv-dur i.fresh { background: #7c8a62; }
+#center-toast {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 90; pointer-events: none; opacity: 0; transition: opacity 0.2s;
+  background: rgba(10,10,8,0.82); color: var(--paper); border: 1px solid rgba(234,230,218,0.7);
+  padding: 10px 18px; border-radius: 6px; font-size: 15px; letter-spacing: 0.06em;
+  white-space: nowrap; max-width: 88vw; overflow: hidden; text-overflow: ellipsis;
+}
+#center-toast.show { opacity: 1; }
+#loading { position: fixed; inset: 0; z-index: 200; background: #0b0b09; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; transition: opacity 0.5s; }
+#loading.done { opacity: 0; }
+.tut-banner { position: fixed; left: 50%; top: 8px; transform: translateX(-50%); z-index: 2100; background: rgba(24,21,12,0.96); border: 1px solid #c9b98a; color: #efe9d6; padding: 8px 14px; border-radius: 8px; max-width: 92vw; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.45); }
+.tut-banner .tut-text { font-size: 13px; line-height: 1.5; }
+.tut-banner .mini-btn { margin: 0; white-space: nowrap; }
+#scene-load { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 20; display: none; flex-direction: column; align-items: center; gap: 8px; }
+#scene-load.show { display: flex; }
+#scene-load i { font-size: 30px; color: var(--paper); text-shadow: 0 0 10px rgba(0,0,0,0.8); animation: sealSpin 2.4s linear infinite; }
+#scene-load>.load-bar { width: 120px; height: 4px; background: rgba(234,230,218,0.2); border-radius: 2px; overflow: hidden; }
+#scene-load>.load-bar>i { display: block; height: 100%; background: var(--paper); animation: loadFill 0.9s linear infinite; }
+.load-glyph { font-size: 46px; color: var(--paper); animation: sealSpin 2.6s linear infinite; }
+.load-tip { color: rgba(234,230,218,0.9); font-size: 14px; letter-spacing: 0.04em; max-width: 82vw; text-align: center; }
+.load-bar { width: 150px; height: 4px; background: rgba(234,230,218,0.2); border-radius: 2px; overflow: hidden; }
+.load-bar i { display: block; height: 100%; background: var(--paper); animation: loadFill 2.2s linear; }
+@keyframes loadFill { from { width: 0; } to { width: 100%; } }
+.map-in { animation: mapin 1s ease; }
+@keyframes mapin { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
+/* z-index 必须高于日志栏（#log 是 9）：热点层淡入时 opacity<1 会自己形成一个层叠上下文，
+   不显式给 z-index 的话它整层都会被日志栏压住（左侧那条 250px 里的热点就看不清、点不到）。
+   ⚠️ pointer-events 必须配一对：这一层是"整块舞台大小"的容器，默认会把底下所有东西的点击全吃掉
+   （海域/对岸的分区按钮就因此点不动了）。层本身穿透、只有热点本身接收点击。 */
+#hotspots { opacity: 0; transition: opacity 0.35s; z-index: 10; pointer-events: none; }
+.hotspot { pointer-events: auto; }
+#hotspots.ready { opacity: 1; }
+.once-tag { font-style: normal; font-size: 9px; color: #d8c9a0; border: 1px solid rgba(234,230,218,0.6); padding: 0 3px; border-radius: 3px; margin-left: 3px; }
+/* 右下角 HUD：动作按钮（与老潮交易/祭坛仪式…）和休息栏排成【一列】，从底栏往上堆。
+   以前两者各自钉在 right/bottom 上，窄屏下休息栏换成两行变高就会压住动作按钮。
+   现在由 ui.js 的 layoutBottomRight() 实测高度后统一摆位，中间恒定留 6px。 */
+#hud-bottomright { position: fixed; right: 10px; bottom: calc(var(--navh) + 6px); z-index: 10; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
+#hud-bottomright > * { pointer-events: auto; }
+#scene-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+#scene-actions:empty { display: none; }
+.action-btn.float { min-width: 0; padding: 4px 10px; font-size: 12px; background: rgba(10,10,8,0.78); color: var(--paper); border: 1.2px solid rgba(234,230,218,0.75); }
+.action-btn.float .act-name { font-size: 12px; }
+.action-btn.float.ending { background: var(--paper); color: var(--ink); font-weight: 700; }
+#logbody { flex: 1; min-height: 0; overflow-y: auto; pointer-events: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; color: var(--paper); text-shadow: 0 1px 6px rgba(0,0,0,0.9); }
+/* 内容少时把日志顶到底部；内容多了这行自动消失，于是最早的几行也能滚到（flex-end + overflow 会滚不到顶） */
+#logbody::before { content: ''; margin-top: auto; }
+#logbody::-webkit-scrollbar { width: 0; height: 0; }
+#logbody { scrollbar-width: none; -ms-overflow-style: none; }
+.item-desc { font-size: 14px; line-height: 1.8; margin: 8px 0; }
+.warn-text { color: #3a3728; font-style: italic; }
+
+/* 交易 */
+.trader-row { display: flex; gap: 14px; align-items: center; margin-bottom: 12px; }
+.trader-img { width: 92px; height: 92px; object-fit: cover; border: 2px solid var(--ink); filter: grayscale(1); }
+.trader-talk { font-size: 14px; line-height: 1.8; font-style: italic; color: #3a3728; margin-bottom: 8px; }
+.trade-grid { display: grid; grid-template-columns: 2fr 1fr 0.7fr; gap: 6px; align-items: center; padding: 4px 0; border-bottom: 1px dotted rgba(22,21,15,0.25); font-size: 13.5px; }
+/* 长按批量：手机上别触发选中/长按菜单，不然会打断长按判定 */
+button, .mini-btn, .tab, .action-btn, .map-arrow, .hotspot {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.trade-col { overflow: hidden; text-overflow: ellipsis; }
+/* 交易面板顶部的钱包：一眼看到自己有多少贝壳币 / 金币 */
+.wallet-bar { font-size: 12.5px; letter-spacing: 0.06em; color: var(--ink2); background: rgba(22,21,15,0.07); border: 1px solid rgba(22,21,15,0.25); border-radius: 4px; padding: 4px 9px; margin: 2px 0 8px; }
+.wallet-bar b { color: var(--ink); }
+.mission { border: 1.5px solid var(--ink); padding: 10px 12px; margin-bottom: 8px; }
+.mission.done { opacity: 0.55; }
+.mission-name { font-weight: 700; }
+.mission-text { font-size: 13px; color: #44412f; margin: 3px 0; }
+.mission-need, .mission-reward { font-size: 12.5px; }
+
+/* 战斗 */
+.combat-modal { background: var(--ink); color: var(--paper); border-color: var(--paper); box-shadow: 8px 8px 0 rgba(234,230,218,0.15); max-width: 560px; max-height: 92vh; overflow-y: auto; }
+.combat-modal .modal-title { border-color: var(--paper); }
+.enemy-img { width: 100%; max-height: 250px; object-fit: contain; background: #0b0b09; border: 1px solid var(--paper); margin-bottom: 10px; }
+.enemy-seal {
+  display: flex; align-items: center; justify-content: center;
+  width: 96px; height: 96px; margin: 6px auto 10px;
+  border: 3px double var(--paper); background: var(--paper);
+  transform: rotate(-3deg);
+}
+.enemy-seal span { font-size: 62px; font-weight: 700; color: var(--ink); }
+.enemy-fallback { height: 150px; display: flex; align-items: center; justify-content: center; font-size: 60px; border: 1px dashed var(--paper); margin-bottom: 10px; }
+.enemy-line { font-size: 14px; color: var(--paper2); margin-bottom: 12px; line-height: 1.7; }
+.hp-line { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 6px 0; }
+.hp-bar { flex: 1; height: 12px; border: 1px solid var(--paper); background: transparent; }
+.hp-fill { height: 100%; background: var(--paper); transition: width 0.3s; }
+.hp-fill.me { background: var(--hp); }
+.fight-log { max-height: 130px; overflow-y: auto; font-size: 13.5px; line-height: 1.8; margin: 10px 0; border: 1px solid rgba(234,230,218,0.35); padding: 8px; color: var(--paper2); }
+.fline { margin: 2px 0; }
+.fight-btns { display: flex; flex-wrap: wrap; gap: 8px; position: sticky; bottom: 0; background: var(--ink); padding: 6px 0; z-index: 6; }
+.fight-btns button { background: transparent; color: var(--paper); border: 1.5px solid var(--paper); padding: 8px 16px; font-size: 14px; letter-spacing: 0.1em; }
+.fight-btns button:hover:not(:disabled) { background: var(--paper); color: var(--ink); }
+
+/* 日记 / 图鉴 / 结局 */
+.diary-list { display: flex; flex-direction: column; gap: 6px; }
+.diary-line { font-size: 14px; line-height: 1.7; border-bottom: 1px dotted rgba(22,21,15,0.2); padding-bottom: 4px; }
+.diary-day { color: var(--gray); margin-right: 10px; font-size: 12px; }
+.col-row { margin-bottom: 10px; font-size: 14px; }
+.col-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+.col-list.tools { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.col-item { border: 1px solid var(--ink); padding: 5px 8px; font-size: 13px; }
+.col-item.unseen { color: var(--gray); border-style: dashed; }
+.col-item b { display: block; font-size: 13.5px; }
+.col-item small { display: block; font-size: 11px; color: #55523f; line-height: 1.5; margin-top: 2px; }
+.col-item .col-times { margin-top: 3px; color: #9c6b1f; }
+.col-body { margin: 8px 0 10px; max-height: 54vh; overflow-y: auto; }
+.batch-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-size: 14px; }
+.batch-row input[type=range] { flex: 1; accent-color: var(--ink); }
+.batch-count { min-width: 34px; font-weight: 700; text-align: center; }
+.batch-hint { font-size: 12px; color: #55523f; margin-bottom: 8px; }
+.skill-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0; }
+.skill-col { border: 2px solid #4a6d9e; background: rgba(74,109,158,0.08); padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+.skill-name { font-size: 16px; font-weight: 700; }
+.skill-desc { font-size: 11px; color: #44412f; line-height: 1.6; min-height: 34px; }
+.skill-lv { font-size: 13px; font-weight: 600; }
+.skill-exp { font-size: 11px; color: #55523f; }
+.skill-bar { height: 4px; background: rgba(0,0,0,0.16); border-radius: 2px; overflow: hidden; }
+.skill-bar i { display: block; height: 100%; background: #4a6d9e; }
+.skill-max { font-size: 11px; color: #9c6b1f; }
+@media (max-width:600px) { .skill-grid { grid-template-columns: 1fr; } }
+/* ---------- 技能树：树状图（中间一条主干竖线，专项升级从两侧伸出来）---------- */
+.st-tree { position: relative; margin: 12px 0 8px; }
+.st-tree::before {
+  content: ''; position: absolute; left: 50%; top: 10px; bottom: 10px; width: 2px; transform: translateX(-50%);
+  background: linear-gradient(to bottom, rgba(74,109,158,0.10), rgba(74,109,158,0.55) 12%, rgba(74,109,158,0.55) 88%, rgba(74,109,158,0.10));
+}
+.st-row { position: relative; display: grid; grid-template-columns: 1fr 124px 1fr; align-items: center; gap: 10px; padding: 7px 0; }
+.st-mid { position: relative; text-align: center; }
+.st-dot { display: block; width: 14px; height: 14px; margin: 0 auto 5px; border: 2px solid #4a6d9e; border-radius: 50%; background: var(--paper); position: relative; z-index: 1; }
+.st-dot.on { background: #4a6d9e; }
+.st-dot.next { border-color: #8a7346; box-shadow: 0 0 0 4px rgba(138,115,70,0.20); }
+.st-lvname { position: relative; z-index: 1; display: inline-block; background: var(--paper); padding: 0 5px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; }
+.st-picks { position: relative; z-index: 1; display: inline-block; background: var(--paper); padding: 0 5px; font-size: 11px; color: #55523f; min-height: 14px; }
+.st-row .st-side { display: flex; flex-direction: column; gap: 6px; }
+.st-side.left { align-items: flex-end; }
+.st-side.right { align-items: flex-start; }
+/* 互斥：同一级的一对分居左右，中间一条红虚线 */
+.st-mutex-line { position: absolute; left: -100%; right: -100%; top: 50%; border-top: 2px dashed rgba(168,56,42,0.42); pointer-events: none; z-index: 0; }
+/* 卡片和主干文字都用不透明底色，互斥的虚线只从它们"后面"穿过去，不糊在字上 */
+.st-node { position: relative; z-index: 1; width: 100%; border: 1.5px solid rgba(74,109,158,0.5); background: var(--paper);
+  padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; transition: all .18s; }
+.st-node::after { content: ''; position: absolute; top: 50%; width: 10px; height: 2px; background: rgba(74,109,158,0.5); }
+.st-side.left .st-node::after { right: -10px; }
+.st-side.right .st-node::after { left: -10px; }
+.st-node.on { border-color: #8a7346; background: #f7f0dc; }
+.st-node.on::after { background: #8a7346; }
+.st-node.can { box-shadow: 0 0 0 2px rgba(74,109,158,0.18); }
+.st-node .st-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.st-node .st-head b { font-size: 14px; }
+.st-lv { letter-spacing: 2px; color: #8a7346; font-size: 12px; white-space: nowrap; }
+.st-desc { font-size: 11.5px; line-height: 1.6; color: #55523f; }
+.st-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.st-lock { font-size: 11px; color: #7a7563; }
+.st-forget { border-color: #a8382a !important; color: #a8382a !important; }
+.st-next-opts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.st-opt { text-align: left; background: transparent; border: 1.5px solid #4a6d9e; padding: 8px 10px; color: #2f2c22;
+  display: flex; flex-direction: column; gap: 3px; cursor: pointer; transition: all .18s; }
+.st-opt b { font-size: 14px; }
+.st-opt span { font-size: 11.5px; line-height: 1.5; color: #55523f; }
+.st-opt:hover:not(:disabled) { background: rgba(74,109,158,0.14); }
+.st-opt.lockedb { opacity: .5; cursor: not-allowed; border-style: dashed; }
+.st-have { color: #8a7346; font-size: 11px; }
+.st-cost { font-size: 11px; color: #4a6d9e; border-top: 1px dashed rgba(74,109,158,0.35); padding-top: 3px; margin-top: 2px; }
+.st-cost.lack { color: #a8382a; border-top-color: rgba(168,56,42,0.35); }
+.st-req { font-size: 10.5px; color: #8a7346; border: 1px solid rgba(138,115,70,0.5); padding: 0 4px; }
+.st-reqline { margin-top: -2px; }
+/* 技能图标（3×3 批量画 → 切成 128×128 的墨线 + 透明底） */
+.st-icon { width: 21px; height: 21px; object-fit: contain; vertical-align: -5px; margin-right: 5px; }
+.st-node .st-head b { display: flex; align-items: center; gap: 0; }
+.st-opt b { display: flex; align-items: center; }
+.st-opt .st-icon { width: 19px; height: 19px; margin-right: 6px; }
+.st-node.on .st-icon { filter: drop-shadow(0 0 3px rgba(138,115,70,0.35)); }
+@media (max-width:600px) {
+  .st-row { grid-template-columns: 1fr 92px 1fr; gap: 6px; }
+  .st-next-opts { grid-template-columns: 1fr; }
+  .st-desc { font-size: 11px; }
+}
+.ending-modal { text-align: center; background: #0b0b09; color: var(--paper); border-color: var(--paper); }
+.ending-title { font-size: 40px; letter-spacing: 0.4em; text-indent: 0.4em; font-weight: 700; margin: 16px 0 8px; }
+.ending-sub { font-size: 14px; color: var(--paper2); letter-spacing: 0.2em; margin-bottom: 10px; }
+.ending-modal .soul-line { font-size: 13px; letter-spacing: 0.05em; color: var(--ink); }
+.ending-modal .soul-line b { font-size: 17px; }
+.ending-text { font-size: 16px; line-height: 2; margin: 18px 0; }
+.ending-diary { text-align: left; max-height: 34vh; overflow-y: auto; border: 1px solid rgba(234,230,218,0.35); padding: 10px 14px; margin-bottom: 14px; }
+.ending-diary .diary-line { color: var(--paper2); border-color: rgba(234,230,218,0.2); }
+.ending-modal .modal-actions button { background: transparent; color: var(--paper); border: 1.5px solid var(--paper); }
+.ending-modal .modal-actions button:hover { background: var(--paper); color: #0b0b09; }
+
+/* 耕地 */
+.crop-row { border: 1px solid var(--ink); padding: 8px 12px; margin-bottom: 6px; font-size: 14px; display: flex; align-items: center; gap: 12px; }
+.plant-row { margin: 10px 0; font-size: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ---------- 滚动条 ---------- */
+::-webkit-scrollbar { width: 9px; }
+::-webkit-scrollbar-track { background: var(--paper2); }
+::-webkit-scrollbar-thumb { background: var(--ink); border: 2px solid var(--paper2); }
+
+/* ---------- 小屏适配 ---------- */
+/* ---------- 移动端（含横屏）兼容 ---------- */
+html, body { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+/* ⚠️ 这两个整屏页别写 100dvh：外层 #app 已经是"100vh + 30px 上内边距"，
+   再撑满一整个视口高就整整多出 30px —— 标题页底部的「备份点」那行会被顶出屏幕。 */
+#title-screen, #select-screen { min-height: 100%; }
+#loading { min-height: 100dvh; }
+button, .action-btn, .map-arrow, .hotspot, .tab, .mini-btn { touch-action: manipulation; }
+.stage, #main { touch-action: none; }
+#app { -webkit-text-size-adjust: 100%; }
+
+@media (max-width: 900px), (max-height: 500px) {
+  :root { --navh: 30px; }   /* 手机端底栏：玩家反馈 20px 太窄点不准，和桌面统一成 30px */
+  #topbar { font-size: 10px; gap: 4px; padding: 4px 6px; }
+  #topstats { gap: 5px; }
+  .stat-bar { width: 26px; height: 5px; }
+  .stat-num { min-width: 16px; font-size: 9px; }
+  #cap { font-size: 9px; }
+  /* 邮箱按钮原来没跟着窄屏缩，会把顶栏挤爆（"精神"数值和它叠在一起） */
+  .top-mail-btn { font-size: 10px; padding: 2px 6px; border-width: 1px; }
+  /* 全屏 backdrop-filter 是手机端最贵的特效之一（每帧都要把底下整幅画面重新模糊一遍）。
+     这两层本来底色就很暗，手机端直接去掉模糊、把底色压深一点，肉眼几乎无差别。 */
+  #modal { background: rgba(8,8,6,0.80); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  #busy { background: rgba(8,8,6,0.68); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  #status-badges { display: none; }
+  /* ⚠️ 这里以前写的是 #actions —— 但动作按钮的真实容器是 #scene-actions（#actions 根本不存在），
+     所以"手机端限制动作区高度"这条规则一直没生效：营地那种十几个动作的列表会一路顶到屏幕上沿。
+     改成真容器，并留出可滚动兜底（动作再多也不会盖住画面）。 */
+  #scene-actions { max-height: 58vh; overflow-y: auto; padding-right: 2px; -webkit-overflow-scrolling: touch; }
+  .action-btn { min-width: 96px; padding: 4px 8px; }
+  .action-btn .act-name { font-size: 12px; }
+  .action-btn .act-desc { font-size: 9.5px; }
+  #nav { height: var(--navh); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  #nav button { font-size: 10px; padding: 0 2px; }
+  .modal-content { width: min(64vw, 600px); max-height: 88vh; padding: 10px; }
+  .modal-title { font-size: 16px; }
+  #log { width: min(72vw, 320px); font-size: 12px; padding-top: 92px; }   /* 手机上按钮更高，多留一点 */
+  #objective { font-size: 11px; }
+  #btn-backmap, #btn-rest { padding: 7px 10px; font-size: 12px; min-height: 36px; }
+  #rest-bar { flex-wrap: wrap; justify-content: flex-end; }   /* 窄屏允许换行；换行也不会再压住动作按钮（两者同列） */
+  #zoomctl button { width: 44px; height: 44px; }
+  .hotspot .hot-glyph { font-size: 19px; }
+  .hotspot .hot-label { font-size: 10.5px; }
+  .map-arrow .arrow-label { font-size: 10.5px; }
+  .map-arrow .arrow-glyph { font-size: 18px; }
+  .help-list, .recipe-list, .trade-grid, .col-list { max-height: 54vh; }
+  #topbar { padding-top: env(safe-area-inset-top, 0px); }
+}
+
+@media (max-width: 820px) {
+  .modal-content { width: min(64vw, 600px); padding: 10px; }
+}
+
+/* 触屏设备（手机 / iPad）：把可点区域尽量撑满容器 —— 玩家反馈"下面菜单栏好难点"。
+   底栏高度是 --navh，这里把容器上下内边距压到 1px，让按钮真正吃到 30px 里的大部分；
+   浮动的动作按钮和工具栏小按钮也给一个下限。 */
+@media (pointer: coarse) {
+  #nav { padding: 1px 3px 1px; }
+  #nav button { min-height: 28px; }
+  .action-btn.float { min-height: 32px; }
+  .mini-btn { min-height: 26px; }
+}
+
+#fight-btns.over { pointer-events: none; opacity: .5; filter: grayscale(.4); }
+
+.hp-fill.boss { background: #c0392b; }
+/* 敌人意图标签（多目标战斗：蓄力/掩护/猛击）——让"先打谁"有依据 */
+.intent-tag {
+  font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+  margin-left: 5px; padding: 1px 5px; border-radius: 3px; vertical-align: 1px;
+  border: 1px solid currentColor; opacity: 0.95;
+}
+.intent-tag.charge { color: #e8c66a; }
+.intent-tag.cover { color: #8fc7e8; }
+.intent-tag.cover-on { color: #8fc7e8; opacity: 0.7; font-weight: 400; }
+.intent-tag.heavy { color: #ff8a7a; }
+#fight-targets .target { cursor: default; opacity: .92; padding: 2px 0; }
+/* 多目标：血条列表吸顶（滚战斗日志时也看得见）+ 选中的目标白框 */
+#fight-targets { position: sticky; top: 0; z-index: 5; background: var(--ink); padding: 4px 0 6px; }
+/* ⚠️ 这几条原来是 .fight-targets（当作 class 写），而元素只有 id、没有这个 class
+   ——整段选择器全部不生效：选目标的黄框和"已选定"的白框玩家从来没看见过。 */
+#fight-targets .target { border: 2px solid transparent; border-radius: 5px; }
+#fight-targets .target.selected { border-color: #fff; background: rgba(255,255,255,0.14); box-shadow: 0 0 0 1px #000; }
+#fight-targets.selecting .target { cursor: pointer; border: 2px solid #e8c66a; border-radius: 5px; background: rgba(232,198,106,0.12); box-shadow: 0 0 12px 3px rgba(232,198,106,0.65), inset 0 0 6px rgba(232,198,106,0.25); animation: tgpulse 0.9s ease-in-out infinite; }
+#fight-targets.selecting .target.selected { border-color: #fff; box-shadow: 0 0 12px 3px rgba(255,255,255,0.7); }
+@keyframes tgpulse { 0%,100% { box-shadow: 0 0 10px 2px rgba(232,198,106,0.5), inset 0 0 6px rgba(232,198,106,0.2); } 50% { box-shadow: 0 0 16px 5px rgba(232,198,106,0.85), inset 0 0 8px rgba(232,198,106,0.3); } }
+#fight-targets .target.boss-line .tg-name { color: #e08a7a; }
+#fight-targets .tg-hp { margin-left: 8px; font-size: 12px; color: #c9c2ab; }
+
+/* ⚠️ 横屏手机上（界面高度只有 390 左右）战斗弹窗里那张 250px 的怪物大图
+   会把「敌人血条」整个顶到屏幕外面去 —— 玩家打怪时看不到血条，
+   只能靠自己往下滚，反馈里的"血条看不见/像卡住"就是这么来的。
+   矮屏把图和解说压缩，让 怪物图 + 你的血条 + 敌人血条 + 战斗日志 + 按钮 一屏放得下。 */
+@media (max-height: 620px) {
+  .combat-modal { padding: 8px 12px 6px; }
+  .combat-modal .modal-title { font-size: 15px; margin-bottom: 5px; padding-bottom: 3px; letter-spacing: 0.2em; }
+  .combat-modal .enemy-img { max-height: 18vh; margin-bottom: 4px; }
+  .enemy-seal { width: 60px; height: 60px; margin: 2px auto 6px; }
+  .enemy-seal span { font-size: 38px; }
+  .enemy-line { font-size: 11.5px; margin-bottom: 4px; line-height: 1.45; }
+  .hp-line { margin: 2px 0; gap: 6px; }
+  #fight-targets { padding: 2px 0 3px; }
+  /* 底部按钮是吸底的，内容要留出它的高度，否则最后一条血条会被压在按钮下面 */
+  .combat-modal .fight-log { max-height: 46px; font-size: 12px; line-height: 1.5; margin: 4px 0 0; padding: 5px 6px; }
+  .fight-btns { padding: 4px 0 0; }
+  .fight-btns button { padding: 5px 12px; font-size: 13px; }
+}
+
+.ending-img { display: block; width: min(320px, 60vw); margin: 12px auto; border: 2px solid var(--paper); filter: grayscale(1); }
+.ending-lines { min-height: 40px; }
+.ending-line { opacity: 0; transform: translateY(8px); transition: opacity .7s ease, transform .7s ease; font-size: 14.5px; line-height: 1.9; color: var(--paper); margin: 4px 0; letter-spacing: .04em; }
+.ending-line.in { opacity: 1; transform: none; }
+
+.top-mail-btn { background: transparent; color: var(--paper); border: 1.5px solid var(--paper); padding: 3px 8px; font-size: 12px; border-radius: 4px; cursor: pointer; }
+.top-mail-btn #mail-count { color: #e8c66a; }
+
+.recipe-row { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--ink); padding: 9px 12px; font-size: 13px; background: var(--paper); color: var(--ink); }
+.recipe-row b { min-width: 70px; white-space: nowrap; font-size: 14.5px; }
+.recipe-row .rcost { flex: 1; color: #44412f; font-size: 12.5px; }
+
+#ending-screen { position: fixed; inset: 0; z-index: 5000; background: #0b0b09; color: var(--paper); display: none; overflow-y: auto; }
+#ending-screen.open { display: block; }
+/* ---------- 开场分镜（只在"新的旅程"开新存档时播一次；5 格漫画） ----------
+   黑底 + 全屏插画 + 底部字幕条；点击画面任意处翻页，也能按空格/回车，Esc 或「跳过」直接进游戏。
+   按钮跟游戏里一样是直角细边框（主人定的调子），动效只有"淡入 + 极慢推近"。 */
+#comic-screen { position: fixed; inset: 0; z-index: 6000; background: #0b0b09; color: var(--paper); overflow: hidden; transition: opacity .42s ease; }
+#comic-screen.out { opacity: 0; }
+#comic-screen #comic-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  filter: grayscale(1) contrast(1.06) brightness(0.86);
+  animation: comicFade .8s ease both, comicZoom 15s ease-out both; }
+/* 灵灰（彩色角色）走冷蓝调，跟她在游戏里的表现一致 */
+#comic-screen.lk #comic-img { filter: grayscale(1) sepia(0.45) hue-rotate(168deg) saturate(2.6) brightness(0.82); }
+@keyframes comicFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes comicZoom { from { transform: scale(1.015); } to { transform: scale(1.075); } }
+#comic-screen .comic-shade { position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, rgba(4,4,3,0.97) 0%, rgba(4,4,3,0.80) 20%, rgba(4,4,3,0.30) 46%, rgba(4,4,3,0) 72%); }
+.comic-cap { position: absolute; left: max(22px, 6vw); right: max(22px, 6vw); bottom: 78px; text-align: left; }
+.comic-step { font-size: 11.5px; letter-spacing: 0.42em; color: rgba(234,230,218,0.6); }
+.comic-title { font-size: clamp(19px, 2.6vw, 30px); font-weight: 700; letter-spacing: 0.34em; margin: 7px 0 9px; text-shadow: 0 2px 14px #000; }
+.comic-text { font-size: clamp(13px, 1.5vw, 16.5px); line-height: 1.95; white-space: pre-line; color: var(--paper2);
+  text-shadow: 0 2px 10px rgba(0,0,0,0.95); animation: comicTextIn .55s ease both; }
+@keyframes comicTextIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+.comic-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; display: flex; align-items: center; gap: 10px;
+  padding: 0 max(22px, 6vw); box-sizing: border-box;
+  background: linear-gradient(to top, rgba(4,4,3,0.9), rgba(4,4,3,0)); }
+.comic-dots { display: flex; gap: 8px; margin-right: auto; }
+.comic-dots i { width: 9px; height: 9px; border: 1.5px solid var(--paper); opacity: .4; }
+.comic-dots i.on { opacity: 1; background: var(--paper); }
+.comic-bar button { background: transparent; color: var(--paper); border: 1.5px solid var(--paper); border-radius: 0;
+  padding: 8px 20px; font-size: 13.5px; letter-spacing: 0.2em; transition: all .25s; }
+.comic-bar button:hover, .comic-bar button:active { background: var(--paper); color: #0b0b09; }
+.comic-bar .comic-skip { opacity: .72; }
+@media (max-height: 520px) {
+  .comic-cap { bottom: 60px; }
+  .comic-text { line-height: 1.72; }
+  .comic-bar { height: 54px; }
+  .comic-bar button { padding: 6px 16px; font-size: 13px; }
+}
+body.no-scroll { overflow: hidden; }
+.ending-wrap { max-width: 720px; margin: 0 auto; padding: 34px 20px 70px; text-align: center; }
+.ending-wrap .ending-title { font-size: 34px; letter-spacing: 0.35em; color: var(--paper); margin-bottom: 10px; }
+.ending-wrap .ending-sub { font-size: 13px; color: rgba(234,230,218,0.7); letter-spacing: 0.1em; margin: 6px 0; }
+.ending-wrap .ending-img { width: min(400px, 76vw); margin: 20px auto; border: 2px solid rgba(234,230,218,0.5); filter: grayscale(1); display: block; }
+.ending-wrap .ending-text { font-size: 15px; line-height: 2; color: rgba(234,230,218,0.92); margin: 12px 0; }
+.ending-wrap .ending-lines { margin: 8px 0; }
+.ending-wrap .ending-line { opacity: 0; transform: translateY(8px); transition: opacity .7s ease, transform .7s ease; font-size: 14.5px; line-height: 1.9; color: var(--paper); margin: 4px 0; letter-spacing: .04em; }
+.ending-wrap .ending-line.in { opacity: 1; transform: none; }
+.ending-wrap .ending-diary { margin: 20px auto 0; max-width: 560px; text-align: left; font-size: 12.5px; color: rgba(234,230,218,0.7); border-top: 1px solid rgba(234,230,218,0.25); padding-top: 14px; }
+.ending-wrap .ending-diary .diary-line { margin: 3px 0; }
+.ending-wrap .ending-diary .diary-day { color: #e8c66a; margin-right: 8px; }
+.ending-wrap .ending-actions { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.ending-wrap .ending-actions button { background: transparent; color: var(--paper); border: 1.5px solid var(--paper); padding: 10px 20px; font-size: 14px; letter-spacing: 0.1em; cursor: pointer; }
+.ending-wrap .ending-actions button:hover { background: var(--paper); color: #0b0b09; }
+
+/* iOS Safari：按钮/输入框默认蓝色 → 强制继承文字色 */
+button, input, select, textarea { -webkit-appearance: none; appearance: none; font-family: inherit; font-size: inherit; color: inherit; -webkit-text-fill-color: currentColor; }
+button { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+
+/* ⚠️ 物品图标必须有默认尺寸：以前只写了 `.inv-item .item-icon`，
+   于是在其他面板（图鉴/详情/工具栏…）里用 itemIcon() 渲染的图标完全没有约束，
+   按原图 96×96 原始像素铺出来 —— 玩家反馈的"一个雷霆大面具直接呼我脑袋上了"就是这个。 */
+.item-icon { display: block; width: 32px; height: 32px; margin: 2px auto 0; object-fit: contain; }
+.inv-item .item-icon { display:block; width:32px; height:32px; margin:2px auto 0; object-fit:contain; }
+
+/* 成就页 · 品阶配色 */
+.col-item.ach { display:block; }
+.ach-glyph { display:inline-block; width:24px; text-align:center; font-size:20px; }
+.ach-tier { display:inline-block; margin-left:6px; padding:0 6px; border-radius:4px; font-size:11px; font-weight:700; vertical-align:middle; }
+.ach-tier.ach-purple { color:#c9b1ff; border:1px solid #8a6bd6; }
+.ach-tier.ach-gold { color:#f2d27a; border:1px solid #b99a3e; }
+.ach-tier.ach-red { color:#ff8a7a; border:1px solid #c05040; }
+.col-item.ach.done { opacity:0.9; }
+.col-item.ach .mini-btn { margin-top:4px; }
+
+/* 属性页：左属性框 + 右角色立绘 */
+.attr-wrap { display:flex; gap:12px; align-items:flex-start; }
+.attr-left { flex:1 1 auto; min-width:0; }
+.attr-left .help-list { width:100%; }
+.attr-right { width:44%; flex:0 0 44%; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.attr-portrait { width:100%; max-width:300px; object-fit:contain; border:1px solid rgba(234,230,218,0.25); background:rgba(10,10,8,0.6); border-radius:6px; }
+.attr-char { font-size:15px; letter-spacing:0.2em; color:var(--paper); }
+@media (max-width:560px){ .attr-wrap{ flex-direction:column; } .attr-right{ width:100%; max-width:none; } }
+
+/* 触屏：消除双击缩放延迟，提升点按响应 */
+html, body, button, a, input, select, textarea, .hotspot, .inv-item, .map-arrow, .tab, .mini-btn, .identity, .relic-slot, .zone-btn, .craft-recipe {
+  touch-action: manipulation;
+}
+
+/* 多区域场景：区域按钮自动换行 */
+#zones { flex-wrap: wrap; justify-content: center; }
+
+/* 石板 · 符文密码小游戏 */
+.rune-grid { display:flex; gap:14px; justify-content:center; margin:14px 0; }
+.rune-btn { width:72px; height:72px; font-size:30px; font-family:inherit; border:2px solid var(--ink); background:transparent; color:var(--ink); border-radius:8px; cursor:pointer; transition: all .15s ease; }
+.rune-btn:hover { background: rgba(60,90,150,0.35); }
+.rune-btn.lit { background: var(--ink); color:var(--paper); transform: scale(1.12); box-shadow: 0 0 22px rgba(0,0,0,0.45); }
+.rune-btn.ok { background:#6ec6ff; color:#0b0b09; }
+.modal-title [data-helprules] { margin-right: 46px; }
+/* 旅行动画：浅色地图上用深色虚线/描边，避免看不见 */
+.travel-layer svg line { stroke: rgba(16,16,16,0.9) !important; stroke-width: 3 !important; }
+.travel-layer .travel-dot { box-shadow: 0 0 8px rgba(0,0,0,0.9), 0 0 0 2px rgba(0,0,0,0.7); }
+
+/* 前往亚克兰蒂斯：3 秒下潜过场 */
+.atl-portal { position: fixed; inset: 0; z-index: 40; background: rgba(4,6,10,0.96); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; opacity:0; transition: opacity .45s ease; pointer-events:none; }
+.atl-portal.show { opacity:1; }
+.atl-portal img { width:180px; height:180px; object-fit:contain; filter: drop-shadow(0 0 24px rgba(120,170,255,0.55)); animation: atlBob 2.4s ease-in-out infinite; }
+.atl-portal-text { color:#cfe0ff; font-size:15px; letter-spacing:.18em; }
+@keyframes atlBob { 0%,100%{ transform: translateY(-8px); } 50%{ transform: translateY(8px); } }
+
+/* 加载界面小字 */
+.load-tip { margin-top: 10px; font-size: 12px; letter-spacing: 0.2em; color: rgba(234,230,218,0.7); }
+
+/* 手机端：竖屏提示（本作为横屏设计） */
+@media (orientation: portrait) and (max-width: 900px) {
+  html::after { content: '请横屏游玩 ⟳'; position: fixed; inset: 0; z-index: 999; display: flex; align-items: center; justify-content: center; background: #0b0b09; color: #eae6da; font-size: 20px; letter-spacing: 0.3em; }
+}
+.pair-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; max-width:420px; margin:14px auto; }
+.pair-btn { height:80px; border:2px solid var(--ink); background:transparent; color:var(--ink); border-radius:8px; font-size:26px; cursor:pointer; transition:all .15s; }
+.pair-btn.flip { background: var(--ink); color:var(--paper); }
+.pair-btn.done { opacity:0.22; border-style:dashed; cursor:default; }
+.light-grid { display:grid; grid-template-columns: repeat(3, 72px); gap:10px; justify-content:center; margin:14px 0; }
+/* ⚠️ 以前 "点亮" 是 background: var(--ink)（纯黑）—— 在一张浅色纸面板上，
+   玩家看到的"全亮"就是"全黑"，完全分不清状态（反馈原话："这不叫全亮，叫全黑"）。
+   现在：熄灭＝空框；点亮＝暖光 + ✦。 */
+.light-btn { display:flex; align-items:center; justify-content:center; width:72px; height:72px; border:2px solid var(--ink); background: rgba(22,21,15,0.06); border-radius:8px; cursor:pointer; transition:all .15s; }
+.light-btn.on { background:#fbf3dd; border-color:#8a7346; border-width:3px; box-shadow: 0 0 16px 4px rgba(232,198,106,0.85), inset 0 0 10px rgba(232,198,106,0.5); }
+.light-btn.on::after { content:'✦'; color:#8a7346; font-size:24px; line-height:1; }

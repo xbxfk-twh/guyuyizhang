@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>人物立绘：默认 / 彩绘卡面 对比</title>
+<style>
+  body { margin:0; background:#0b0b09; color:#eae6da; font:13px system-ui; padding:12px; }
+  h3 { margin:6px 0 10px; font-size:14px; letter-spacing:.1em; }
+  .row { display:flex; gap:14px; flex-wrap:wrap; }
+  .cell { width:210px; }
+  .cell .cap { font-size:12px; opacity:.85; margin-bottom:4px; }
+  .cell .box { width:200px; aspect-ratio:3/4; background:#141412; border:1px solid #444; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .cell img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
+  .miss { color:#e08a7a; font-size:11px; }
+</style>
+</head>
+<body>
+  <h3>默认立绘（assets/img/identities/）</h3>
+  <div class="row" id="a"></div>
+  <h3>彩绘卡面（assets/img/identities-card/）—— 缺图会显示"缺失"，游戏里会自动回退默认</h3>
+  <div class="row" id="b"></div>
+  <script>
+    const IDS = ['fisher', 'woodcutter', 'herbalist', 'smith', 'beekeeper', 'linghui'];
+    const NAMES = { fisher:'渔夫', woodcutter:'樵夫', herbalist:'药师', smith:'铁匠学徒', beekeeper:'养蜂人', linghui:'灵灰（保持原样）' };
+    const baseA = '../../孤屿遗章-游戏 - 发布/assets/img/identities/';
+    const baseB = '../../孤屿遗章-游戏 - 发布/assets/img/identities-card/';
+    const mk = (id, src, missingLabel) => {
+      const d = document.createElement('div'); d.className = 'cell';
+      d.innerHTML = '<div class="cap">' + NAMES[id] + ' · ' + id + '.png</div><div class="box"><img src="' + src + '" alt=""></div>';
+      const im = d.querySelector('img');
+      im.onerror = () => { im.style.display = 'none'; d.querySelector('.box').innerHTML = '<span class="miss">' + missingLabel + '</span>'; };
+      return d;
+    };
+    for (const id of IDS) document.getElementById('a').appendChild(mk(id, baseA + id + '.png', '缺失'));
+    for (const id of IDS) document.getElementById('b').appendChild(mk(id, baseB + id + '.png', '缺失（回退默认）'));
+  </script>
+</body>
+</html>
