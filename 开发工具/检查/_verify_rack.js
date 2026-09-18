@@ -1,4 +1,4 @@
-/* 实测晾肉架新机制：挂 30 分 → 晾 20 小时 → 期间不能晾别的 → 到期可收取 */
+﻿/* 实测晾肉架新机制：挂 30 分 → 晾 20 小时 → 期间不能晾别的 → 到期可收取 */
 const fs = require('fs');
 const path = require('path');
 const ROOT = 'C:\\Users\\34297\\Desktop\\孤屿遗章\\孤屿遗章-游戏 - 发布';
@@ -31,7 +31,7 @@ const RACK = RECIPES.find(r => r.id === 'r_rackmeat');
 sec('A. 配方数据');
 ck('晾肉干 = 挂 30 分 + 晾 1200 分（20 小时）', RACK.time === 30 && RACK.hang === 1200, `time=${RACK.time} hang=${RACK.hang}`);
 // 作者 2026-09-18：一批太慢 → 改成"一次晾两个"，出肉率不变（1 份肉 3 条肉干）
-ck('一次晾两个：材料 肉×2、一批出 肉干×6', JSON.stringify(RACK.in) === '{"meat":2}' && JSON.stringify(RACK.out) === '{"jerky":6}',
+ck('一次晾两个：材料 肉×2、一批出 肉干×4', JSON.stringify(RACK.in) === '{"meat":2}' && JSON.stringify(RACK.out) === '{"jerky":4}',
    'in=' + JSON.stringify(RACK.in) + ' out=' + JSON.stringify(RACK.out));
 
 sec('B. 挂上去：只花 30 分钟，不当场给成品');
@@ -73,7 +73,7 @@ sec('D. 没到时间不能取');
   ck('架子还占着', !!Game.dryOf('rack'));
 }
 
-sec('E. 晾满 20 小时：可以取，一批产出肉干×6');
+sec('E. 晾满 20 小时：可以取，一批产出肉干×4');
 {
   const S = setup();
   Game.craft(RACK);
@@ -81,7 +81,7 @@ sec('E. 晾满 20 小时：可以取，一批产出肉干×6');
   ck('剩余归零', Game.dryLeftMin('rack') === 0, Game.fmtLeft(Game.dryLeftMin('rack')));
   const r = Game.dryCollect('rack');
   ck('★ 到期能取下来', r.ok, JSON.stringify(r));
-  ck('★ 拿到肉干×6（一批的量）', Game.invCount('jerky') === 6, 'jerky=' + Game.invCount('jerky'));
+  ck('★ 拿到肉干×4（一批的量）', Game.invCount('jerky') === 4, 'jerky=' + Game.invCount('jerky'));
   ck('架子空了，可以再晾', !Game.dryOf('rack') && Game.canCraft(RACK).ok);
 }
 
@@ -107,7 +107,7 @@ sec('G. 存档往返（晾晒进度不能丢）');
   Game.save(); Game.load();
   ck('读档后剩余时间一致', Game.dryLeftMin('rack') === leftBefore, `${leftBefore} → ${Game.dryLeftMin('rack')}`);
   Game.addMin(900);
-  ck('读档后照样能晾透并取到', Game.dryCollect('rack').ok && Game.invCount('jerky') === 6, 'jerky=' + Game.invCount('jerky'));
+  ck('读档后照样能晾透并取到', Game.dryCollect('rack').ok && Game.invCount('jerky') === 4, 'jerky=' + Game.invCount('jerky'));
 }
 
 console.log('\n================ 汇总 ================');

@@ -1,4 +1,4 @@
-/* 浏览器里验证晾肉架界面（用 DOM 选择器判断，不靠长文本匹配） */
+﻿/* 浏览器里验证晾肉架界面（用 DOM 选择器判断，不靠长文本匹配） */
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -99,7 +99,7 @@ const ROW = `(async () => {
              rows: [...document.querySelectorAll('#modal .recipe-row')].map(r => r.textContent.replace(/\\s+/g,' ').trim()) }; })()`);
   console.log('   ' + JSON.stringify(taken));
   // 作者 2026-09-18：一批从"肉×1 → 肉干×3"改成"肉×2 → 肉干×6"
-  ck('★ 拿到了 肉干×6，架子清空，界面回到空架子', taken.jerky === 6 && taken.架子 === false && taken.rows.some(x => /空着/.test(x)));
+  ck('★ 拿到了 肉干×4，架子清空，界面回到空架子', taken.jerky === 4 && taken.架子 === false && taken.rows.some(x => /空着/.test(x)));
   ck('全程无 JS 报错', errs.length === 0, errs.slice(0, 2).join(' | ') || '无');
 
   ws.close(); ch.kill(); await sleep(300);

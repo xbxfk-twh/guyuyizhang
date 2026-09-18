@@ -571,8 +571,10 @@ const RECIPES = [
   { id:'r_jerky', name:'肉干', out:{ jerky:1 }, in:{ meat:1, salt:1, wood:1 }, station:'smoke2', time:60 },
   // 晾肉架：一次挂两份肉（作者 2026-09-18：一批只晾 1 份、效率太低 → 改成一次晾两个）；
   // 挂上去只花 30 分钟，然后要晾满 20 小时才能取（晾晒期间这副架子不能晾别的）。
-  // 出肉率不变：1 份肉晾出 3 条肉干，所以一批（肉×2）= 肉干×6。
-  { id:'r_rackmeat', name:'晾肉干', out:{ jerky:6 }, in:{ meat:2 }, station:'rack', time:30, hang:1200 },
+  // ⚠️ 出肉率（作者 2026-09-19 校准）：**1 份肉只晾出 2 条肉干**，所以一批（肉×2）= 肉干×4。
+  //    原来是 1 份肉出 3 条 = 90 饱食/肉，是烟熏炉「肉×1+盐+柴 → 肉干×1（30 饱食）」的整整 3 倍，
+  //    而且不要盐不要柴；改成 2 条后是 60 饱食/肉（烟熏炉的 2 倍），20 小时的等待才对得上收益。
+  { id:'r_rackmeat', name:'晾肉干', out:{ jerky:4 }, in:{ meat:2 }, station:'rack', time:30, hang:1200 },
   { id:'r_shellamulet', name:'贝壳护符', out:{ shellAmulet:1 }, in:{ rope:1, flint:1 }, station:'work1', time:15 },
   { id:'r_beastfang', name:'兽牙吊坠', out:{ beastFang:1 }, in:{ tusk:1, rope:1 }, station:'work1', time:15 },
   { id:'r_pearlneck', name:'珍珠项链', out:{ pearlNeck:1 }, in:{ pearl:1, rope:1 }, station:'work1', time:20 },

@@ -2599,8 +2599,9 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
     const RACK = RECIPES.find(r => r.id === 'r_rackmeat');
     ck('晾肉干配方 = 挂 30 分 + 晾 1200 分（20 小时）', RACK && RACK.time === 30 && RACK.hang === 1200,
        RACK ? 'time=' + RACK.time + ' hang=' + RACK.hang : '没找到');
-    ck('晾肉架一次晾两个：吃 肉×2、出 肉干×6（1 份肉 3 条肉干不变）',
-       RACK && RACK.in.meat === 2 && RACK.out.jerky === 6,
+    // 作者 2026-09-19 校准出肉率：1 份肉只晾 2 条肉干（原来 3 条 = 烟熏炉的 3 倍，超标）
+    ck('晾肉架一次晾两个：吃 肉×2、出 肉干×4（1 份肉 2 条肉干）',
+       RACK && RACK.in.meat === 2 && RACK.out.jerky === 4,
        RACK ? 'in=' + JSON.stringify(RACK.in) + ' out=' + JSON.stringify(RACK.out) : '没找到');
     const mkRack = () => {
       G.newGame('fisher', 'normal');
@@ -2620,7 +2621,7 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
        !G.canCraft(RACK).ok && /还要/.test(G.canCraft(RACK).reason), G.canCraft(RACK).reason);
     ck('实测：没到期取不下来', !G.dryCollect('rack').ok && !G.invCount('jerky'));
     G.addMin(1200);
-    ck('实测：晾满 20 小时能取下 肉干×6（一批挂肉×2）', G.dryLeftMin('rack') === 0 && G.dryCollect('rack').ok && G.invCount('jerky') === 6,
+    ck('实测：晾满 20 小时能取下 肉干×4（一批挂肉×2）', G.dryLeftMin('rack') === 0 && G.dryCollect('rack').ok && G.invCount('jerky') === 4,
        'jerky=' + G.invCount('jerky'));
     ck('实测：取下后架子空了，可以接着晾', !G.dryOf('rack') && G.canCraft(RACK).ok);
     mkRack(); G.craft(RACK); G.addMin(300);

@@ -1788,7 +1788,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       if (craftTab === 'furniture' && stationBuilt('rack')) {
         const d = Game.dryOf('rack');
         if (!d) {
-          html += '<div class="recipe-row"><b>晾肉架</b><span class="rcost">空着 · 一次挂肉×2，只花 30 分钟，晾满 20 小时来取（一批得 肉干×6）</span></div>';
+          html += '<div class="recipe-row"><b>晾肉架</b><span class="rcost">空着 · 一次挂肉×2，只花 30 分钟，晾满 20 小时来取（一批得 肉干×4）</span></div>';
         } else {
           const left = Game.dryLeftMin('rack');
           if (left > 0) {
