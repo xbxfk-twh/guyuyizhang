@@ -295,6 +295,7 @@ section('4. 交易 / 图纸 / 声望');
   for (const [nm, id, list, key] of batchShops) {
     G.newGame('fisher', 'normal');
     const Sb = G.S();
+    Sb.inv = {};   // 同 274 行：身份开局物资随机，先腾空背包再测"能不能买 5 个"
     G.addItem('beibi', 9999, true); G.addItem('coin', 9999, true);
     // 复刻弹窗确认按钮的做法：用 cfg.item 调 buyFromMerchant
     const before = G.invCount(id);
@@ -374,23 +375,29 @@ ck('滤雨器建成后水壶仍在（升级不再删掉水壶）', !!S9.furnitur
   // 纺织线 / 制药线：次级工位不额外占位，整条链只花 1 格
   G.newGame('fisher', 'normal');
   const S10 = G.S();
+  // ⚠️ 先清空背包再加料：身份开局物资是随机的，偶尔会把 20 格占满 → addItem 被容量拦下，
+  //    这条就会偶发变红（真正测的是"家具位"，不该被背包容量影响）
+  S10.inv = {};
   G.addItem('wood', 60, true); G.addItem('bamboo', 60, true); G.addItem('ironpart', 60, true);
   G.addItem('clay', 60, true); G.addItem('stone', 60, true);
   G.buildFurniture('spin'); G.buildFurniture('loom');
   ck('纺车 + 织布机 只占 1 个家具位', !!S10.furniture.spin && !!S10.furniture.loom && G.furnitureUsed() === 1, '家具位 ' + G.furnitureUsed());
   G.newGame('fisher', 'normal');
   const S11 = G.S();
+  S11.inv = {};
   G.addItem('clay', 60, true); G.addItem('stone', 60, true); G.addItem('wood', 60, true);
   G.buildFurniture('mortar'); G.buildFurniture('medPot');
   ck('研钵 + 药炉 只占 1 个家具位', !!S11.furniture.mortar && !!S11.furniture.medPot && G.furnitureUsed() === 1, '家具位 ' + G.furnitureUsed());
   const tentChain = (function () {
     G.newGame('fisher', 'normal');
     const Sx = G.S();
+    Sx.inv = {};
     G.addItem('wood', 60, true); G.addItem('bamboo', 60, true); G.addItem('ironpart', 60, true);
 G.buildFurniture('spin'); const a = !!Sx.furniture.spin;
 G.buildFurniture('loom'); const b = !!Sx.furniture.loom;
 const used = G.furnitureUsed();
-// ⚠️ 这条偶尔会红一次（重跑就好），失败时把三个值都打出来，方便定位是不是真偶发 bug
+// ⚠️ 老版本这条偶尔会红：身份开局物资随机 + 背包 20 格，料有时加不进去。
+//    已改成先清空背包（见上），根因记录在 开发工具\\检查\\_debug_loom_flake.js
 return { ok: a && b && used === 1, msg: '纺车=' + a + ' 织布机=' + b + ' 家具位=' + used + ' 木=' + G.invCount('wood') + ' 竹=' + G.invCount('bamboo') };
   })();
   ck('帐篷阶段（1 格）也能把纺织线建完', tentChain.ok, tentChain.msg);
@@ -876,7 +883,8 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
     const after = G.checkEndingActions().map(a => a.id);
     ck('★ 结局 C 达成后：献祭按钮消失、原地换成「结算」按钮', after.length === 1 && after[0] === 'settle_endC', after.join('/'));
     ck('★ 界面把 settle_ 前缀接到 settleEnding（结算画面真的有入口）',
-       /a\.id\.indexOf\('settle_'\) === 0 \? Game\.settleEnding\(a\.id\.slice\(7\)\)/.test(UI));
+       /a\.id\.indexOf\('settle_'\) === 0\) \{ const r = Game\.settleEnding\(a\.id\.slice\(7\)\)/.test(UI) &&
+       /r\.ok === false && r\.reason/.test(UI));
     const soulB = G.metaState().soul;
     const rr = G.settleEnding('endC');
     ck('★ 点结算：进入结算状态并真的发魂点', rr.ok && G.S().ending === 'C' && G.metaState().soul > soulB, soulB + ' → ' + G.metaState().soul);
@@ -896,6 +904,43 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
     const r2 = G.settleEnding(id);
     ck(`结局 ${key} 点结算能进结算状态（画面由 onEnding 弹）`, r2.ok && G.S().ending === key, key + ' → ' + G.S().ending);
     G.continueRun();
+  }
+  // 作者 2026-09-18：一个存档只能结算一个结局（不能让一局把所有结局都结算走）
+  {
+    G.newGame('fisher', 'normal');
+    const sl = G.S(); sl.tut = null; sl.flags.ended_A = 1; sl.flags.ended_C = 1;
+    ck('结算前：两个结局都还没锁（按钮都是正常的「结算 · 结局」）',
+       G.checkEndingActions().every(a => !a.locked), G.checkEndingActions().map(a => a.id).join('/'));
+    const ra = G.settleEnding('endA');
+    ck('结算「归乡」成功，并记下本存档的唯一定局', ra.ok && G.S().flags.settledEnding === 'A',
+       'ok=' + ra.ok + ' settledEnding=' + G.S().flags.settledEnding);
+    G.continueRun();
+    const soul1 = G.metaState().soul;
+    const rc = G.settleEnding('endC');
+    ck('★ 同一个存档再结算「秘辛」被拒：不结算、不发魂点、不改定局',
+       rc.ok === false && /只能结算一个结局/.test(rc.reason) && G.S().flags.settled_C !== 1 &&
+       G.S().flags.settledEnding === 'A' && G.metaState().soul === soul1,
+       (rc.reason || '（没给理由）') + ' | 魂点 ' + soul1 + ' → ' + G.metaState().soul);
+    ck('★ 被拒后按钮变成「本局已收尾」并写清原因（界面不是静默失败）',
+       (() => { const a = G.checkEndingActions().find(x => x.id === 'settle_endC');
+                return !!a && a.locked === true && /已收尾/.test(a.name) && /归乡/.test(a.desc); })(),
+       G.checkEndingActions().map(a => a.id + (a.locked ? '(锁)' : '')).join('/'));
+    ck('★ 其他结局照样能达成（不然秘辛被锁 → 第二章 / 传送石全卡死）', !!G.S().flags.ended_C);
+    ck('★ 结算前有二次确认，且写明"不能再结算其他结局"',
+       /结算前确认/.test(GAME) && /不能再结算其他结局/.test(GAME) && /确定结算/.test(GAME) && /再想想/.test(GAME));
+    G.S().flags.metaSettled = 0;
+    G.reviveToday();
+    ck('★ 复活（回到当天日出）不会把"已收尾"的定局一起回滚',
+       G.S().flags.settledEnding === 'A', 'settledEnding=' + G.S().flags.settledEnding);
+    G.save(); G.load();
+    ck('定局标记跟着存档走：读档之后还是一局只能结算一个', G.S().flags.settledEnding === 'A',
+       'settledEnding=' + G.S().flags.settledEnding);
+    // 老存档（旧版本结算过、没有 settledEnding 这个字段）读进来也要补上定局，不能借读档绕开规矩
+    const sOld = G.S();
+    sOld.flags.settledEnding = undefined; sOld.flags.settled_A = 1;
+    G.save(); G.load();
+    ck('★ 老存档（旧版本已结算过结局）读档时自动补记定局', G.S().flags.settledEnding === 'A',
+       'settledEnding=' + G.S().flags.settledEnding);
   }
   // 大地图：点箭头之前先问"能不能去"，不能去就当场在屏幕中央说清原因
   // （玩家反馈"点不了去山顶"——雷暴 / 保暖不够 / 体力不够以前只写一行左侧日志，看着像按钮坏了）
@@ -2046,8 +2091,8 @@ section('7l. 牧场（鸡舍/羊圈）与草地陷阱');
     ITEMS.bigOmelette.food === 60 && ITEMS.bigOmelette.water === 60 && ITEMS.bigOmelette.heal === 10 && ITEMS.bigOmelette.spoil === 240 &&
     ITEMS.superEgg.heal === 30 && ITEMS.superEgg.food === 100 && ITEMS.superEgg.sta === 100 && ITEMS.superEgg.water === 100 && ITEMS.superEgg.spoil === 2376);
   const rh = RECIPES.find(r => r.id === 'r_hay'), rf = RECIPES.find(r => r.id === 'r_friedegg'), rb = RECIPES.find(r => r.id === 'r_bigomelette'), rs = RECIPES.find(r => r.id === 'r_superegg');
-  ck('配方：干草（茅草4→2）/ 煎蛋（蛋1）/ 大煎蛋（蛋5+水1+木1）/ 超级大蛋（蛋10+水3+木3）',
-    rh.in.thatch === 4 && rh.out.hay === 2 && rf.in.egg === 1 && rb.in.egg === 5 && rb.in.water === 1 && rb.in.wood === 1 && rs.in.egg === 10 && rs.in.water === 3 && rs.in.wood === 3);
+  ck('配方：干草（茅草4→2）/ 煎蛋（蛋1）/ 大煎蛋（蛋5+水1+木1）/ 超级大蛋（蛋12+水3+木3）',
+    rh.in.thatch === 4 && rh.out.hay === 2 && rf.in.egg === 1 && rb.in.egg === 5 && rb.in.water === 1 && rb.in.wood === 1 && rs.in.egg === 12 && rs.in.water === 3 && rs.in.wood === 3);
   // 干草供给：草地新点 + 芦苇加强 + 杂货商/老潮都能买
   const hayPt = (() => { for (const sc of SCENES) { const zs = sc.zones || { _: sc }; for (const zk in zs) for (const p of (zs[zk].points || [])) if (p.id === 'grass_hay') return p; } return null; })();
   ck('草地新增干草丛（每天 2 次、1~2 份）', !!hayPt && hayPt.daily === 2 && hayPt.yields.some(y => y.id === 'hay' && y.min === 1 && y.max === 2));
@@ -2531,6 +2576,9 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
     const RACK = RECIPES.find(r => r.id === 'r_rackmeat');
     ck('晾肉干配方 = 挂 30 分 + 晾 1200 分（20 小时）', RACK && RACK.time === 30 && RACK.hang === 1200,
        RACK ? 'time=' + RACK.time + ' hang=' + RACK.hang : '没找到');
+    ck('晾肉架一次晾两个：吃 肉×2、出 肉干×6（1 份肉 3 条肉干不变）',
+       RACK && RACK.in.meat === 2 && RACK.out.jerky === 6,
+       RACK ? 'in=' + JSON.stringify(RACK.in) + ' out=' + JSON.stringify(RACK.out) : '没找到');
     const mkRack = () => {
       G.newGame('fisher', 'normal');
       const s = G.S();
@@ -2542,13 +2590,14 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
     const t0 = G.S().minute;
     G.craft(RACK);
     ck('实测：挂上去只花 30 分钟（不再是 480 分）', G.S().minute - t0 === 30, '+' + (G.S().minute - t0) + ' 分');
+    ck('实测：一批扣掉 肉×2（5 → 3）', G.invCount('meat') === 3, 'meat=' + G.invCount('meat'));
     ck('实测：不会当场拿到肉干', G.invCount('jerky') === 0, 'jerky=' + G.invCount('jerky'));
     ck('实测：架子上记着"晾晒中"，剩余 20 小时', !!G.dryOf('rack') && G.dryLeftMin('rack') === 1200, G.fmtLeft(G.dryLeftMin('rack')));
     ck('实测：晾晒期间不能再晾别的（会拦下并说明还剩多久）',
        !G.canCraft(RACK).ok && /还要/.test(G.canCraft(RACK).reason), G.canCraft(RACK).reason);
     ck('实测：没到期取不下来', !G.dryCollect('rack').ok && !G.invCount('jerky'));
     G.addMin(1200);
-    ck('实测：晾满 20 小时能取下 肉干×3', G.dryLeftMin('rack') === 0 && G.dryCollect('rack').ok && G.invCount('jerky') === 3,
+    ck('实测：晾满 20 小时能取下 肉干×6（一批挂肉×2）', G.dryLeftMin('rack') === 0 && G.dryCollect('rack').ok && G.invCount('jerky') === 6,
        'jerky=' + G.invCount('jerky'));
     ck('实测：取下后架子空了，可以接着晾', !G.dryOf('rack') && G.canCraft(RACK).ok);
     mkRack(); G.craft(RACK); G.addMin(300);

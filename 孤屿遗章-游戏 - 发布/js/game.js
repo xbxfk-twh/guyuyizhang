@@ -894,6 +894,11 @@ function change() {
       if (S.storeExt === undefined) S.storeExt = 0;
       if (S.gatherCount === undefined) S.gatherCount = 0;
       if (S.craftCount === undefined) S.craftCount = 0;
+      // 一局只认一个结算结局（作者 2026-09-18 定的规矩）：老存档如果在旧版本里已经结算过某个结局，
+      // 把那一份补记成"本存档的定局"，免得它读进来之后还能接着结算别的结局。
+      if (!S.flags.settledEnding) {
+        for (const k of ['A','B','C','S','S2']) if (S.flags['settled_' + k]) { S.flags.settledEnding = k; break; }
+      }
       // ↑ 先补全所有字段，再动数据（顺序很重要：以前耐久整理跑在 S.inv 补全之前，缺字段的老档会抛异常被判读档失败）
       for (const id in ITEMS) if (DURA[id] !== undefined) durList(id);   // 老存档：把耐久对齐成"一件一条"的实例数组
       // 老存档修复：旧版守卫会把「深殿核心」点位顶掉（标记已用却没拿到核心），把多出来的标记退回去，避免结局被卡死
@@ -3463,9 +3468,21 @@ function change() {
     // 已达成、这一局还没结算的结局 → 给"看结算画面"的入口。
     // ⚠️ 以前缺的正是这一步：settleEnding() 全项目没有任何界面调用，
     //    玩家点了「祭坛仪式（结局·秘辛）」只写一行日志，结算画面与结算文字永远看不到。
+    // ⚠️ 一个存档只认一个结算结局（作者要求：不能让一局把所有结局都结算了）：
+    //    已经用别的结局收尾之后，剩下的按钮仍然留着（藏起来玩家会以为坏了），
+    //    但点下去只会说明原因、不再结算。结算按钮的点击处理在 ui.js。
+    const lockKey = S.flags.settledEnding;
+    const lockName = lockKey ? ((ENDINGS[lockKey] || {}).name || lockKey) : '';
     for (const [key, id] of [['A','endA'], ['B','endB'], ['C','endC'], ['S','endS'], ['S2','endS2']]) {
       if (S.flags['ended_' + key] && !S.flags['settled_' + key]) {
-        acts.push({ id:'settle_' + id, name:`结算 · 结局「${(ENDINGS[key] || {}).name || key}」`, desc:'看结局画面与结算文字（这一生折成魂点汇入《历代遗章》），看完还能继续玩。' });
+        const nm = (ENDINGS[key] || {}).name || key;
+        if (lockKey) {
+          acts.push({ id:'settle_' + id, locked:true,
+            name:`结算 · 结局「${nm}」（本局已收尾）`,
+            desc:`本存档已经用结局「${lockName}」收尾了——一个存档只能结算一个结局。` });
+        } else {
+          acts.push({ id:'settle_' + id, name:`结算 · 结局「${nm}」`, desc:'看结局画面与结算文字（这一生折成魂点汇入《历代遗章》），看完还能继续玩。' });
+        }
       }
     }
     return acts;
@@ -3508,23 +3525,54 @@ function change() {
     return { ok:true, key: String(id).replace('end', '') };
   }
   // 结局达成之后，当面问一句"要不要现在看结算画面"（以前没有这一步，玩家以为按钮点坏了）
+  // 话里必须讲清：一个存档只能结算一个结局（作者 2026-09-18 定的规矩）。
   function askSettleEnding(id) {
     const key = String(id).replace('end', '');
     const end = ENDINGS[key] || {};
     const name = end.name || key;
+    const lockKey = S.flags.settledEnding;
+    if (lockKey && lockKey !== key) {
+      const lockName = (ENDINGS[lockKey] || {}).name || lockKey;
+      showOverlay({
+        title: '结局达成 · ' + name,
+        text: `《${name}》达成了——不过这个存档已经用结局「${lockName}」收尾了。\n\n一个存档只能结算一个结局，所以《${name}》这一局不能再结算（达成记录、日记和成就照样算数）。\n\n想让它成为结算结局的话，开新的一局吧。`,
+        choices: [ { label:'知道了', ok: () => {} } ],
+      });
+      return;
+    }
     showOverlay({
       title: '结局达成 · ' + name,
-      text: `这一生可以收尾了：《${name}》已经达成。\n\n要看结局画面与本局结算吗？结算会把这一生折成魂点汇入《历代遗章》，看完可以按「留在岛上」接着玩，进度不会丢。\n\n不着急看也行——右下角会留一个「结算 · 结局「${name}」」按钮，随时能回来。`,
+      text: `这一生可以收尾了：《${name}》已经达成。\n\n⚠ 一个存档只能结算一个结局：确定结算《${name}》之后，这个存档就不能再结算其他结局了（其他结局仍然可以达成，只是收尾要开新的一局）。\n\n结算会把这一生折成魂点汇入《历代遗章》，看完可以按「留在岛上」接着玩，进度不会丢。\n\n不着急看也行——右下角会留一个「结算 · 结局「${name}」」按钮，随时能回来。`,
       choices: [
-        { label:'观看结算画面', hint:'结局画面 + 本局结算', ok: () => { settleEnding(id); } },
+        { label:'观看结算画面', hint:'还要再确认一次', ok: () => { confirmSettleEnding(id); } },
         { label:'继续探索', hint:'先接着玩，之后再结算', ok: () => { log(`《${name}》已达成，随时可以结算。`, 'sys'); } },
+      ],
+    });
+  }
+  // 结算 = 本存档从此只认这一个结局，不可逆，所以单独再确认一次（别让手滑点掉）
+  function confirmSettleEnding(id) {
+    const key = String(id).replace('end', '');
+    const end = ENDINGS[key] || {};
+    const name = end.name || key;
+    showOverlay({
+      title: '结算前确认 · ' + name,
+      text: `确认以《${name}》作为这个存档的结局吗？\n\n· 结算后本存档不能再结算其他结局（其他结局仍然可以达成）\n· 这一生照常可以接着玩，进度不会丢\n· 本局会折算成魂点汇入《历代遗章》`,
+      choices: [
+        { label:'确定结算', hint:'本存档只认这一个结局', ok: () => { settleEnding(id); } },
+        { label:'再想想', hint:'先接着玩', ok: () => { log(`《${name}》先留着——右下角「结算 · 结局「${name}」」随时能回来。`, 'sys'); } },
       ],
     });
   }
   function settleEnding(id) {
     const key = String(id).replace('end', '');
     if (!S.flags['ended_' + key]) return { ok:false, reason:'该结局尚未达成。' };
-    S.flags['settled_' + key] = 1;   // 一局里同一个结局只结算一次（防"结算→留在岛上→再结算"刷魂点）
+    const lockKey = S.flags.settledEnding;
+    if (lockKey && lockKey !== key) {
+      const lockName = (ENDINGS[lockKey] || {}).name || lockKey;
+      return { ok:false, reason:`本存档已经用结局「${lockName}」收尾了——一个存档只能结算一个结局（其他结局仍可达成，收尾请开新的一局）。` };
+    }
+    S.flags['settled_' + key] = 1;   // 同一结局只结算一次（防"结算→留在岛上→再结算"刷魂点）
+    S.flags.settledEnding = key;     // 本存档的唯一定局：此后不再结算别的结局
     S.ending = key;
     save();
     const ms = metaSettle();
@@ -4019,11 +4067,17 @@ function change() {
     meta.soul -= 50; metaSave();
     if (!S._snap || !S._snap.day) { location.reload(); return; }
     const sn = S._snap.day;
+    // ⚠️ 复活 = 回到当天日出，但"本存档已用哪个结局收尾"不能跟着回滚，
+    //    否则玩家结算完再死一次复活，就又能去结算别的结局了（一局一个结局的规矩会被绕过）
+    const settledKeep = {};
+    for (const k in (S.flags || {})) if (k === 'settledEnding' || k.indexOf('settled_') === 0) settledKeep[k] = S.flags[k];
     Object.assign(S, JSON.parse(JSON.stringify(sn)));
     S.stats = JSON.parse(JSON.stringify(sn.stats));
     S.statuses = { bleed:0, poison:0, cold:false, fear:0 };
     S.death = undefined;
     S.ending = undefined;
+    S.flags = S.flags || {};
+    for (const k in settledKeep) S.flags[k] = settledKeep[k];
     S.flags.metaSettled = 0;   // 本局继续，下次死亡可再次结算
     log('你用 50 魂点换回了今天——从日出重新开始。', 'sys');
     change();
@@ -4226,6 +4280,11 @@ function change() {
     if (S.storeExt === undefined) S.storeExt = 0;
     migrateSkills();
     for (const id in ITEMS) if (DURA[id] !== undefined) durList(id);
+    // 同上：老备份槽里已经结算过某个结局 → 补记成定局，别让"一局一个结局"被读档绕过
+    S.flags = S.flags || {};
+    if (!S.flags.settledEnding) {
+      for (const k of ['A','B','C','S','S2']) if (S.flags['settled_' + k]) { S.flags.settledEnding = k; break; }
+    }
     try { S._rev = parseInt(localStorage.getItem('guyuyizhang_rev') || '0', 10) || 0; } catch (e) { S._rev = 0; }
     save();
   }
@@ -4257,6 +4316,7 @@ function change() {
     // 技能树（B1）
     skillTreeInfo, skillUpTrunk, skillNodeLearn, skillNodeForget, nodeLv, trunkPicks, trunkLv, nodeCheck, nodeIsLeaf, nodeForgetGain, craftIn,
     scanLocalSaves, restoreLocalSave, rescueInfo,   // 存档救援：扫描本机痕迹 / 恢复某一份
+    confirmSettleEnding,   // 结算前二次确认（一局只能结算一个结局，所以要单独再问一次）
     skillCritRate: cxCrit, gatherYieldMul: gxYieldMul, gatherTimeMul: gxTimeMul, gatherEnergyMul: gxEnergyMul,
     sweepCdTotal, sweepMul, vampRate, execThreshold, revengeBonus,
     wallBlockBonus, wallDurMul, swiftBonus, rageAtkMul, rageTakenMul, ironTakenMul, ironAtkMul, ammoSaveChance, rangedAcc,

@@ -1261,8 +1261,12 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       if (st.buildings.watch === 0) acts.push({ label:'建一级瞭望台', cls:'build', anim:{ t:'build', l:'建造一级瞭望台' }, fn:() => Game.buildChain('watch'), disabled: !matsOk(BUILDING_CHAINS.watch[1].mats), reason:'材料不足' });
       if (st.equipment.weapon) { /* 磨刀/修补/命名：已在「制造→磨刀石」 */ }
     }
-    // 结局：达成（doEnding）与结算（settleEnding）分开走 —— id 带 settle_ 前缀的是"看结算画面"
-    acts.push(...Game.checkEndingActions().map(a => ({ label:a.name, cls:'ending', fn:() => (a.id.indexOf('settle_') === 0 ? Game.settleEnding(a.id.slice(7)) : Game.doEnding(a.id)) })));
+    // 结局：达成（doEnding）与结算（settleEnding）分开走 —— id 带 settle_ 前缀的是"看结算画面"。
+    // 结算被拒（比如本存档已经用别的结局收尾了）时必须把原因写进日志，别让按钮看着像坏的。
+    acts.push(...Game.checkEndingActions().map(a => ({ label:a.name, cls:'ending', fn:() => {
+      if (a.id.indexOf('settle_') === 0) { const r = Game.settleEnding(a.id.slice(7)); if (r && r.ok === false && r.reason) addLog(r.reason, 'warn'); }
+      else Game.doEnding(a.id);
+    } })));
     for (const a of acts) {
       const b = el('button', 'action-btn float ' + (a.cls || ''), '');
       b.innerHTML = `<span class="act-name">${esc(a.label)}</span>`;
@@ -1784,7 +1788,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       if (craftTab === 'furniture' && stationBuilt('rack')) {
         const d = Game.dryOf('rack');
         if (!d) {
-          html += '<div class="recipe-row"><b>晾肉架</b><span class="rcost">空着 · 挂一批只花 30 分钟，晾满 20 小时来取（一批得 肉干×3）</span></div>';
+          html += '<div class="recipe-row"><b>晾肉架</b><span class="rcost">空着 · 一次挂肉×2，只花 30 分钟，晾满 20 小时来取（一批得 肉干×6）</span></div>';
         } else {
           const left = Game.dryLeftMin('rack');
           if (left > 0) {

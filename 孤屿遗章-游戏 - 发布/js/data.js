@@ -93,7 +93,7 @@ const ITEMS = {
   egg:      { id:'egg', name:'鸡蛋', cat:'food', glyph:'蛋', food:8, water:2, spoil:168, desc:'母鸡下的蛋，能存一周；也能做成各种蛋料理。', stack:30, price:12 },
   friedEgg: { id:'friedEgg', name:'煎蛋', cat:'food', glyph:'煎', food:15, spoil:72, desc:'一个煎蛋：饱食 +15，能存三天。', stack:20, price:15 },
   bigOmelette:{ id:'bigOmelette', name:'大煎蛋', cat:'food', glyph:'卷', food:60, water:60, heal:10, spoil:240, desc:'五颗蛋摊成的一大张蛋卷：饱食+60、水分+60、生命+10，能存十天。', stack:20, price:60 },
-  superEgg: { id:'superEgg', name:'超级大蛋', cat:'food', glyph:'宴', food:100, water:100, sta:100, heal:30, spoil:2376, desc:'十颗蛋堆成的蛋宴：饱食/水分/体力全满，还回 30 生命，能存 99 天。', stack:10, price:200 },
+  superEgg: { id:'superEgg', name:'超级大蛋', cat:'food', glyph:'宴', food:100, water:100, sta:100, heal:30, spoil:2376, desc:'十二颗蛋堆成的蛋宴：饱食/水分/体力全满，还回 30 生命，能存 99 天。', stack:10, price:200 },
   chick:    { id:'chick', name:'小鸡', cat:'special', glyph:'雏', desc:'外岛买来的小鸡。放进鸡舍，连喂 5 天小麦就长成母鸡。', stack:6, price:80 },
   smokedMeat:{ id:'smokedMeat', name:'熏肉', cat:'food', glyph:'腊', food:30, water:1, heal:8, spoil:168, desc:'烟熏过的肉。', stack:20, price:30 },
   saltedMeat:{ id:'saltedMeat', name:'腌肉', cat:'food', glyph:'腌', food:30, water:1, spoil:168, desc:'盐腌的肉，不易腐坏。', stack:20, price:25 },
@@ -569,8 +569,10 @@ const RECIPES = [
     { id:'r_smokedmeat', name:'熏肉', out:{ smokedMeat:1 }, in:{ meat:1, branch:2 }, station:'smoke1', time:40 },
   { id:'r_saltedmeat', name:'腌肉', out:{ saltedMeat:1 }, in:{ meat:1, salt:1 }, station:'fire', time:20 },
   { id:'r_jerky', name:'肉干', out:{ jerky:1 }, in:{ meat:1, salt:1, wood:1 }, station:'smoke2', time:60 },
-  // 晾肉架：挂上去只花 30 分钟，然后要晾满 20 小时才能取（晾晒期间这副架子不能晾别的）
-  { id:'r_rackmeat', name:'晾肉干', out:{ jerky:1 }, in:{ meat:1 }, station:'rack', time:30, hang:1200, hangQty:3 },
+  // 晾肉架：一次挂两份肉（作者 2026-09-18：一批只晾 1 份、效率太低 → 改成一次晾两个）；
+  // 挂上去只花 30 分钟，然后要晾满 20 小时才能取（晾晒期间这副架子不能晾别的）。
+  // 出肉率不变：1 份肉晾出 3 条肉干，所以一批（肉×2）= 肉干×6。
+  { id:'r_rackmeat', name:'晾肉干', out:{ jerky:6 }, in:{ meat:2 }, station:'rack', time:30, hang:1200 },
   { id:'r_shellamulet', name:'贝壳护符', out:{ shellAmulet:1 }, in:{ rope:1, flint:1 }, station:'work1', time:15 },
   { id:'r_beastfang', name:'兽牙吊坠', out:{ beastFang:1 }, in:{ tusk:1, rope:1 }, station:'work1', time:15 },
   { id:'r_pearlneck', name:'珍珠项链', out:{ pearlNeck:1 }, in:{ pearl:1, rope:1 }, station:'work1', time:20 },
@@ -592,7 +594,7 @@ const RECIPES = [
   { id:'r_hay', name:'晒干草', out:{ hay:2 }, in:{ thatch:4 }, station:'none', time:15 },
   { id:'r_friedegg', name:'煎蛋', out:{ friedEgg:1 }, in:{ egg:1 }, station:'fire', time:15 },
   { id:'r_bigomelette', name:'大煎蛋', out:{ bigOmelette:1 }, in:{ egg:5, water:1, wood:1 }, station:'fire', time:25, needItem:'claypot' },
-  { id:'r_superegg', name:'超级大蛋', out:{ superEgg:1 }, in:{ egg:10, water:3, wood:3 }, station:'stove', time:40, needItem:'claypot' },
+  { id:'r_superegg', name:'超级大蛋', out:{ superEgg:1 }, in:{ egg:12, water:3, wood:3 }, station:'stove', time:40, needItem:'claypot' },
   { id:'r_bluebull', name:'蓝牛', out:{ blueBull:1 }, in:{ water:2, herb:3, honey:1 }, station:'medPot', time:45 },
   { id:'r_zhanglaoji', name:'张老吉', out:{ zhangLaoJi:1 }, in:{ water:2, herb:2 }, station:'pot', time:20, needItem:'claypot' },
   { id:'r_lotuspill', name:'不死丹', out:{ lotusPill:1 }, in:{ snowlotus:3 }, station:'medPot', time:60, needBp:'bpLotus' },
@@ -1071,6 +1073,7 @@ const PATCH_NOTES = [
       '',
       '【结局 & 山顶】',
       '· 达成结局后会弹出「结局达成」，可以直接「观看结算画面」，也可以先继续玩——右下角会留一个「结算 · 结局「XX」」按钮随时回看。',
+      '· <b>一个存档只能结算一个结局</b>：结算某结局之后，这一局就不能再结算其他结局了（其他结局仍然可以达成，只是收尾要开新的一局）。结算前会再确认一次。',
       '· 材料齐了去山顶会有指路；条件不满足（瞭望台不够 / 雷暴 / 保暖不够 / 体力不够）时，点大地图箭头会当场在屏幕中央说清原因。',
       '',
       '【限定 · 神弓】',
