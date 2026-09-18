@@ -3057,16 +3057,23 @@ function change() {
     return Math.max(0, m);
   }
   function craftBatch(r, n) {
+    if (!r) return { ok:false, reason:'没有这个配方' };
+    // ⚠️ 晾晒类配方（晾肉架）**不能走下面的批量流程**：一副架子一次只挂一批，
+    //    而且下面那段是"扣材料 → 立刻 addItem 产出成品" —— 以前长按晾肉干就能
+    //    **当场拿到肉干**，20 小时的晾晒被整个绕过去（玩家反馈"晾肉架不能一次晾很多块吧"）。
+    //    这里直接转成单批：走 craft() 的晾晒分支（扣材料 → 挂上去 → 等 hang 分钟来取）。
+    if (r.hang) {
+      const d0 = dryOf(r.station);
+      if (d0) return { ok:false, reason:'晾肉架上还晾着东西，先把它取下来。' };
+      craft(r);
+      return { ok:true, n:1, hanging:true, hung: !!dryOf(r.station) };
+    }
     if (n < 1) return { ok:false, reason:'至少要制作 1 个' };
     if (r.out && r.out.lotusPill && n > lotusLeft()) return { ok:false, reason:`不死丹一局最多炼制 ${LOTUS_LIMIT} 颗（还能炼 ${lotusLeft()} 颗）` };
     const cinB = craftIn(r);
     for (const k in cinB) if (!hasItem(k, cinB[k] * n)) return { ok:false, reason:'材料不足' };
     // 批量制作最容易撑爆背包：先按"能装下几个"自动降到 n，一个都装不下就干脆别开工
-    if (r.hang) {
-      const d0 = dryOf(r.station);
-      if (d0) return { ok:false, reason:'晾肉架上还晾着东西，先把它取下来。' };
-      n = 1;                                  // 晾晒一次只挂一批
-    } else {
+    {
       let fit = 0;
       for (let i = 1; i <= n; i++) {
         const outMap = {}, inMap = {};

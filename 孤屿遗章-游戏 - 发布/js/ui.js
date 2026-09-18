@@ -2617,7 +2617,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     else if (kind === 'batch') html = batchModal(cfg);
     else if (kind === 'batchn') html = batchnModal(cfg);
     else if (kind === 'comhelp') html = comHelpModal();
-    else if (kind === 'crafthelp') html = `<div class="modal-title">制造说明</div><div class="overlay-text">· 制造工坊在营地里，回营地才能使用。<br>· 点配方 = 制作1个。<br>· <b>长按配方按钮</b> 弹出批量条，拖动数量从1到「当前材料最多可做数量」，一次做完多个。<br>· 批量时按数量×单个耗时（造越多耗时越长），经验也×N。<br>· 火堆·烹饪，以及各工坊（工作台/熔炉/烟熏炉/灶台/晾肉架/制革架/纺车…）按你建了哪些来。</div><div class="modal-actions"><button id="modal-close">关 闭</button></div>`;
+    else if (kind === 'crafthelp') html = `<div class="modal-title">制造说明</div><div class="overlay-text">· 制造工坊在营地里，回营地才能使用。<br>· 点配方 = 制作1个。<br>· <b>长按配方按钮</b> 弹出批量条，拖动数量从1到「当前材料最多可做数量」，一次做完多个。<br>· 批量时按数量×单个耗时（造越多耗时越长），经验也×N。<br>· <b>晾肉架例外</b>：它要挂上去等晾透，一副架子一次只能挂一批（肉×2），晾好取下来才能挂下一批。<br>· 火堆·烹饪，以及各工坊（工作台/熔炉/烟熏炉/灶台/晾肉架/制革架/纺车…）按你建了哪些来。</div><div class="modal-actions"><button id="modal-close">关 闭</button></div>`;
     else if (kind === 'buybp') html = `<div class="modal-title">购买备份点</div><div class="overlay-text">是否用 20 魂点购买一个备份点？</div><div class="modal-actions"><button data-buybp-yes="1">是</button><button data-buybp-no="1">否</button></div>`;
     else if (kind === 'codex') {
       html = cfg && cfg.mode === 'export'
@@ -2792,7 +2792,13 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       };
       const doLong = () => {
         if (b.dataset.reason) { addLog(b.dataset.reason, 'warn'); return; }
-        const r = RECIPES.find(x => x.id === b.dataset.recipe); showModal('batch', { recipe: r.id });
+        const r = RECIPES.find(x => x.id === b.dataset.recipe);
+        // 晾肉架这类"挂上去等时间"的配方没有批量：一副架子一次只挂一批，长按只提醒一句
+        if (r && r.hang) {
+          addLog(`${r.name}一次只能挂一批（${Object.entries(Game.craftIn(r)).map(([k, v]) => `${ITEMS[k].name}×${v}`).join('、')}），晾好取下来再挂。`, 'sys');
+          return;
+        }
+        showModal('batch', { recipe: r.id });
       };
       bindPress(b, doTap, doLong);
     });

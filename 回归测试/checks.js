@@ -2627,6 +2627,24 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
     const leftB = G.dryLeftMin('rack');
     G.save(); G.load();
     ck('实测：存读档后晾晒进度不丢', G.dryLeftMin('rack') === leftB, leftB + ' → ' + G.dryLeftMin('rack'));
+    // 晾肉架没有"批量"这回事：一副架子一次只挂一批，长按批量也应该只挂一批
+    mkRack();
+    const rm0 = G.invCount('meat');
+    const rb = G.craftBatch(RACK, 5);      // 手里 5 份肉，批量条拖到 5
+    ck('★ 长按批量也只能挂一批（只扣 肉×2，不是 10）', G.invCount('meat') === rm0 - 2 && rb.ok === true,
+       rm0 + ' → ' + G.invCount('meat') + '，架上一批 ' + JSON.stringify(G.dryOf('rack') && G.dryOf('rack').out));
+    ck('★ ★ 长按批量不会再"当场给肉干"（必须老实等 20 小时）',
+       G.invCount('jerky') === 0 && !!G.dryOf('rack') && G.dryLeftMin('rack') === 1200,
+       '肉干=' + G.invCount('jerky') + ' 剩余=' + G.fmtLeft(G.dryLeftMin('rack')));
+    ck('★ 批量拖到 5 也不会误报"材料不足"（4 份肉照样能挂一批）', (() => {
+      G.newGame('fisher', 'normal');
+      const s4 = G.S(); s4.inv = {}; s4.tut = null; s4.stats.hp = 99999; s4.stats.stamina = 99999;
+      s4.buildings.watch = 3; s4.furniture.rack = 1; G.addItem('meat', 4, true);
+      const r4 = G.craftBatch(RACK, 5);
+      return r4.ok === true && G.invCount('meat') === 2 && !!G.dryOf('rack') && G.invCount('jerky') === 0;
+    })());
+    ck('★ 长按晾肉架不再弹出批量条，只提醒"一次只能挂一批"',
+       /if \(r && r\.hang\) \{[\s\S]{0,220}一次只能挂一批/.test(UI) && /if \(r && r\.hang\)/.test(UI));
   }
   // 玩家反馈"竹筐有啥用？我看还是 20 个格子""制作时满格就不给东西了"
   // 根因：addItem 用"物品种类数"比容量，和界面显示的 capUsed()（堆叠每 20 个 1 格）不是一套算法
