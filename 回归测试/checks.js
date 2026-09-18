@@ -3688,6 +3688,32 @@ section('9d. 战斗技能树（B2 第一批：阔刃横扫 / 处决 ⇄ 嗜血�
   }
 }
 
+section('9f. 音效与配乐（玩家反馈"叮铃太频繁、有些音效拉胯"）');
+{
+  const AUD = fs.readFileSync(ROOT + '/js/audio.js', 'utf8');
+  ck('★ 系统日志不再频繁"叮铃"（拾取音概率 40% → 8%，且换成闷音）',
+     /else if \(cls === 'sys' && Math\.random\(\) < 0\.08\) tone\(300, 0\.07, 'sine', 0\.014/.test(AUD) &&
+     !/cls === 'sys' && Math\.random\(\) < 0\.4/.test(AUD));
+  ck('★ 洞穴水滴：每 0.9 秒 → 随机 4.5~11 秒一次，音高压到 900~1500Hz',
+     /setTimeout\(\(\) => \{ if \(ambientOn && enabled\) drip\(\); scheduleDrip\(\); \}, rnd\(4500, 11000\)\)/.test(AUD) &&
+     /const f = rnd\(900, 1500\);/.test(AUD) && !/setInterval\(\(\) => \{ drip\(\); \}, 900\)/.test(AUD));
+  ck('★ 夜里虫鸣：0.4~0.9 秒 → 1.8~5.2 秒一次，音量减半、音高 3400→2300',
+     /setInterval\(\(\) => \{ if \(currentNight\) cricket\(\); \}, rnd\(1800, 5200\)\)/.test(AUD) &&
+     /tone\(2300 \+ rnd\(0, 300\), 0\.05, 'sine', 0\.0016\)/.test(AUD));
+  ck('★ 界面咔哒声改用三角波（原来是方波，听感"塑料"）',
+     /const o = ctx\.createOscillator\(\); o\.type = 'triangle';   \/\/ 方波太"塑料"/.test(AUD));
+  ck('★ 一条刺耳波形都不剩（无 square / sawtooth）',
+     !/o\.type = 'square'/.test(AUD) && !/'sawtooth'/.test(AUD));
+  ck('★ 音乐/音效两路各加一道温暖低通（磨掉高频尖角）',
+     /const musicWarm = ctx\.createBiquadFilter\(\); musicWarm\.type = 'lowpass'; musicWarm\.frequency\.value = 2000/.test(AUD) &&
+     /const sfxWarm = ctx\.createBiquadFilter\(\); sfxWarm\.type = 'lowpass'; sfxWarm\.frequency\.value = 7000/.test(AUD));
+  ck('★ 配乐更"呼吸"：音符 4.5s → 6s 一句，并加了根音+五度和声垫',
+     /if \(step % 4 === 0 && Math\.random\(\) < \(night \? 0\.5 : 0\.62\)\)/.test(AUD) &&
+     /tone\(scale\[0\] \/ 2, 10, 'sine', vol \* 0\.35/.test(AUD) && /tone\(scale\[2\] \/ 2, 10, 'sine', vol \* 0\.22/.test(AUD));
+  ck('拾取/获得/交易音都降了八度、换成柔和波形（不再"叮"）',
+     /case 'pickup': tone\(540/.test(AUD) && /case 'good':   tone\(392/.test(AUD) && /case 'trade':  tone\(784/.test(AUD));
+}
+
 section('9e. 三层存档（本地 + cookie + TapTap 云存档 v4）');
 {
   // 测试环境里没有 window.tap → 云这一层必须是"安静地关掉"，绝不能影响原来玩
