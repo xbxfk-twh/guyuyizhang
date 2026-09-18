@@ -3715,6 +3715,10 @@ section('9e. 三层存档（本地 + cookie + TapTap 云存档 v4）');
   ck('启动时会初始化云存档（浏览器里自动跳过）', /metaLoad\(\);\s*cloudInit\(\);/.test(_GAME_SRC));
   ck('设置面板有云存档说明行，支持时还能手动上传',
      /<b>云存档<\/b>/.test(UI) && /data-cloudpush/.test(UI) && /Game\.cloudPush\(true\)/.test(UI));
+  ck('★ 云存档自检：面板里显示当前版本 + 没 tap 时写明原因 + 有「重新检测」',
+     /当前版本 <b>\$\{ver\}<\/b>/.test(UI) && /没检测到 TapTap 容器/.test(UI) &&
+     /data-cloudretry/.test(UI) && /Game\.cloudInit\(\)/.test(UI) &&
+     /cloud\.diag = 'no-tap';/.test(_GAME_SRC) && /cloud\.diag = 'ok';/.test(_GAME_SRC));
 }
 
 console.log('\n================ 汇总 ================');

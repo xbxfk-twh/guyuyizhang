@@ -3549,12 +3549,12 @@ function change() {
   //       任何一步失败都只是记一行状态，绝不阻塞游戏、更不会覆盖更新的存档。
   const CLOUD_NAME = 'guyuyizhang_save';   // 存档名（英文；官方要求 60 字节内、不许汉字）
   const CLOUD_MIN_MS = 65 * 1000;          // 上传节流：官方 60 秒一次，我们留 5 秒余量
-  const cloud = { ok:false, mgr:null, uuid:null, fileId:null, lastPush:0, timer:0, dirty:false, msg:'这台设备没有云存档', at:0, applied:0 };
+  const cloud = { ok:false, mgr:null, uuid:null, fileId:null, lastPush:0, timer:0, dirty:false, msg:'这台设备没有云存档', at:0, applied:0, diag:'' };
   function cloudTap() {
     try { return (typeof window !== 'undefined' && window.tap && window.tap.getCloudSaveManager) ? window.tap : null; } catch (e) { return null; }
   }
   function cloudReady() { return !!(cloud.ok && cloud.mgr); }
-  function cloudStatus() { return { supported: cloud.ok, msg: cloud.msg, at: cloud.at, applied: cloud.applied, uuid: cloud.uuid }; }
+  function cloudStatus() { return { supported: cloud.ok, msg: cloud.msg, at: cloud.at, applied: cloud.applied, uuid: cloud.uuid, diag: cloud.diag }; }
   function cloudPayload() {
     return JSON.stringify({
       v: 1, savedAt: Date.now(),
@@ -3616,10 +3616,18 @@ function change() {
   }
   function cloudInit() {
     const t = cloudTap();
-    if (!t) return;                       // 电脑浏览器 / 直接开网页：这一层不存在，静默跳过
+    // 没检测到 TapTap 容器：不是小游戏形态 / 用浏览器直接打开的 → 云存档这一层不生效（本地存档照常）。
+    // 这里把原因写清楚，玩家在「设置 → 云存档」里能直接看到，不用猜。
+    if (!t) {
+      cloud.diag = 'no-tap';
+      cloud.msg = '没检测到 TapTap 容器（window.tap 不存在）——现在这份不是在小游戏里跑的，云存档不生效，本地存档照常。';
+      return;
+    }
     try {
       cloud.mgr = t.getCloudSaveManager();
-      if (!cloud.mgr) return;
+      if (!cloud.mgr) { cloud.diag = 'no-manager'; cloud.msg = 'TapTap 容器在，但拿不到云存档管理器（基础库版本太低？）。'; return; }
+      cloud.diag = 'ok';
+      cloud.msg = '云存档已就绪';
       cloud.ok = true; cloud.msg = '云存档已就绪';
       cloud.mgr.getArchiveList({ success: (res) => {
         const s = ((res && res.saves) || []).find(x => x && x.name === CLOUD_NAME);

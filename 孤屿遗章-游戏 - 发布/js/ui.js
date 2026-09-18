@@ -2268,11 +2268,18 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
           <div class="modal-actions"><button class="mini-btn" data-open="collection">📜 图 鉴</button><button class="mini-btn" data-open="sign">📅 每日签到${Game.dailySignState().canSign ? ' <b style="color:#e8c66a">· 可领</b>' : ''}</button></div></div>
         <div class="help-item"><b>云存档</b><span>${(() => {
           const cs = Game.cloudStatus();
-          if (!cs.supported) return '这台设备/这个入口没有云存档（用电脑打开网页时没有，游戏里照常本地存档）。在 TapTap 里玩就会自动同步，<b>一分钟最多上传一次</b>，本地的永远留着。';
+          const ver = (typeof window !== 'undefined' && window.BUILD_VER) || '（未知版本）';
+          const head = `当前版本 <b>${ver}</b><br>`;
+          if (!cs.supported) {
+            const why = cs.diag === 'no-tap'
+              ? '没检测到 TapTap 容器 —— 说明这份不是在小游戏里跑的（浏览器直接打开、或当前这个入口不给 <code>tap</code>），云存档不生效，本地存档照常。'
+              : cs.msg;
+            return head + why + '<br>把它上传成 TapTap 小游戏并在后台开通云存档后，这里会显示「云存档已就绪」。';
+          }
           const t = cs.at ? new Date(cs.at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '还没同步过';
-          return `${cs.msg}${cs.at ? `（最近：${t}）` : ''}<br>存档会同时留在本地 + cookie + 云端，读取时取最新的那份，任何一边坏掉都不会丢进度。`;
+          return head + `${cs.msg}${cs.at ? `（最近：${t}）` : ''}<br>存档同时留在本地 + cookie + 云端，读取时取最新的那份；平台限制一分钟最多上传一次，所以刚玩完的那一分钟可能还没上云。`;
         })()}</span>
-          ${Game.cloudStatus().supported ? '<div class="modal-actions"><button class="mini-btn" data-cloudpush="1">立刻传到云端</button></div>' : ''}</div>
+          <div class="modal-actions">${Game.cloudStatus().supported ? '<button class="mini-btn" data-cloudpush="1">立刻传到云端</button>' : ''}<button class="mini-btn" data-cloudretry="1">重新检测</button></div></div>
       </div>
       <div class="modal-actions"><button id="modal-close">关 闭</button></div>`;
   }
@@ -2824,6 +2831,12 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     m.querySelectorAll('[data-cloudpush]').forEach(b => b.onclick = () => {
       const r = Game.cloudPush(true);
       addLog(r ? '【云存档】已提交上传，稍后会自动完成。' : `【云存档】${Game.cloudStatus().msg}`, r ? 'sys' : 'warn');
+      showModal('settings');
+    });
+    m.querySelectorAll('[data-cloudretry]').forEach(b => b.onclick = () => {
+      Game.cloudInit();                       // 重新检测一次（刚装进小游戏、或刚开通服务时用得上）
+      const cs = Game.cloudStatus();
+      addLog(`【云存档】重新检测：${cs.supported ? '已就绪' : cs.msg}`, cs.supported ? 'good' : 'warn');
       showModal('settings');
     });
     const bn = $('#batch-n');
