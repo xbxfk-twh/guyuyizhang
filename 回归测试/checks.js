@@ -3710,7 +3710,15 @@ section('9e. 三层存档（本地 + cookie + TapTap 云存档 v4）');
      /window\.tap\.getCloudSaveManager/.test(_GAME_SRC) && /\.createArchive\(/.test(_GAME_SRC) && /\.updateArchive\(/.test(_GAME_SRC) &&
      /\.getArchiveList\(/.test(_GAME_SRC) && /\.getArchiveData\(/.test(_GAME_SRC));
   ck('★ 存档名是英文（官方要求不许汉字）+ 上传前先写本地文件',
-     /const CLOUD_NAME = 'guyuyizhang_save';/.test(_GAME_SRC) && /getFileSystemManager\(\); const p = cloudPath\(\); fs2\.writeFileSync\(p, payload, 'utf8'\)/.test(_GAME_SRC));
+     /const CLOUD_NAME = 'guyuyizhang_save';/.test(_GAME_SRC) &&
+     /function cloudPath\(\) \{ return cloudTap\(\)\.env\.USER_DATA_PATH \+ '\/guyuyizhang_cloud\.json'; \}/.test(_GAME_SRC) &&
+     /cloudWriteFile\(payload\)/.test(_GAME_SRC));
+  ck('★ 文件 API 两种都兼容（TapTap 真机是回调风格，没有 writeFileSync —— 线上踩过这个坑）',
+     /function cloudWriteFile\(payload\)/.test(_GAME_SRC) && /typeof fs2\.writeFileSync === 'function'/.test(_GAME_SRC) &&
+     /fs2\.writeFile\(\{ filePath: p, data: payload, encoding: 'utf8'/.test(_GAME_SRC) &&
+     /function cloudReadFile\(path\)/.test(_GAME_SRC) && /fs2\.readFile\(\{ filePath: path, encoding: 'utf8'/.test(_GAME_SRC));
+  ck('★ 上传顺序：先写文件、写完再 createArchive/updateArchive',
+     /cloudWriteFile\(payload\)\.then\(\(path\) => \{[\s\S]{0,900}?createArchive/.test(_GAME_SRC));
   ck('save() 和 metaSave() 都会排一次云同步', (_GAME_SRC.match(/cloudPush\(false\)/g) || []).length >= 2);
   ck('★ 每次保存 / 备份都会顺手排一次云同步，并给玩家明确反馈',
      /刚同步过（平台限制一分钟一次）/.test(_GAME_SRC) &&

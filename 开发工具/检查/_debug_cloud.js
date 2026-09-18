@@ -9,16 +9,22 @@ const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
 const GAME = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
 
 // ---- 假的本地文件系统 + 假的云 ----
-const files = {};                       // 小游戏本地文件
-const cloudStore = [];                  // 云端存档列表
-const calls = { create: 0, update: 0, list: 0, data: 0, write: 0 };
-const fakeTap = {
-  env: { USER_DATA_PATH: '/userdata' },
-  getFileSystemManager: () => ({
-    writeFileSync: (p, d) => { files[p] = String(d); calls.write++; },
-    readFileSync: (p) => { if (!(p in files)) throw new Error('no file ' + p); return files[p]; },
-  }),
-  getCloudSaveManager: () => ({
+// ⚠️ 两种文件 API 都要测：TapTap 真机是【回调风格】writeFile({filePath,data,encoding,success,fail})，
+//    没有 writeFileSync —— 第一版上线就是栽在这（"fs2.writeFileSync is not a function"）。
+function makeEnv(style) {
+  const files = {}, cloudStore = [], calls = { create: 0, update: 0, list: 0, data: 0, write: 0 };
+  const fsm = {};
+  if (style === 'sync') {
+    fsm.writeFileSync = (p, d) => { files[p] = String(d); calls.write++; };
+    fsm.readFileSync = (p) => { if (!(p in files)) throw new Error('no file ' + p); return files[p]; };
+  } else {                       // 回调风格（TapTap 真机）
+    fsm.writeFile = (o) => { try { files[o.filePath] = String(o.data); calls.write++; o.success && o.success({}); } catch (e) { o.fail && o.fail({ errMsg: 'write fail' }); } };
+    fsm.readFile = (o) => { if (!(o.filePath in files)) { o.fail && o.fail({ errMsg: 'no such file' }); return; } o.success && o.success({ data: files[o.filePath] }); };
+  }
+  const tap = {
+    env: { USER_DATA_PATH: '/userdata' },
+    getFileSystemManager: () => fsm,
+    getCloudSaveManager: () => ({
     createArchive: (o) => {
       calls.create++;
       const uuid = 'uuid-' + calls.create;
@@ -39,8 +45,10 @@ const fakeTap = {
       const p = '/tmp/cloud_' + s.uuid + '.json'; files[p] = s.body;
       o.success && o.success({ filePath: p });
     },
-  }),
-};
+    }),
+  };
+  return { tap, files, cloudStore, calls };
+}
 
 const store = {};
 const fakeLS = {
@@ -50,7 +58,9 @@ const fakeLS = {
 };
 
 const PROBE = `
+return (async () => {
 const G = Game;
+const tick = () => new Promise(r => setTimeout(r, 30));   // cloudPush 内部是"先写文件再上传"的异步链
 let bad = 0;
 const P = (k, v) => console.log('  ' + k + ' → ' + v);
 const EQ = (name, got, want) => { const ok = (typeof want === 'number' && Math.abs(got - want) < 1e-6) || got === want; if (!ok) bad++; console.log((ok ? '  ok   ' : '  FAIL ') + name + ' — ' + got + (ok ? '' : '（应为 ' + want + '）')); };
@@ -62,7 +72,8 @@ EQ('云端为空、还没开局 → 不乱建档', CALLS.create, 0);
 EQ('还没进度时也不上传（不吃掉一分钟一次的配额）', G.cloudPush(false), false);
 
 G.newGame('fisher', 'normal');
-P('新开一局后 save() → 应该触发一次上传', '');
+await tick();
+P('新开一局后 save() → 应该触发一次上传（当前文件 API：' + STYLE + '）', '');
 EQ('createArchive 调了 1 次', CALLS.create, 1);
 EQ('上传前先写了本地文件', CALLS.write >= 1, true);
 P('云端里那份的字节数', CLOUD[0] ? CLOUD[0].body.length : 0);
@@ -78,6 +89,7 @@ console.log('【2】一分钟内再存：必须被节流（官方限制 60 秒�
   const before = CALLS.create + CALLS.update;
   G.S().day = 3; G.save();
   G.S().day = 4; G.save();
+  await tick();
   EQ('节流生效：没有再上传', CALLS.create + CALLS.update, before);
 }
 
@@ -89,6 +101,7 @@ console.log('【3】换设备：本地是空的，云端有第 7 天 → 应该�
   pack.save = JSON.stringify(j); pack.savedAt = Date.now() + 60000;   // 云端更新
   CLOUD[0].body = JSON.stringify(pack);
   G.cloudInit();
+  await tick();
   EQ('云端的"第 7 天"被写回了本地', JSON.parse(localStorage.getItem('guyuyizhang_save')).day, 7);
   EQ('状态里记下了恢复的进度', G.cloudStatus().applied, 7);
   P('提示', G.cloudStatus().msg);
@@ -101,11 +114,23 @@ console.log('【4】旧云档不能覆盖新本地档');
   pack.savedAt = Date.now() - 3600 * 1000;                  // 云端那份是"一小时前"的
   CLOUD[0].body = JSON.stringify(pack);
   G.cloudInit();
+  await tick();
   EQ('本地没被旧档覆盖', localStorage.getItem('guyuyizhang_save'), before);
 }
 
-console.log(bad ? ('\\n✗ 有 ' + bad + ' 项不对') : '\\n✓ 云存档逻辑全部通过');
-if (typeof process !== 'undefined' && process.exit) process.exit(bad ? 1 : 0);   // 别被云同步的节流定时器拖住
+return bad;
+})();
 `;
-new Function('localStorage', 'window', 'document', 'fs', 'ROOT', 'DATA', 'GAME', 'console', 'CALLS', 'CLOUD', 'LS',
-  DATA + '\n' + GAME + '\n' + PROBE)(fakeLS, { tap: fakeTap }, {}, fs, ROOT, DATA, GAME, console, calls, cloudStore, store);
+
+(async () => {
+  let bad = 0;
+  for (const style of ['sync', 'callback']) {
+    const env = makeEnv(style);
+    Object.keys(store).forEach(k => delete store[k]);     // 每个风格都从干净的本地存储开始
+    const r = await new Function('localStorage', 'window', 'document', 'fs', 'ROOT', 'DATA', 'GAME', 'console', 'CALLS', 'CLOUD', 'LS', 'STYLE',
+      DATA + '\n' + GAME + '\n' + PROBE)(fakeLS, { tap: env.tap }, {}, fs, ROOT, DATA, GAME, console, env.calls, env.cloudStore, store, style);
+    bad += r || 0;
+  }
+  console.log(bad ? ('\\n✗ 有 ' + bad + ' 项不对') : '\\n✓ 云存档逻辑全部通过（sync + 回调两种文件 API 都测了）');
+  process.exit(bad ? 1 : 0);   // 别被云同步的节流定时器拖住
+})();

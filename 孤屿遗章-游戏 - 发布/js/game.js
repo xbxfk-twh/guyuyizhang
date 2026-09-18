@@ -3563,7 +3563,47 @@ function change() {
     });
   }
   function cloudPath() { return cloudTap().env.USER_DATA_PATH + '/guyuyizhang_cloud.json'; }
-  function cloudWriteFile(payload) { const fs2 = cloudTap().getFileSystemManager(); const p = cloudPath(); fs2.writeFileSync(p, payload, 'utf8'); return p; }
+  // ⚠️ TapTap 小游戏的文件系统是【回调风格】：writeFile({filePath, data, encoding, success, fail})，
+  //    没有 writeFileSync（真机上第一版就是栽在这儿：fs2.writeFileSync is not a function）。
+  //    这里两种都兼容：有同步用同步，没有就走回调。
+  function cloudWriteFile(payload) {
+    return new Promise((resolve, reject) => {
+      let fs2 = null, p = '';
+      try { fs2 = cloudTap().getFileSystemManager(); p = cloudPath(); } catch (e) { return reject(new Error('拿不到文件系统')); }
+      if (!fs2) return reject(new Error('拿不到文件系统'));
+      if (typeof fs2.writeFileSync === 'function') {
+        try { fs2.writeFileSync(p, payload, 'utf8'); return resolve(p); } catch (e) { return reject(e); }
+      }
+      if (typeof fs2.writeFile === 'function') {
+        try {
+          fs2.writeFile({ filePath: p, data: payload, encoding: 'utf8',
+            success: () => resolve(p),
+            fail: (e) => reject(new Error((e && e.errMsg) || 'writeFile 失败')) });
+        } catch (e) { reject(e); }
+        return;
+      }
+      reject(new Error('文件系统不支持写文件'));
+    });
+  }
+  function cloudReadFile(path) {
+    return new Promise((resolve, reject) => {
+      let fs2 = null;
+      try { fs2 = cloudTap().getFileSystemManager(); } catch (e) { return reject(new Error('拿不到文件系统')); }
+      if (!fs2) return reject(new Error('拿不到文件系统'));
+      if (typeof fs2.readFileSync === 'function') {
+        try { return resolve(String(fs2.readFileSync(path, 'utf8'))); } catch (e) { return reject(e); }
+      }
+      if (typeof fs2.readFile === 'function') {
+        try {
+          fs2.readFile({ filePath: path, encoding: 'utf8',
+            success: (res) => resolve(String(res && res.data !== undefined ? res.data : '')),
+            fail: (e) => reject(new Error((e && e.errMsg) || 'readFile 失败')) });
+        } catch (e) { reject(e); }
+        return;
+      }
+      reject(new Error('文件系统不支持读文件'));
+    });
+  }
   // 上传：节流窗内只记一个"待传"，到点自动补传（保证最后一次进度一定上云）
   function cloudPush(force) {
     if (!cloudReady()) return false;
@@ -3578,17 +3618,21 @@ function change() {
     try { payload = cloudPayload(); } catch (e) { return false; }
     // 还没有"这一局的进度"时不上传：空的云端档对恢复没用，还白白吃掉"一分钟一次"的配额
     try { if (!JSON.parse(payload).save) { cloud.dirty = true; cloud.msg = '还没有进度可上传'; return false; } } catch (e) {}
-    let path = '';
-    try { path = cloudWriteFile(payload); } catch (e) { cloud.msg = '云存档写入本地文件失败：' + (e && e.message || ''); return false; }
     cloud.dirty = false; cloud.lastPush = now; cloud.at = now;
-    const meta = { name: CLOUD_NAME, summary: '孤屿遗章 · 进度与魂点', extra: String(Date.now()), playtime: Math.round(((S && S.tick) || 0) / 60) };
-    const args = { archiveMetaData: meta, archiveFilePath: path };
-    const okCb = (res) => { if (res && res.uuid) { cloud.uuid = res.uuid; cloud.fileId = res.fileId || cloud.fileId; } cloud.msg = '已同步到云端'; };
-    const failCb = (e) => { cloud.msg = '云存档上传失败：' + ((e && e.errMsg) || '') + '（本地存档不受影响）'; cloud.dirty = true; };
-    try {
-      if (cloud.uuid) cloud.mgr.updateArchive(Object.assign({ archiveUUID: cloud.uuid }, args, { success: okCb, fail: failCb }));
-      else cloud.mgr.createArchive(Object.assign({}, args, { success: okCb, fail: failCb }));
-    } catch (e) { cloud.msg = '云存档调用异常：' + (e && e.message || ''); return false; }
+    // 先写文件（异步）→ 再上传，顺序不能反：createArchive 读的是刚写好的那个文件
+    cloudWriteFile(payload).then((path) => {
+      const meta = { name: CLOUD_NAME, summary: '孤屿遗章 · 进度与魂点', extra: String(Date.now()), playtime: Math.round(((S && S.tick) || 0) / 60) };
+      const args = { archiveMetaData: meta, archiveFilePath: path };
+      const okCb = (res) => { if (res && res.uuid) { cloud.uuid = res.uuid; cloud.fileId = res.fileId || cloud.fileId; } cloud.msg = '已同步到云端'; cloud.diag = 'ok'; };
+      const failCb = (e) => { cloud.msg = '云存档上传失败：' + ((e && e.errMsg) || '') + '（本地存档不受影响）'; cloud.dirty = true; };
+      try {
+        if (cloud.uuid) cloud.mgr.updateArchive(Object.assign({ archiveUUID: cloud.uuid }, args, { success: okCb, fail: failCb }));
+        else cloud.mgr.createArchive(Object.assign({}, args, { success: okCb, fail: failCb }));
+      } catch (e) { cloud.msg = '云存档调用异常：' + (e && e.message || ''); cloud.dirty = true; }
+    }).catch((e) => {
+      cloud.msg = '云存档写入本地文件失败：' + (e && e.message || '') + '（本地存档不受影响）';
+      cloud.dirty = true;
+    });
     return true;
   }
   // 下载：拿云端那份比一比，只有"确实更新"才覆盖本地
@@ -3596,8 +3640,8 @@ function change() {
     if (!cloudReady() || !cloud.uuid) return;
     try {
       cloud.mgr.getArchiveData({ archiveUUID: cloud.uuid, archiveFileId: cloud.fileId, success: (res) => {
-        let raw = '';
-        try { raw = cloudTap().getFileSystemManager().readFileSync(res.filePath, 'utf8'); } catch (e) { cloud.msg = '云存档读取失败'; return; }
+        // 读文件同样走"两种都兼容"的封装（TapTap 真机是回调风格）
+        cloudReadFile(res.filePath).then((raw) => {
         let pack = null; try { pack = JSON.parse(raw); } catch (e) { return; }
         if (!pack || !pack.savedAt || !pack.save) return;
         const localAt = parseInt(localStorage.getItem('guyuyizhang_savedAt') || '0', 10) || 0;
@@ -3612,6 +3656,7 @@ function change() {
         cloud.applied = j.day; cloud.at = Date.now();
         cloud.msg = `已从云端恢复进度（第 ${j.day} 天）`;
         log(`【云存档】${cloud.msg}。`, 'good');
+        }).catch((e) => { cloud.msg = '云存档读取失败：' + (e && e.message || ''); });
       }, fail: (e) => { cloud.msg = '云存档下载失败：' + ((e && e.errMsg) || ''); } });
     } catch (e) { cloud.msg = '云存档下载异常'; }
   }
