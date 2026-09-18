@@ -1126,6 +1126,10 @@ function change() {
     if (id === 'peak' && !S.flags.ended_C && hasItem('relic') && invCount('slate') >= 3 && hasItem('dragonbone')) {
       log('祭坛的凹槽与三块石板严丝合缝——去点山顶的「祭坛 · 举行仪式」（或右下角的「祭坛仪式」按钮）。', 'good');
     }
+    // 仪式做完、传送石还没激活：明确告诉玩家"下一步在哪、点什么"（很多人以为仪式做完就没事了）
+    if (id === 'peak' && S.flags.ended_C && !(S.atlantis && S.atlantis.stoneActive)) {
+      log('山顶的传送石已经浮现——点右上角的「传送石 · 需解密」，把三块石板拼上去解开符文。', 'good');
+    }
     const trapFired = false;   // 陷阱已并入"每日晨报"（collectDailyReport），到草地不再单独结算
     if (!trapFired && chance(0.1)) triggerRandomEvent(id);
     change();
@@ -3438,6 +3442,7 @@ function change() {
     const day = S.day;
     // 凑齐结局 C 材料后，直接指路山顶祭坛（传送石/亚克兰蒂斯的入口）
     if (!S.flags.ended_C && hasItem('relic') && invCount('slate') >= 3 && hasItem('dragonbone')) return '遗物、三块石板、龙骨都齐了——回【山顶】举行祭坛仪式。';
+    if (S.flags.ended_C && !(S.atlantis && S.atlantis.stoneActive)) return '回【山顶】点「传送石」——用三块石板解出符文（三小关：记忆顺序 / 成对翻牌 / 点亮九格），解开就能去亚克兰蒂斯。';
     if (day === 1) return '生起篝火、搭好帐篷，先摸清营地周边的物资。';
     if (!S.furniture.bed1 && !['bed2','bed3','bed4'].some(b => S.furniture[b])) return '铺一张草床（茅草×10、木材×4），今晚睡个好觉。';
     if (!S.furniture.wb1 && !S.furniture.wb2 && !S.furniture.wb3) return '造一张简易工作台（木板×4、石头×4），解锁制作。';

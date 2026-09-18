@@ -122,10 +122,12 @@ const AudioFX = (() => {
     // 河流
     if (sceneId === 'river') {
       const src = ctx.createBufferSource(); src.buffer = noise(); src.loop = true;
-      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 0.8;
-      const g = ctx.createGain(); g.gain.value = 0.035;
-      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.25;
-      const lfoG = ctx.createGain(); lfoG.gain.value = 0.02;
+      // 玩家反馈"湖畔偶尔一股很振的嗡声"：原来是 900Hz、Q 0.8 的窄带噪声 + 0.25Hz 慢速音量摆动，
+      // 听起来像一股"嗡嗡抖"的电流声。现在把带宽放宽（Q 0.8→0.5）、摆动幅度砍到 1/3、速度减半。
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 780; f.Q.value = 0.5;
+      const g = ctx.createGain(); g.gain.value = 0.028;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.12;
+      const lfoG = ctx.createGain(); lfoG.gain.value = 0.006;
       lfo.connect(lfoG); lfoG.connect(g.gain);
       src.connect(f); f.connect(g); g.connect(musicBus);
       src.start(); lfo.start();
@@ -134,10 +136,11 @@ const AudioFX = (() => {
     // 森林：风声+树叶沙沙
     if (['forest','bamboo'].includes(sceneId)) {
       const src = ctx.createBufferSource(); src.buffer = noise(); src.loop = true;
-      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = sceneId === 'bamboo' ? 2200 : 1600; f.Q.value = 1.2;
-      const g = ctx.createGain(); g.gain.value = 0.012;
-      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.6;
-      const lfoG = ctx.createGain(); lfoG.gain.value = 0.01;
+      // 树林同理：Q 1.2→0.8、摆动 0.6Hz→0.18Hz 且幅度砍到 1/3，从"颤音嗡"变成"树叶沙沙"
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = sceneId === 'bamboo' ? 1800 : 1400; f.Q.value = 0.8;
+      const g = ctx.createGain(); g.gain.value = 0.010;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.18;
+      const lfoG = ctx.createGain(); lfoG.gain.value = 0.003;
       lfo.connect(lfoG); lfoG.connect(g.gain);
       src.connect(f); f.connect(g); g.connect(musicBus);
       src.start(); lfo.start();
@@ -328,11 +331,22 @@ const AudioFX = (() => {
   }
   // 旋律在音阶上的位置：靠"级进"走动，而不是每个音都重新随机抽
   let melIdx = 2;
+  // 玩家反馈"背景音乐无缝衔接、容易听疲劳"：改成"一段 + 一段静默"。
+  // 每句约 40~75 秒，然后安静 18~45 秒（环境音照旧：风/海浪/篝火不会停），再起新句。
+  let phraseEndAt = 0, restEndAt = 0;
   function startMusic() {
     if (musicTimer) return;
     const tick = () => {
       if (!ctx || !enabled) return;
       step++;
+      const nowMs = Date.now();
+      if (!phraseEndAt) phraseEndAt = nowMs + rnd(40000, 75000);
+      if (nowMs < restEndAt) return;                      // 静默段：只有环境音，别出声
+      if (nowMs >= phraseEndAt) {                         // 一句结束 → 歇一会儿
+        restEndAt = nowMs + rnd(18000, 45000);
+        phraseEndAt = restEndAt + rnd(40000, 75000);
+        return;
+      }
       const scale = scaleFor();
       const night = currentNight;
       const w = currentWeather;
@@ -354,9 +368,9 @@ const AudioFX = (() => {
         tone(note, dur, type, vol, true, 0, null, 0.45);
         // 低八度伴音：概率从 35% 提到 65%，音量再低一档 —— 变成"两声一起哼"，厚度够了但不糊
         if (Math.random() < 0.65) tone(note / 2, dur + 1.4, 'sine', vol * 0.42, true, 0, null, 0.8);
-        // 每句再加一个"根音 + 五度"的极轻和声垫（10 秒长），把单音垫成和声，听感更暖
-        tone(scale[0] / 2, 10, 'sine', vol * 0.35, true, 0, null, 2.2);
-        tone(scale[2] / 2, 10, 'sine', vol * 0.22, true, 0, null, 2.6);
+        // 和声垫缩短到 6 秒、音量再降一点：长音叠长音容易"嗡嗡共振"（玩家反馈的"很振的嗡声"）
+        tone(scale[0] / 2, 6, 'sine', vol * 0.26, true, 0, null, 2.2);
+        tone(scale[2] / 2, 6, 'sine', vol * 0.16, true, 0, null, 2.6);
       }
       // 低音长垫（更悠长、更淡）
       if (step % 8 === 0) tone(scale[0] / 4, 12, 'sine', night ? 0.010 : 0.008, true, 0, null, 1.6);

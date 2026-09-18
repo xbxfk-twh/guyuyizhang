@@ -3707,9 +3707,18 @@ section('9f. 音效与配乐（玩家反馈"叮铃太频繁、有些音效拉胯
   ck('★ 音乐/音效两路各加一道温暖低通（磨掉高频尖角）',
      /const musicWarm = ctx\.createBiquadFilter\(\); musicWarm\.type = 'lowpass'; musicWarm\.frequency\.value = 2000/.test(AUD) &&
      /const sfxWarm = ctx\.createBiquadFilter\(\); sfxWarm\.type = 'lowpass'; sfxWarm\.frequency\.value = 7000/.test(AUD));
-  ck('★ 配乐更"呼吸"：音符 4.5s → 6s 一句，并加了根音+五度和声垫',
+  ck('★ 配乐更"呼吸"：音符 4.5s → 6s 一句，并加了根音+五度和声垫（垫子压到 6 秒防共振）',
      /if \(step % 4 === 0 && Math\.random\(\) < \(night \? 0\.5 : 0\.62\)\)/.test(AUD) &&
-     /tone\(scale\[0\] \/ 2, 10, 'sine', vol \* 0\.35/.test(AUD) && /tone\(scale\[2\] \/ 2, 10, 'sine', vol \* 0\.22/.test(AUD));
+     /tone\(scale\[0\] \/ 2, 6, 'sine', vol \* 0\.26/.test(AUD) && /tone\(scale\[2\] \/ 2, 6, 'sine', vol \* 0\.16/.test(AUD));
+  ck('★ 配乐不再无缝衔接：一句 40~75 秒，然后静默 18~45 秒（环境音照旧）',
+     /let phraseEndAt = 0, restEndAt = 0;/.test(AUD) && /phraseEndAt = nowMs \+ rnd\(40000, 75000\)/.test(AUD) &&
+     /restEndAt = nowMs \+ rnd\(18000, 45000\)/.test(AUD) && /if \(nowMs < restEndAt\) return;/.test(AUD));
+  ck('★ 湖畔/树林的"振嗡"：带宽放宽、摆动幅度砍到 1/3、速度减半',
+     /f\.type = 'bandpass'; f\.frequency\.value = 780; f\.Q\.value = 0\.5;/.test(AUD) &&
+     /lfo\.frequency\.value = 0\.12;/.test(AUD) && /lfoG\.gain\.value = 0\.006;/.test(AUD) &&
+     /lfo\.frequency\.value = 0\.18;/.test(AUD) && /lfoG\.gain\.value = 0\.003;/.test(AUD));
+  ck('石破解密：仪式后山顶会明确指路 + 当前目标写着怎么解密',
+     /点右上角的「传送石 · 需解密」/.test(_GAME_SRC) && /回【山顶】点「传送石」——用三块石板解出符文/.test(_GAME_SRC));
   ck('拾取/获得/交易音都降了八度、换成柔和波形（不再"叮"）',
      /case 'pickup': tone\(540/.test(AUD) && /case 'good':   tone\(392/.test(AUD) && /case 'trade':  tone\(784/.test(AUD));
 }
