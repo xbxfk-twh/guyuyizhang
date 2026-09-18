@@ -1951,7 +1951,6 @@ function change() {
     return null;
   }
   function combatLv() { return S.skill.combat; }
-  function craftLv() { return S.skill.craft; }
   function gatherLv() { return S.skill.gather; }
   // ⚠️ 旧版的 skillUp()/skillInfo()/skillCost() 已随技能树（B1）删除：
   //    它们只会"等级 +1"，不记录 S.skillPicks，会把主干和成长选项搞脱节。新入口是 skillUpTrunk()。
@@ -3003,15 +3002,41 @@ function change() {
     }
     for (const k in cinB) removeItem(k, cinB[k] * n);
     if (r.out && r.out.lotusPill) S.lotusMade = (S.lotusMade || 0) + n;
-    const clv = craftLv();
-    let t = Math.round(r.time * (1 - metaBonus().craft));
+    // ⚠️ 批量制作以前是"另一条腿"：① 还在用旧版"每级 -8% 耗时"（技能改版后那套已经没了）
+    //    ② **完全没应用「精工细作 +30% 耐久 / 流水线 -20% 耐久」**，也没算巧手/精算 ——
+    //    玩家反馈"做装备点上（长按批量），做完取消，木板精不精加工都没耐久"就是这么来的。
+    //    现在和单个制作走同一套加成。
+    let t = Math.round(r.time * (1 - metaBonus().craft) * cxTimeMul());
     if (S.identity === 'smith') t = Math.round(t * 0.8);
-    if (clv > 0) t = Math.max(3, Math.round(t * (1 - clv * 0.08)));
+    t = Math.max(3, t);
     addMin(t * n);
-    for (const k in r.out) addItem(k, r.out[k] * n);
+    // 巧手：每做一件都有机会多产 1 件；精算：每做一件都有机会退回 1 份材料
+    let bonusN = 0, backN = 0;
+    const cinKeys = Object.keys(cinB);
+    for (let i = 0; i < n; i++) {
+      if (chance(cxExtraChance())) bonusN++;
+      if (cinKeys.length && chance(cxRefundChance())) {
+        const rk = cinKeys[Math.floor(Math.random() * cinKeys.length)];
+        if (addItem(rk, 1, true)) backN++;
+      }
+    }
+    const outKeys = Object.keys(r.out);
+    for (const k in r.out) addItem(k, r.out[k] * n + (k === outKeys[0] ? bonusN : 0));
+    // 成品耐久：精工细作 +30% / 流水线 -20%（批量也一样生效）
+    if (cxDurMul() !== 1) {
+      for (const k of outKeys) {
+        if (DURA[k] === undefined) continue;
+        const nd = Math.max(1, Math.round(DURA[k] * cxDurMul()));
+        const arr = S.toolDurs && S.toolDurs[k];
+        const made = r.out[k] * n + (k === outKeys[0] ? bonusN : 0);
+        for (let i = 0; i < made; i++) if (arr && arr.length) arr[arr.length - 1 - i] = nd;
+        durSync(k);
+      }
+      log(`【${nodeLv('craft','c_line') ? '流水线' : '精工细作'}】这批成品的初始耐久按 ${Math.round(cxDurMul() * 100)}% 算。`, 'sys');
+    }
     S.exp.craft = Math.round((S.exp.craft + (S.furniture.shelf ? 1.1 : 1) * n) * 10) / 10;
     S.craftCount = (S.craftCount || 0) + n;
-    log(`连续制作：${r.name}×${n}（耗时 ${t * n} 分钟）。`, 'good');
+    log(`连续制作：${r.name}×${n}（耗时 ${t * n} 分钟）${bonusN ? `，其中【巧手】多做了 ${bonusN} 件` : ''}${backN ? `，【精算】退回 ${backN} 份材料` : ''}。`, 'good');
     change();
     return { ok:true, n };
   }
@@ -4135,6 +4160,11 @@ function change() {
     if (S.storeExt === undefined) S.storeExt = 0;
     migrateSkills();
     for (const id in ITEMS) if (DURA[id] !== undefined) durList(id);
+    // ⚠️ 从备份继续之后必须【立刻写回主存档】：
+    //    ① 不然标题页的「继续上次游戏」读到的还是上一局（玩家反馈"从此继续之后，主页继续上次游戏失效了"）；
+    //    ② 同时把存档版本号基线对齐，否则 save() 会以为"另一个标签页有更新进度"而拒绝写入（覆盖不了）。
+    try { S._rev = parseInt(localStorage.getItem('guyuyizhang_rev') || '0', 10) || 0; } catch (e) { S._rev = 0; }
+    save();
     return { ok:true, day: data.day };
   }
 

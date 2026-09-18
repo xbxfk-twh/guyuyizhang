@@ -251,6 +251,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   //    玩家再也进不去、还没法导出存档。所以这里加一道自检：
   //    ① 把最后一次报错留在本机  ② 数"连续几次启动没走到渲染成功"  ③ 连着崩就把玩家放进安全模式。
   const BOOT_KEY = 'guyuyizhang_boot', CRASH_KEY = 'guyuyizhang_crashes', ERR_KEY = 'guyuyizhang_lasterr';
+  const SVCRASH_KEY = 'guyuyizhang_savecrash';
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   function recordError(msg) { lsSet(ERR_KEY, String(msg === undefined ? 'unknown' : msg).slice(0, 300)); }
@@ -264,9 +265,16 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     return n;
   }
   function noteBootOk() { lsSet(BOOT_KEY, JSON.stringify({ at: Date.now(), ok: true })); lsSet(CRASH_KEY, '0'); }
+  // ⚠️ 以前 noteBootOk() 只在"进入游戏主界面"时才调，于是"只打开标题页就退出"也被当成崩溃 ——
+  //    玩家反馈"什么叫刷新一次就启动异常，太频繁了"（安全模式误报）。
+  //    现在分成两个计数：① 启动崩溃（连标题页都没出来）② 进游戏后崩溃（读档就崩那种）。
+  function inGameCrashes() { return parseInt(lsGet(SVCRASH_KEY) || '0', 10) || 0; }
+  function noteInGameCrash() { const n = inGameCrashes() + 1; lsSet(SVCRASH_KEY, String(n)); return n; }
+  function clearInGameCrash() { lsSet(SVCRASH_KEY, '0'); }
   function onRenderCrash(e) {
     const msg = (e && (e.message || e)) + ' @ ' + ((e && e.stack) ? String(e.stack).split('\n')[1] || '' : '');
     recordError(msg);
+    noteInGameCrash();   // 这一崩发生在"已经进游戏"之后（启动本身成功的）→ 记到另一个计数里
     try { console.error('[孤屿遗章] 渲染出错：', e); } catch (err) {}
     const t = document.getElementById('crash-toast');
     if (!t) {
@@ -308,7 +316,8 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       AudioFX.setTension(st.stats.hp / Game.hpMax() < 0.35 ? 1 : 0);
     }
     lastEnv = { scene: st.scene, night, weather: st.weather, fire: fireBuilt };
-    noteBootOk();   // 这一帧渲染完了 = 这次启动没崩，清掉崩溃计数
+    noteBootOk();        // 这一帧渲染完了 = 这次启动没崩，清掉崩溃计数
+    clearInGameCrash();  // 游戏界面正常渲染 = 上次"读档就崩"的状态已经好了
   }
   let lastEnv = null;
 
@@ -2935,6 +2944,9 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       if (c && c.ok) c.ok();
     });
     m.querySelectorAll('[data-med-id]').forEach(b => b.onclick = () => { Game.useItemInFight(b.dataset.medId); if (Game.S().combat) renderCombat('start', Game.S().combat); else closeModal(); });
+    // ⚠️ 战斗中点「道具」→ 这里右上角的 ✕ 原本是"关闭整个弹窗"= 直接把战斗界面关掉，
+    //    玩家反馈"点道具再点叉就直接结束本次战斗了"。道具面板的 ✕ 应该 = 返回战斗。
+    if (kind === 'medpick') m.querySelectorAll('#modal-close, .modal-x').forEach(b => b.onclick = () => renderCombat('start', Game.S().combat));
     m.querySelectorAll('[data-claim-ach]').forEach(b => b.onclick = () => { const r = Game.achClaim(b.dataset.claimAch); if (!r.ok) addLog(r.reason, 'warn'); showModal('collection'); });
     if (kind === 'farm') bindFarm();
   }
@@ -3549,7 +3561,9 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     applySkin();      // 开局先套上上次选的皮肤包
     applyLogMode();   // 开局先把上次选的日志显示方式套上
     const crashes = noteBootStart();   // 上次是不是"没走到渲染成功就没了"（=崩了）
-    const go = () => { showTitle(); if (crashes >= 2) showSafeMode(crashes); };
+    const inGame = inGameCrashes();
+    // 标题页能画出来 = 启动成功（这一步以前漏了，导致"只开标题页"被算成崩溃）
+    const go = () => { showTitle(); noteBootOk(); if (crashes >= 2 || inGame >= 2) showSafeMode(Math.max(crashes, inGame)); };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
     else go();
   }

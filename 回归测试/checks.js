@@ -3789,6 +3789,41 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
      /开新游戏会覆盖它（「备份 · 读档」里的备份槽不受影响）/.test(UI));
   ck('★ 「从此继续」前会提示"会用这份备份覆盖当前这一局"',
      /会用这份备份覆盖你当前这一局/.test(UI));
+  // ⑦ 这几条是本轮玩家反馈的其它四条
+  {
+    // 批量制作也要吃到"精工细作/流水线"的耐久加成（以前批量是另一条腿，完全没生效）
+    G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
+    s.exp.craft = 9999; s.skill.craft = 4; s.skillPicks.craft = ['speed','speed','speed','speed'];
+    G.skillNodeLearn('craft', 'c_finework');
+    G.addItem('wood', 60, true); G.addItem('flint', 60, true);   // 石斧 = 木材×1 + 燧石×1
+    const rAx = RECIPES.find(x => x.out && x.out.axeStone);
+    const rndC = Math.random; Math.random = () => 0.99;      // 不触发巧手/精算，专看耐久
+    G.craftBatch(rAx, 3);
+    Math.random = rndC;
+    ck('★ 批量制作装备也会吃到「精工细作」的耐久加成（石斧 25 → 33）',
+       (s.toolDurs.axeStone || []).every(d => d === 33) && (s.toolDurs.axeStone || []).length === 3,
+       JSON.stringify(s.toolDurs.axeStone));
+    ck('批量制作也走新公式（不再残留旧的"每级 -8% 耗时"）',
+       /let t = Math\.round\(r\.time \* \(1 - metaBonus\(\)\.craft\) \* cxTimeMul\(\)\);/.test(_GAME_SRC) && !/function craftLv\(\)/.test(_GAME_SRC));
+    // 战斗里点「道具」→ 面板的 ✕ 应该返回战斗，而不是把整场战斗关掉
+    ck('★ 战斗中「道具」面板的 ✕ = 返回战斗（不再直接结束战斗）',
+       /if \(kind === 'medpick'\) m\.querySelectorAll\('#modal-close, \.modal-x'\)\.forEach\(b => b\.onclick = \(\) => renderCombat\('start', Game\.S\(\)\.combat\)\);/.test(UI));
+    // 从备份继续之后必须立刻写回主存档（否则标题页「继续上次游戏」还是上一局）
+    {
+      G.newGame('fisher', 'normal'); const s3 = G.S(); s3.tut = null;
+      const data = JSON.parse(JSON.stringify(s3)); data.day = 77;
+      const mm = G.metaState(); mm.slots = mm.slots || [null, null, null];
+      mm.slots[0] = { day: 77, settled: false, data };
+      G.loadSlot(0);
+      let mainDay = 0;
+      try { mainDay = (JSON.parse(localStorage.getItem('guyuyizhang_save')) || {}).day || 0; } catch (e) {}
+      ck('★ 从备份继续后主存档立刻同步（标题页「继续上次游戏」能接着玩）', mainDay === 77, '主存档 day=' + mainDay);
+    }
+    // 安全模式不再把"只打开标题页"当成崩溃
+    ck('★ 标题页画出来就算"启动成功"（以前只开标题页也计一次崩溃 → 安全模式误报）',
+       /const go = \(\) => \{ showTitle\(\); noteBootOk\(\);/.test(UI) && /guyuyizhang_savecrash/.test(UI) &&
+       /if \(crashes >= 2 \|\| inGame >= 2\) showSafeMode/.test(UI));
+  }
 }
 
 section('9f. 音效与配乐（玩家反馈"叮铃太频繁、有些音效拉胯"）');
