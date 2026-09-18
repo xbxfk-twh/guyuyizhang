@@ -1350,6 +1350,21 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       <input id="devpw" type="password" placeholder="密码" autocomplete="off" maxlength="20" style="width:100%;padding:9px 10px;border:2px solid var(--ink);font-size:16px;background:var(--paper);color:var(--ink);box-sizing:border-box">
       <div class="modal-actions"><button id="devpw-ok">进入</button><button id="modal-close">取消</button></div>`;
   }
+  // 救援面板：把本机所有还能读出来的存档痕迹列出来，挑一份恢复
+  function rescueModal() {
+    const list = Game.scanLocalSaves();
+    let html = `<div class="modal-title">🛟 救援 · 找回被覆盖的存档</div>
+      <div class="hint">下面是这台设备上还能读出来的所有进度痕迹，按时间从新到旧排。挑一份「恢复这一份」，它会立刻变成当前存档（并写回主存档）。</div><div class="help-list">`;
+    if (!list.length) html += '<div class="help-item"><b>什么都没扫到</b><span>说明这台设备上已经没有可恢复的痕迹了——如果以前导出过「存档码」，用存档码还能把魂点、成就和备份槽搬回来。</span></div>';
+    for (const it of list) {
+      const when = it.at ? new Date(it.at).toLocaleString('zh-CN', { hour12: false }).slice(0, 16) : '时间未知';
+      html += `<div class="help-item"><b>第 ${it.day} 天 · ${esc(it.identity || '')}</b>
+        <span>${esc(it.label)}${it.at ? ` · ${when}` : ''}</span>
+        <button class="mini-btn" data-rescue-go="${it.src}">恢复这一份</button></div>`;
+    }
+    html += '</div><div class="modal-actions"><button id="modal-back">返 回</button><button id="modal-close">关 闭</button></div>';
+    return html;
+  }
   function renderBackup() {
     const slots = Game.slotList();
     const bp = Game.backupPoints();
@@ -1359,6 +1374,9 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       html += `<div class="help-item"><b>槽 ${i + 1}${s ? ` · 第 ${s.day} 天${s.settled ? '（已结算）' : ''}` : '（空）'}</b><span>${s ? '第 ' + s.day + ' 天 · 点击从此继续' : '空槽'}</span>
         <button class="mini-btn" data-bk="${i}">${s ? '覆盖备份' : '备份到此'}</button>${s ? `<button class="mini-btn" data-ld="${i}">从此继续</button>` : ''}${s ? `<button class="mini-btn danger-btn" data-delslot="${i}">删除备份</button>` : ''}</div>`;
     }
+    const rs = Game.rescueInfo();
+    html += `<div class="help-item"><b>🛟 救援 · 找回被覆盖的存档</b><span>不小心开了新游戏、或被别的进度顶掉时，这里可以扫描本机还留着的所有存档痕迹（当前存档 / 开新档前自动保留的那一份 / 上一次自动保存 / cookie 镜像 / 三个备份槽），挑一份恢复。${rs ? `<br>已自动保留：<b>第 ${rs.day} 天</b>（${new Date(rs.at).toLocaleString('zh-CN', { hour12: false }).slice(0, 16)}）` : ''}</span>
+      <div class="modal-actions"><button class="mini-btn" data-rescue="scan">扫描本机存档</button></div></div>`;
     html += `<div class="hint">换设备 / 换网址后如果记录不见了，用「存档码」可以把魂点、成就与全部备份槽搬过去。</div>
       <div class="modal-actions"><button data-codex="export">导出存档码</button><button data-codex="import">导入存档码</button><button id="modal-close">关 闭</button></div>`;
     return html;
@@ -2544,7 +2562,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   //    laochao/town/black/atlTrade（买卖）、farm（种收）、sleeppick、grind、repair、naming 等
   //    —— 这些面板里的操作本身就是"主动消耗时间"，冻住它们等于把功能关掉。
   const TIME_FREEZE_PANELS = ['inv', 'equip', 'skill', 'skilltree', 'collection', 'diary', 'mailbox', 'settings',
-    'savemenu', 'backup', 'heirloom', 'codex', 'crafthelp', 'comhelp', 'devpw'];
+    'savemenu', 'backup', 'rescue', 'heirloom', 'codex', 'crafthelp', 'comhelp', 'devpw'];
   function showModal(kind, cfg) {
     const m = $('#modal');
     modalOpenedAt = Date.now();   // 记下"刚打开"的时刻，配合防点击穿透（见文件末尾的捕获监听）
@@ -2589,6 +2607,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     else if (kind === 'heirloom') html = renderHeirloom();
     else if (kind === 'equip') html = renderEquip();
     else if (kind === 'backup') html = renderBackup();
+    else if (kind === 'rescue') html = rescueModal();
     else if (kind === 'skill') html = skillModal();
     else if (kind === 'skilltree') html = skillTreeModal(cfg && cfg.kind);
     else if (kind === 'batch') html = batchModal(cfg);
@@ -2662,6 +2681,18 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       showModal('backup');
     });
     m.querySelectorAll('[data-delslot]').forEach(b => b.onclick = () => { const r = Game.delSlot(+b.dataset.delslot); addLog(r.ok ? `已删除备份槽 ${+b.dataset.delslot + 1}。` : r.reason, r.ok ? 'good' : 'warn'); centerToast(r.ok ? `已删除槽 ${+b.dataset.delslot + 1}` : r.reason); showModal('backup'); });
+    // 救援：扫描本机所有存档痕迹 → 挑一份恢复
+    m.querySelectorAll('[data-rescue="scan"]').forEach(b => b.onclick = () => showModal('rescue'));
+    m.querySelectorAll('[data-rescue-go]').forEach(b => b.onclick = () => {
+      const src = b.dataset.rescueGo;
+      if (!confirm('恢复这一份会替换掉当前这一局（当前这份会先自动滚进"上一次保存"里，还能再退回来）。确定吗？')) return;
+      const r = Game.restoreLocalSave(src);
+      if (!r.ok) { addLog('【救援】' + r.reason, 'warn'); centerToast(r.reason); return; }
+      addLog(`【救援】已恢复到第 ${r.day} 天（来源：${src}）。`, 'good');
+      centerToast(`已恢复到第 ${r.day} 天`);
+      closeModal();
+      if (document.querySelector('#title-screen')) showTitle(); else render();
+    });
     m.querySelectorAll('[data-ld]').forEach(b => b.onclick = () => {
       // 「从此继续」= 用备份槽这份覆盖当前这一局，先说清再动
       const cur = S();
@@ -3513,7 +3544,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       if (e.target !== modalEl) return;
       const k = modal && modal.kind;
       // 面板类都支持"点外面关闭"（战斗、剧情选择、结局、命名输入、掷骰子这种不能误关的除外）
-      const PANEL_KINDS = ['inv','craft','equip','skill','skilltree','camp','laochao','town','black','atlTrade','repair','livestock','mission','info','farm','diary','collection','sleeppick','savemenu','backup','settings','mailbox','crafthelp','comhelp','codex','heirloom','naming','devpw','rune'];
+      const PANEL_KINDS = ['inv','craft','equip','skill','skilltree','camp','laochao','town','black','atlTrade','repair','livestock','mission','info','farm','diary','collection','sleeppick','savemenu','backup','rescue','settings','mailbox','crafthelp','comhelp','codex','heirloom','naming','devpw','rune'];
       if (PANEL_KINDS.includes(k)) closeModal();
     });
     // 移动端：不预加载全部大图，改为按需加载（切换场景时才读取对应图），降低内存与首屏压力

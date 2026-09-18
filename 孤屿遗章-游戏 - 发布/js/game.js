@@ -698,6 +698,64 @@ function change() {
     S.tree = { gather:{}, craft:{}, combat:{} };
     S.skillPicks = { gather:[], craft:[], combat:[] };
   }
+  // ---------- 存档救援：开新档自动保留上一局 + 扫描本机所有存档痕迹 ----------
+  // 玩家反馈："开新档的时候选的三档，现在调1档覆盖不行……我那档能恢复吗，我一直玩这个档的"
+  // —— 他当时那份存档没有任何备份，被新档直接顶掉了。
+  const RESCUE_KEY = 'guyuyizhang_rescue';
+  // 开新游戏之前，把"正在玩的那一份"原样留一份（只在 day>1 时留，且始终保留最新一条）
+  function rescueStash() {
+    try {
+      const raw = localStorage.getItem('guyuyizhang_save');
+      if (!raw) return false;
+      const j = JSON.parse(raw);
+      if (!j || !(j.day > 1)) return false;
+      if (j.setted) {}
+      const st = { at: Date.now(), day: j.day, identity: j.identity, save: raw };
+      localStorage.setItem(RESCUE_KEY, JSON.stringify(st));
+      return true;
+    } catch (e) { return false; }
+  }
+  function rescueInfo() {
+    try { const st = JSON.parse(localStorage.getItem(RESCUE_KEY) || 'null'); return (st && st.save) ? st : null; } catch (e) { return null; }
+  }
+  // 扫描本机所有还能读出来的存档痕迹（按时间从新到旧），给"救援"面板用
+  function scanLocalSaves() {
+    const out = [];
+    const add = (src, label, raw, atHint) => {
+      if (!raw) return;
+      let j = null; try { j = JSON.parse(raw); } catch (e) { return; }
+      if (!j || !j.day) return;
+      out.push({ src, label, day: j.day, identity: j.identity, at: atHint || 0, size: String(raw).length });
+    };
+    add('main', '当前存档（新开的那局）', localStorage.getItem('guyuyizhang_save'), parseInt(localStorage.getItem('guyuyizhang_savedAt') || '0', 10) || 0);
+    const rs = rescueInfo(); if (rs) add('rescue', '开新游戏前的上一局（自动保留）', rs.save, rs.at);
+    add('bak', '上一次保存前的状态（回退一步）', localStorage.getItem('guyuyizhang_save_bak'),
+      (function () { try { return parseInt(localStorage.getItem('guyuyizhang_savedAt') || '0', 10) || 0; } catch (e) { return 0; } })());
+    try { const ck = ckGet(CK.save); if (ck && ck !== localStorage.getItem('guyuyizhang_save')) add('cookie', 'cookie 镜像（平台清缓存前的最后一份）', ck, parseInt(ckGet(CK.saveAt) || '0', 10) || 0); } catch (e) {}
+    const m = metaState();
+    (m.slots || []).forEach((sl, i) => { if (sl && sl.data) add('slot' + i, `备份槽 ${i + 1}`, JSON.stringify(sl.data), 0); });
+    return out.sort((a, b) => (b.at || 0) - (a.at || 0));
+  }
+  // 把某一份痕迹恢复成"当前这一局"（和从备份槽继续一样：补字段 + 迁移 + 立刻写主存档）
+  function restoreLocalSave(src) {
+    let raw = '';
+    if (src === 'main') raw = localStorage.getItem('guyuyizhang_save');
+    else if (src === 'bak') raw = localStorage.getItem('guyuyizhang_save_bak');
+    else if (src === 'cookie') { try { raw = ckGet(CK.save); } catch (e) {} }
+    else if (src === 'rescue') { const rs = rescueInfo(); raw = rs ? rs.save : ''; }
+    else if (/^slot\d$/.test(String(src))) {
+      const i = parseInt(String(src).slice(4), 10);
+      const m = metaState(); const sl = m.slots && m.slots[i];
+      if (!sl || !sl.data) return { ok:false, reason:'这个备份槽是空的' };
+      raw = JSON.stringify(sl.data);
+    }
+    if (!raw) return { ok:false, reason:'这份存档痕迹已经找不到了' };
+    let j = null; try { j = JSON.parse(raw); } catch (e) { return { ok:false, reason:'这份内容已经损坏' }; }
+    if (!j || !j.day) return { ok:false, reason:'这份内容不完整' };
+    S = j;
+    normalizeAfterLoad();
+    return { ok:true, day: j.day, identity: j.identity };
+  }
   function snapshot(kind) {
     S._snap = S._snap || {};
     S._snap[kind] = JSON.parse(JSON.stringify({
@@ -867,6 +925,8 @@ function change() {
 
   // ---------- 新游戏 ----------
   function newGame(identity, difficulty) {
+    // ⚠️ 开新游戏之前，先把"正在玩的那一份"留一份救援档（玩家反馈：开新档把一直玩的档顶掉了，找不回来）
+    rescueStash();
     S = {
       v:1, identity, difficulty,
       day:1, minute:8*60, tick:0, weather:'sun', weatherRolled:true,
@@ -4142,8 +4202,14 @@ function change() {
     if (data.ending) data.ending = undefined;   // 从备份继续 = 接着玩，别把结算状态带进来
     if (data.death) data.death = undefined;
     S = data;
-    // ⚠️ 备份槽里存的是"当时那份 S"，可能是技能改版前的老格式 —— 必须补字段 + 跑技能迁移，
-    //    否则会出现"等级还在、成长选项没有"（那几级白升）。这些字段 load() 里都有，这里不能漏。
+    normalizeAfterLoad();
+    return { ok:true, day: data.day };
+  }
+  // 读进来一份 S 之后要做的收尾（load() / loadSlot() / 救援恢复 共用）：
+  // ① 补缺失字段（老格式/备份槽里的档可能缺）② 跑技能迁移 ③ 耐久对齐实例数组
+  // ④ 对齐存档版本号并【立刻写回主存档】——不然标题页「继续上次游戏」还是上一局，
+  //    而且 save() 会以为"另一个标签页有更新进度"拒绝写入（玩家反馈"覆盖不行"）。
+  function normalizeAfterLoad() {
     if (!S.skill) S.skill = { craft:0, gather:0, combat:0 };
     if (!S.exp) S.exp = { gather:0, craft:0, combat:0 };
     if (!S.inv) S.inv = {};
@@ -4160,12 +4226,8 @@ function change() {
     if (S.storeExt === undefined) S.storeExt = 0;
     migrateSkills();
     for (const id in ITEMS) if (DURA[id] !== undefined) durList(id);
-    // ⚠️ 从备份继续之后必须【立刻写回主存档】：
-    //    ① 不然标题页的「继续上次游戏」读到的还是上一局（玩家反馈"从此继续之后，主页继续上次游戏失效了"）；
-    //    ② 同时把存档版本号基线对齐，否则 save() 会以为"另一个标签页有更新进度"而拒绝写入（覆盖不了）。
     try { S._rev = parseInt(localStorage.getItem('guyuyizhang_rev') || '0', 10) || 0; } catch (e) { S._rev = 0; }
     save();
-    return { ok:true, day: data.day };
   }
 
   // ---------- 导出 ----------
@@ -4194,6 +4256,7 @@ function change() {
     checkEndingActions, doEnding, settleEnding, collection, currentObjective, metaState, metaBuy, metaBonus, metaSettle, metaNum, metaLast, reviveToday, redeemCode, mailboxList, claimMailbox, mailboxCount, devEnabled, unlockDev, hasRelic, hpMax, gainRandomRelic, durOf, sleepQuality, unlockRelicSlot, equipRelic, unequipRelic, relicSlotCost, atlVendorInfo, buyRelicFromVendor, lotusLeft, backupPoints, slotList, buyBackupPoint, backupSlot, loadSlot, delSlot, exportCode, importCode, metaReload, raidDay, acceptCommission, sharpen, repairWeapon, nameWeapon, repairMatOf, wNameOf, craftMax, craftBatch, repairPistol, fixBrokenPistol, travelCost, equipTool, unequipTool, capUsed, unequip, newGame, achCheck, achClaim, achUnlocked, achState,
     // 技能树（B1）
     skillTreeInfo, skillUpTrunk, skillNodeLearn, skillNodeForget, nodeLv, trunkPicks, trunkLv, nodeCheck, nodeIsLeaf, nodeForgetGain, craftIn,
+    scanLocalSaves, restoreLocalSave, rescueInfo,   // 存档救援：扫描本机痕迹 / 恢复某一份
     skillCritRate: cxCrit, gatherYieldMul: gxYieldMul, gatherTimeMul: gxTimeMul, gatherEnergyMul: gxEnergyMul,
     sweepCdTotal, sweepMul, vampRate, execThreshold, revengeBonus,
     wallBlockBonus, wallDurMul, swiftBonus, rageAtkMul, rageTakenMul, ironTakenMul, ironAtkMul, ammoSaveChance, rangedAcc,

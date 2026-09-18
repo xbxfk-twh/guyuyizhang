@@ -3789,6 +3789,27 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
      /开新游戏会覆盖它（「备份 · 读档」里的备份槽不受影响）/.test(UI));
   ck('★ 「从此继续」前会提示"会用这份备份覆盖当前这一局"',
      /会用这份备份覆盖你当前这一局/.test(UI));
+  // ⑧ 存档救援：开新档自动留一份 + 扫描本机所有痕迹 + 挑一份恢复
+  {
+    G.newGame('fisher', 'normal'); const sA = G.S(); sA.tut = null; sA.day = 88;
+    G.save();
+    G.newGame('fisher', 'normal');            // 这一下应该把"第 88 天"那份留进救援档
+    const rs = G.rescueInfo();
+    ck('★ 开新游戏会自动保留上一局（救援档）', !!rs && rs.day === 88, JSON.stringify(rs && { day: rs.day }));
+    const list = G.scanLocalSaves();
+    ck('★ 救援扫描能列出本机所有存档痕迹（当前 / 救援 / 上一次保存 / 备份槽）',
+       list.some(x => x.src === 'main') && list.some(x => x.src === 'rescue') && list.some(x => x.src === 'bak'),
+       list.map(x => x.src + '=' + x.day).join(' , '));
+    const rr = G.restoreLocalSave('rescue');
+    let mainDay2 = 0;
+    try { mainDay2 = (JSON.parse(localStorage.getItem('guyuyizhang_save')) || {}).day || 0; } catch (e) {}
+    ck('★ 从救援档恢复：真的回到第 88 天，并写回主存档',
+       rr.ok && G.S().day === 88 && mainDay2 === 88, JSON.stringify(rr) + ' main=' + mainDay2);
+    ck('备份 · 读档面板里有救援入口（扫描 + 恢复按钮）',
+       /data-rescue="scan"/.test(UI) && /function rescueModal\(\)/.test(UI) && /data-rescue-go="\$\{it\.src\}"/.test(UI) &&
+       /Game\.restoreLocalSave\(src\)/.test(UI));
+    ck('救援面板在"点外面关闭 + 时间冻结"名单里', /'backup', 'rescue'/.test(UI) && /'backup','rescue'/.test(UI));
+  }
   // ⑦ 这几条是本轮玩家反馈的其它四条
   {
     // 批量制作也要吃到"精工细作/流水线"的耐久加成（以前批量是另一条腿，完全没生效）
