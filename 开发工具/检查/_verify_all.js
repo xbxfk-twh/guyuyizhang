@@ -84,7 +84,11 @@ ck('小睡/整觉两张动画图存在', exists('assets/img/anim/sleep_nap.png')
 ck('睡觉接进动画系统（含呼吸+飘Z）', /sleep: 2600/.test(UI) && /sleep_nap/.test(UI) && /sleep_night/.test(UI) && /zFloat/.test(CSS) && /sleepBreath/.test(CSS));
 ck('守夜不放睡觉动画（守夜是清醒的）', /if \(k === 'watch'\) \{ Game\.sleep\(k\); return; \}/.test(UI));
 ck('休息也换成专属动画', /withAnimation\('rest', '休息 '/.test(UI));
-ck('睡觉图是暗底（与现有 rest.png 一致）', /filter: grayscale\(1\) contrast\(1\.4\) brightness\(0\.86\)/.test(CSS));
+// 这两张图已经在文件里修过对比度（原图备份在 归档/素材实验/anim_原图/），CSS 只保留"保证黑白"；
+// 再叠一层 contrast/brightness 等于二次压暗，把细节吃掉（作者 2026-09-17 定）
+ck('睡觉图只保证黑白、不再二次压暗',
+   /\.busy-img\.sleep_nap, \.busy-img\.sleep_night \{ filter: grayscale\(1\); \}/.test(CSS) &&
+   !/\.busy-img\.sleep_nap[^{]*\{[^}]*contrast\(/.test(CSS));
 
 // ---------------------------------------------------------------- 4. 状态条配色
 sec('4. 状态条配色（本轮反馈：生命/体力改淡米红/淡米黄）');
@@ -111,21 +115,21 @@ ck('大地图热点完全锁定在地图上（不显隐、不独立位移、不�
    /a\.classList\.remove\('offscreen'\)/.test(UI) && !/classList\.add\('offscreen'\)/.test(UI) &&
    /a\.style\.marginLeft = ''/.test(UI) && !/a\.style\.marginLeft = Math\.round/.test(UI) &&
    !/classList\.add\('pinned'/.test(UI) && !/\.map-arrow\.pinned \{/.test(CSS) && !/i \* 34/.test(UI) && !/side \* 90/.test(UI));
-// 玩家最终明确要求：**整张岛要拖着看**，一进地图不能把所有场景热点送到眼前，
-// 也不许给任何场景（含山顶、珍珠洞窟）做自动送达/位移/动画。
-// 所以这里验：① 地图足够大（一次看不全）② 没有自动居中逻辑 ③ 纵横向全范围可拖。
+// 地图口径（作者 2026-09-18 最终版）：**图片宽度贴合屏幕，高出来的部分上下拖**；
+// 进地图/从场景返回时自动把"你在这里"对到画面中间，但不许越界露出空白；热点本身永远是死位置。
 ck('地图纵向留出足够拖动余量（zoom 是真正的下界，不被钳制吃掉）',
    /const sFloor = Math\.max\(bw \/ iw \* 1\.10, bh \/ ih\);/.test(UI) &&
    /const s = Math\.max\(sCover, sFloor > \(bh \/ ih\) \* 1\.02 \? sFloor : 0\);/.test(UI) &&
    /maxPan/.test(UI));
-ck('★ 没有自动居中：整张岛靠玩家自己拖',
-   !/function centerMapOn/.test(UI) && !/mapNeedCenter/.test(UI) && !/mapCenterY/.test(UI));
-ck('★ 宽度贴合画面：缩放按"画面比例 ÷ 地图比例"算',
-   /function mapZoom\(\)/.test(UI) &&
-   /Math\.max\(1, \(wrap\.clientWidth \/ wrap\.clientHeight\) \/ \(img\.naturalWidth \/ img\.naturalHeight\)\)/.test(UI));
-ck('★ 热点全部能滑到（横向范围"够用即止"）',
-   /const needX = 110 \+ box\.w \* 0\.06;/.test(UI) && /maxPanX/.test(UI) &&
-   !/MAP_KEY_L/.test(UI) && !/MAP_KEY_R/.test(UI));
+ck('★ 进地图/从场景返回会把"你在这里"自动对到画面中间，且夹住不越界',
+   /function centerMapOnHere\(\)/.test(UI) && /if \(justEntered\) mapPendingCenter = true;/.test(UI) &&
+   /const limY = Math\.max\(0, \(box\.h - wrap\.clientHeight\) \/ 2\);/.test(UI) &&
+   /mapPanY = Math\.max\(-limY, Math\.min\(limY, wrap\.clientHeight \/ 2 - ay\)\);/.test(UI));
+ck('★ 宽度贴合屏幕：图片按舞台宽度等比放大（高出来的部分才需要拖）',
+   /function mapBox\(/.test(UI) && /const w = bw, h = ih \* \(bw \/ iw\);/.test(UI) &&
+   /maxPan: Math\.max\(0, \(h - bh\) \/ 2\)/.test(UI));
+ck('★ 横向不再额外平移（宽度已贴合，拖不出黑边）',
+   /mapPanX = 0;/.test(UI) && !/MAP_KEY_L/.test(UI) && !/MAP_KEY_R/.test(UI));
 
 // ---------------------------------------------------------------- 7. 战斗：攻速与双持
 sec('7. 战斗：攻速对称与轮流挥砍');
@@ -133,7 +137,24 @@ ck('攻速主副手对称（按攻击力加权平均）', /const wa = Math\.max\
 ck('旧的"只看主手"写法已不在', !/if \(w && w\.spd\) s = w\.spd;/.test(GAME));
 ck('双匕首 ×2 用数据标记而非武器名正则', /w\.dual && w2\.dual/.test(GAME) && /dual:1/.test(DATA));
 ck('轮流挥砍（一把一刀，各自扣耐久）', /function weaponTurnSlot\(\)/.test(GAME) && /function meleeWeaponNow\(\)/.test(GAME));
-ck('日志标出所用武器', /const wTag = usedW \? `〔\$\{wNameOf\(usedW\.id\)\}〕` : '';/.test(GAME));
+ck('日志标出所用武器', /const wTag = usedW \? `〔\$\{wNameOf\(usedW\)\}〕` : '';/.test(GAME));
+{
+  // 功能验证：真打一场（双持才会标武器名——单把近战只有"攻击"，标出来是废话）
+  Game.newGame('fisher', 'normal');
+  const sw = Game.S(); sw.inv = {}; Game.addItem('ironSword', 2, true); Game.addItem('ironDagger', 2, true);
+  sw.equipment.weapon = 'ironSword'; sw.equipment.weapon2 = 'ironDagger';
+  sw.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
+  sw.stats.hp = 99999; sw.stats.stamina = 99999; sw.log = [];
+  Game.startFight(ENEMIES.boar, true);
+  const rkW = Math.random; Math.random = () => 0.1;
+  Game.fightAction('attack');
+  Math.random = rkW;
+  const stw = Game.S();
+  // ⚠️ 战斗回合文字进的是 C.log（右侧战斗面板），不是左侧 S.log —— 之前这里读错了地方
+  const wtxt = ((stw.combat && stw.combat.log) || []).join(' ') + ' ' + (stw.log || []).map(l => l.text).join(' ');
+  ck('实测：双持时战斗日志标出这一刀用的是哪把',
+     /〔(铁剑|铁匕首|石质匕首)〕/.test(wtxt), wtxt.slice(0, 60));
+}
 {
   const gr = (m, o) => { Game.newGame('fisher', 'normal'); const s = Game.S(); s.inv = {};
     ['ironGreatSword','ironDagger','knifeStone','ironSword','bow','bullet'].forEach(id => Game.addItem(id, 2, true));
@@ -208,8 +229,29 @@ ck('弹药不能装到手上', /if \(it\.ammo\) \{ log\(/.test(GAME) && /!ITEMS\
 
 // ---------------------------------------------------------------- 10. 横扫
 sec('10. 横扫（本轮新增：双手重武器，CD 20 单位时间，对全体 1 倍伤害）');
-ck('CD=20、双手专属、有 UI 按钮', /const SWEEP_CD = 20;/.test(GAME) && /function sweepInfo\(\)/.test(GAME) && /data-fact="sweep"/.test(UI));
-ck('横扫自己在冷却里不重复扣', /if \(act !== 'sweep' && C\.sweepCd > 0\) C\.sweepCd--;/.test(GAME));
+// 作者 2026-09-17 改口径：横扫 CD 基准 20 个时间单位，随等级降到 18/16/14（不是出手次数）
+ck('CD 基准 20（随等级 20/18/16/14）、有 UI 按钮',
+   /const SWEEP_CD_BASE = 20;/.test(GAME) && /return Math\.max\(2, SWEEP_CD_BASE - 2 \* sweepNodeLv\(\)\);/.test(GAME) &&
+   /function sweepInfo\(\)/.test(GAME) && /data-fact="sweep"/.test(UI));
+ck('横扫自己在冷却里不重复扣',
+   /if \(act !== 'sweep' && C\.sweepCd > 0\) \{/.test(GAME) &&
+   /C\.sweepCd = Math\.max\(0, C\.sweepCd - 100 \/ Math\.max\(1, combatSpeed\(\)\)\);/.test(GAME));
+{
+  // 双手专属：只拿单手武器时不可用，换双手重武器才可用
+  Game.newGame('fisher', 'normal');
+  const sq = Game.S(); sq.inv = {}; Game.addItem('ironDagger', 2, true); Game.addItem('ironGreatSword', 2, true);
+  sq.equipment.weapon = 'ironDagger'; sq.equipment.weapon2 = null;
+  sq.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
+  sq.stats.hp = 99999; sq.stats.stamina = 99999;
+  Game.startFight(ENEMIES.boar, true);
+  const oneHand = Game.sweepInfo();
+  sq.equipment.weapon = 'ironGreatSword';
+  const twoHand = Game.sweepInfo();
+  ck('实测：单手武器不给横扫、双手重武器才给',
+     oneHand.usable === false && /双手/.test(oneHand.reason) && twoHand.usable === true,
+     '单手=' + oneHand.reason + ' / 双手=' + (twoHand.usable ? '可用' : twoHand.reason));
+  Game.finishCombat && Game.finishCombat();
+}
 {
   Game.newGame('fisher', 'normal');
   const s = Game.S(); s.inv = {}; Game.addItem('ironGreatSword', 3, true);

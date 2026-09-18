@@ -2768,7 +2768,7 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
     ck('★ 神弓耐久归零不会消失（keepBroken：保留在背包、自动卸下）',
        !!ITEMS[BOW].keepBroken && /const keep = !!\(named \|\| it\.keepBroken\)/.test(_GAME_SRC) && /限时绝版物品不会消失/.test(_GAME_SRC));
     ck('★ 自动换手会跳过打坏的武器（耐久 0 的不会被顶上主手）',
-       /filter\(k => ITEMS\[k\] && ITEMS\[k\]\.cat === 'weapon' && \(DURA\[k\] === undefined \|\| \(durOf\(k\) \|\| 0\) > 0\)\)/.test(_GAME_SRC));
+       /filter\(k => ITEMS\[k\] && ITEMS\[k\]\.cat === 'weapon' && !ITEMS\[k\]\.ammo && \(DURA\[k\] === undefined \|\| \(durOf\(k\) \|\| 0\) > 0\)\)/.test(_GAME_SRC));
     ck('★ 神弓修补材料是秘银锭×1（不再走"石头×2"兜底）',
        /divineBow:\['mithrilingot',1\]/.test(_GAME_SRC) && JSON.stringify(G.repairMatOf(BOW)) === JSON.stringify(['mithrilingot', 1]));
     ck('磨刀石面板按当前主手武器显示修补材料（不再写死石头×2）',
@@ -2795,6 +2795,23 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
          G.durOf(BOW) === DURA[BOW] && G.invCount('mithrilingot') === 1, '耐久 ' + G.durOf(BOW) + '，秘银锭剩 ' + G.invCount('mithrilingot'));
       G.repairWeapon();
       ck('耐久满的时候再点修补不会白吃材料', G.invCount('mithrilingot') === 1, '秘银锭 ' + G.invCount('mithrilingot'));
+    }
+    // 玩家反馈的同类坑：弓一打坏，系统"迅速换上了箭矢继续战斗"——箭矢的 cat 也是 weapon，
+    // 以前会被当成备用武器顶到主手（等于拿一把箭去砍人）。这里只放坏弓 + 箭矢，主手必须留空。
+    {
+      G.newGame('fisher', 'normal');
+      const Sa = G.S(); Sa.inv = {}; Sa.tut = null; Sa.stats.hp = 99999; Sa.stats.stamina = 99999;
+      G.addItem(BOW, 1, true); G.addItem('arrow', 30, true);
+      Sa.toolDurs[BOW] = [1]; Sa.dur[BOW] = 1;
+      Sa.equipment.weapon = BOW; Sa.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
+      G.startFight(ENEMIES.sunkenKing, true);   // 血厚：先手几箭打不死，能看到"打坏"的那一步
+      ck('★ 弓打坏后不会被「箭矢」顶成主手武器（主手留空）',
+         G.invCount(BOW) === 1 && G.durOf(BOW) === 0 && !G.S().equipment.weapon,
+         '主手=' + G.S().equipment.weapon + ' 神弓=' + G.invCount(BOW) + ' 耐久=' + G.durOf(BOW));
+      ck('★ 也不会写"你迅速换上了箭矢"这种日志',
+         !(G.S().log || []).some(l => /换上了箭矢/.test(l.text || '')),
+         (G.S().log || [])[0] && (G.S().log[0].text || ''));
+      G.S().combat = null;
     }
   ck('★ 神弓配方摆在 RECIPES 最后一条（制造列表最下面）',
        RECIPES[RECIPES.length - 1].id === 'r_divinebow', '最后一条是 ' + RECIPES[RECIPES.length - 1].id);

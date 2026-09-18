@@ -98,7 +98,8 @@ const ROW = `(async () => {
              hasDryBtn: !!document.querySelector('#modal [data-dry]'),
              rows: [...document.querySelectorAll('#modal .recipe-row')].map(r => r.textContent.replace(/\\s+/g,' ').trim()) }; })()`);
   console.log('   ' + JSON.stringify(taken));
-  ck('★ 拿到了 肉干×3，架子清空，界面回到空架子', taken.jerky === 3 && taken.架子 === false && taken.rows.some(x => /空着/.test(x)));
+  // 作者 2026-09-18：一批从"肉×1 → 肉干×3"改成"肉×2 → 肉干×6"
+  ck('★ 拿到了 肉干×6，架子清空，界面回到空架子', taken.jerky === 6 && taken.架子 === false && taken.rows.some(x => /空着/.test(x)));
   ck('全程无 JS 报错', errs.length === 0, errs.slice(0, 2).join(' | ') || '无');
 
   ws.close(); ch.kill(); await sleep(300);

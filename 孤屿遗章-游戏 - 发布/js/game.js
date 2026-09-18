@@ -257,7 +257,9 @@ function change() {
       else S.dur[id] = cur - 1;
     }
     // 自动顶上备用武器时，跳过那些已经打坏的（耐久 0 的会"一装备就又坏"，等于白骗玩家一次）
-    if (S.equipment[slot] === null) { const next = Object.keys(S.inv).filter(k => ITEMS[k] && ITEMS[k].cat === 'weapon' && (DURA[k] === undefined || (durOf(k) || 0) > 0)).sort((a,b) => (ITEMS[b].atk||0) - (ITEMS[a].atk||0))[0]; if (next && !(S.equipment.weapon === next || S.equipment.weapon2 === next)) { S.equipment[slot] = next; log(`你迅速换上了${ITEMS[next].name}继续战斗。`, 'good'); } }
+    // ⚠️ 还要跳过弹药：箭矢/鹰羽箭的 cat 也是 'weapon'，以前弓一打坏，系统会把背包里的
+    //    「箭矢」当成备用武器给你装备上（日志写"你迅速换上了箭矢继续战斗"），主手就变成了一把箭。
+    if (S.equipment[slot] === null) { const next = Object.keys(S.inv).filter(k => ITEMS[k] && ITEMS[k].cat === 'weapon' && !ITEMS[k].ammo && (DURA[k] === undefined || (durOf(k) || 0) > 0)).sort((a,b) => (ITEMS[b].atk||0) - (ITEMS[a].atk||0))[0]; if (next && !(S.equipment.weapon === next || S.equipment.weapon2 === next)) { S.equipment[slot] = next; log(`你迅速换上了${ITEMS[next].name}继续战斗。`, 'good'); } }
   }
   function drainById(id) {
     if (!invCount(id) || DURA[id] === undefined) return;
@@ -838,6 +840,7 @@ function change() {
       return load() ? { ok:true } : { ok:false, reason:'备份存档读不出来' };
     } catch (e) { return { ok:false, reason:String((e && e.message) || e) }; }
   }
+  let loadRetried = false;   // 主档坏掉时只允许"从 _bak 重走一遍读档"一次
   function load() {
     try {
       let raw = localStorage.getItem('guyuyizhang_save');
@@ -921,7 +924,18 @@ function change() {
       console.warn('load failed, try backup', e);
       // 主档解析失败时把原始串留底，别让后面的保存把它冲掉
       try { const broken = localStorage.getItem('guyuyizhang_save'); if (broken) localStorage.setItem('guyuyizhang_save_corrupt', broken); } catch (e0) {}
-      try { const bak = localStorage.getItem('guyuyizhang_save_bak'); if (bak) { S = JSON.parse(bak); autoToolkit(); return true; } } catch(e2) {}
+      // 主档坏了 → 把 _bak 挪到主档位，再把**整条正常读档流程重走一遍**：这样救回来的这份能拿到
+      // 和正常读档完全一样的待遇（补字段 / 技能迁移 / 耐久对齐 / 对齐存档版本号）。
+      // ⚠️ 以前这里只 JSON.parse(bak) 就 return true，S._rev 是空的 → 之后每一次 save() 都会被
+      //    "另一个标签页有更新进度"那道守卫拒掉，玩家看到的就是"进度存不进去 / 覆盖不上"。
+      // 只重试一次，免得 _bak 也坏掉时反复递归。
+      if (!loadRetried) {
+        loadRetried = true;
+        try {
+          const bak = localStorage.getItem('guyuyizhang_save_bak');
+          if (bak) { localStorage.setItem('guyuyizhang_save', bak); return load(); }
+        } catch (e2) {}
+      }
       return false;
     }
   }
