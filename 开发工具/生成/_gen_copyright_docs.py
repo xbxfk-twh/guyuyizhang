@@ -1,4 +1,4 @@
-# 生成软著申请材料（源代码文档 + 软件说明书）
+﻿# 生成软著申请材料（源代码文档 + 软件说明书）
 # 用法：python 开发工具\生成\_gen_copyright_docs.py [版本号]
 #   默认版本 V1.11（和之前那版材料一致；想改成当前发布版就传 V1.0.8）
 # 产物：软著申请\源代码文档.docx（前 30 页 + 后 30 页，每页 50 行）、软著申请\软件说明书.docx
@@ -21,6 +21,26 @@ TODAY = datetime.date.today().strftime('%Y年%m月%d日')
 FILES = ['index.html', 'css/style.css', 'js/data.js', 'js/game.js', 'js/ui.js', 'js/audio.js']
 LINES_PER_PAGE = 50
 PAGES_EACH_SIDE = 30     # 前 30 页 + 后 30 页
+WRAP_COL = 100           # 单行"显示宽度"上限（中文按 2 计；防止超长行折行把页面撑爆）
+
+
+def disp_width(s):
+    """按显示宽度算长度：中文/全角按 2，其它按 1（宋体 9pt 下 100 单位 ≈ 一行的宽度）。"""
+    return sum(2 if ord(c) > 0x2E80 else 1 for c in s)
+
+
+def wrap_line(line, limit=WRAP_COL):
+    if disp_width(line) <= limit:
+        return [line]
+    out, cur, w = [], '', 0
+    for ch in line:
+        cw = 2 if ord(ch) > 0x2E80 else 1
+        if w + cw > limit:
+            out.append(cur); cur, w = '', 0
+        cur += ch; w += cw
+    if cur:
+        out.append(cur)
+    return out
 
 
 def read_code():
@@ -30,7 +50,10 @@ def read_code():
         out.append('/* ============ %s ============ */' % rel)
         with open(path, 'r', encoding='utf-8', errors='replace') as f:
             for line in f.read().split('\n'):
-                out.append(line.rstrip('\r'))
+                line = line.rstrip('\r').replace('\t', '    ')
+                # ⚠️ 超长行要在文档里**折成多行**：像 ui.js 里那种几百个字段挤在一行的对象，
+                #    Word 里会横向折行、把这一页撑爆（实测整份文档会被排成 75 页而不是 60 页）。
+                out.extend(wrap_line(line))
     return out
 
 
@@ -40,10 +63,22 @@ def set_font(run, name='宋体', size=9):
     run._element.rPr.rFonts.set(qn('w:eastAsia'), name)
 
 
+def set_a4(doc, top=2.0, bottom=2.0, left=2.2, right=2.2):
+    """软著材料必须是 A4（21.0 x 29.7 cm）；python-docx 默认模板是 Letter，必须显式改掉。"""
+    sec = doc.sections[0]
+    sec.page_width = Cm(21.0)
+    sec.page_height = Cm(29.7)
+    sec.top_margin = Cm(top); sec.bottom_margin = Cm(bottom)
+    sec.left_margin = Cm(left); sec.right_margin = Cm(right)
+    return sec
+
+
 def add_page(doc, title, lines, page_no, first_page=False):
-    if not first_page:
-        doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
     head = doc.add_paragraph()
+    # 分页符挂在**本页页眉开头**（不是上一页末尾加一个空段落）——这样上一页正好 50 行代码收尾，
+    # 每页 = 页眉 1 行 + 代码 50 行，软著审查看的就是这个。
+    if not first_page:
+        head.add_run().add_break(WD_BREAK.PAGE)
     head.paragraph_format.space_after = Pt(4)
     set_font(head.add_run('%s %s   第 %d 页' % (NAME, VER, page_no)), '宋体', 9)
     for ln in lines:
@@ -51,7 +86,9 @@ def add_page(doc, title, lines, page_no, first_page=False):
         pf = p.paragraph_format
         pf.space_before = Pt(0)
         pf.space_after = Pt(0)
-        pf.line_spacing = 1.0
+        # ⚠️ 行高必须锁成"固定值"：用 1.0 倍行距时 Word 会按字体度量撑到 ~20pt/行，
+        #    50 行一行页就装不下，整份文档会被排成 80 多页（软著要求正好 60 页、每页 50 行）。
+        pf.line_spacing = Pt(11)
         set_font(p.add_run(ln if ln else ' '), '宋体', 9)
 
 
@@ -61,9 +98,12 @@ def build_source_doc():
     front = code[:PAGES_EACH_SIDE * per]
     back = code[-PAGES_EACH_SIDE * per:]
     doc = Document()
-    sec = doc.sections[0]
-    sec.top_margin = Cm(2.0); sec.bottom_margin = Cm(2.0)
-    sec.left_margin = Cm(2.2); sec.right_margin = Cm(2.2)
+    set_a4(doc, 2.0, 2.0, 2.2, 2.2)
+    # 正文样式也用宋体 9pt：免得 Word 默认样式（Calibri 11 + 1.08 行距）把行撑开
+    st = doc.styles['Normal']
+    st.font.name = '宋体'; st.font.size = Pt(9)
+    st._element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
+    st.paragraph_format.space_after = Pt(0)
     page = 1
     for i in range(0, len(front), per):
         add_page(doc, NAME, front[i:i + per], page, first_page=(page == 1))
@@ -78,9 +118,7 @@ def build_source_doc():
 
 def build_manual():
     doc = Document()
-    sec = doc.sections[0]
-    sec.top_margin = Cm(2.2); sec.bottom_margin = Cm(2.2)
-    sec.left_margin = Cm(2.5); sec.right_margin = Cm(2.5)
+    set_a4(doc, 2.2, 2.2, 2.5, 2.5)
 
     def title(t, size=18):
         p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -93,6 +131,13 @@ def build_manual():
     def body(t, size=10.5):
         p = doc.add_paragraph(); p.paragraph_format.space_after = Pt(3)
         set_font(p.add_run(t), '宋体', size); return p
+
+    # 统一正文字体/行距（别让 Word 默认样式把行撑开）
+    st = doc.styles['Normal']
+    st.font.name = '宋体'; st.font.size = Pt(10.5)
+    st._element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
+    st.paragraph_format.space_after = Pt(3)
+    st.paragraph_format.line_spacing = 1.25
 
     title('%s 使用说明书' % NAME)
     body('')
@@ -166,7 +211,45 @@ def build_manual():
     print('软件说明书：%s' % path)
 
 
+def check_copyright_docs():
+    """按软著登记的硬性要求自检：A4、页眉（软件名+版本+页码）、每页 50 行、共 60 页。"""
+    print('\n===== 软著材料格式自检 =====')
+    d = Document(os.path.join(OUT, '源代码文档.docx'))
+    sec = d.sections[0]
+    print('纸张：%.1f x %.1f cm  %s' % (sec.page_width.cm, sec.page_height.cm,
+          'OK（A4）' if abs(sec.page_width.cm - 21.0) < 0.2 and abs(sec.page_height.cm - 29.7) < 0.2 else 'X 不是 A4'))
+    pages, cur = [], None
+    for p in d.paragraphs:
+        t = p.text
+        if t.startswith(NAME + ' ' + VER) and '第' in t and '页' in t:
+            if cur is not None:
+                pages.append(cur)
+            n = int(t.rsplit('第', 1)[1].replace('页', '').strip())
+            cur = {'no': n, 'head': t, 'lines': 0}
+        elif cur is not None:
+            cur['lines'] += 1
+    if cur is not None:
+        pages.append(cur)
+    bad_head = [x for x in pages if not x['head'].startswith('%s %s' % (NAME, VER))]
+    bad_lines = [x for x in pages if x['lines'] != LINES_PER_PAGE]
+    print('页数：%d  %s' % (len(pages), 'OK（前 30 + 后 30 = 60）' if len(pages) == PAGES_EACH_SIDE * 2 else 'X 不是 60 页'))
+    print('页眉：%s  %s' % (pages[0]['head'] if pages else '无',
+          'OK（软件名 + 版本号 + 页码）' if not bad_head else 'X 有 %d 页页眉不对' % len(bad_head)))
+    print('每页行数：%d 行/页  %s' % (LINES_PER_PAGE, 'OK（每页 50 行）' if not bad_lines else 'X 有 %d 页行数不对：%s' % (len(bad_lines), [x['no'] for x in bad_lines][:5])))
+    print('页码连续：%s' % ('OK' if [x['no'] for x in pages] == list(range(1, len(pages) + 1)) else 'X 页码不连续'))
+    m = Document(os.path.join(OUT, '软件说明书.docx'))
+    ms = m.sections[0]
+    txt = '\n'.join(p.text for p in m.paragraphs)
+    need = ['软件名称', '版本号', '运行环境', '主要功能', '操作说明', '开发']
+    miss = [k for k in need if k not in txt]
+    print('说明书：%.1f x %.1f cm  %s；必备章节 %s' % (ms.page_width.cm, ms.page_height.cm,
+          'OK（A4）' if abs(ms.page_width.cm - 21.0) < 0.2 else 'X 不是 A4',
+          'OK' if not miss else 'X 缺：' + '、'.join(miss)))
+
+
 if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
     build_source_doc()
     build_manual()
+    # 自检：把软著材料的硬性格式再核一遍，免得交上去才发现不合规
+    check_copyright_docs()
