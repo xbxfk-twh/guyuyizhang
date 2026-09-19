@@ -31,7 +31,11 @@ console.log('=== 公告条目核对（v1.05）===');
 console.log('\n【界面手感】');
 ck('底部按钮：直角 + 无顶部高光 + 手机底栏 30px', /#nav button \{[\s\S]{0,400}?border-radius: 0;/.test(CSS) && !/#nav button \{[\s\S]{0,400}?inset 0 1px 0 rgba\(255,255,255/.test(CSS) && /:root \{ --navh: 30px; \}/.test(CSS));
 ck('咔哒音效：清脆 clickTick + 独立音效总线', /function clickTick\(\)/.test(AUDIO) && /function toggleSfx\(\)/.test(AUDIO) && /if \(!ctx \|\| !sfxOn\) return;/.test(AUDIO));
-ck('设置面板：音乐/音效/环境音三开关 + 日志三档 + 皮肤包（真按钮，不是占位符）', /function settingsModal\(\)/.test(UI) && /btn\('music:on'/.test(UI) && /btn\('sfx:on'/.test(UI) && /btn\('amb:on'/.test(UI) && /btn\('log:always'/.test(UI) && /btn\('log:fade'/.test(UI) && /btn\('log:hidden'/.test(UI) && /btn\('skin:' \+ s\.id/.test(UI) && !/敬请期待/.test(UI));
+// 作者 2026-09-19：三个声音开关并成同一行（单按钮翻转）；皮肤包要花魂点解锁，所以是"切换/解锁"两种按钮
+ck('设置面板：音乐/音效/环境音三开关 + 日志三档 + 皮肤包（真按钮，不是占位符）',
+   /function settingsModal\(\)/.test(UI) && /tgl\('audio:music'/.test(UI) && /tgl\('audio:sfx'/.test(UI) && /tgl\('audio:amb'/.test(UI) &&
+   /btn\('log:always'/.test(UI) && /btn\('log:fade'/.test(UI) && /btn\('log:hidden'/.test(UI) &&
+   /btn\('skin:' \+ s\.id/.test(UI) && /data-askin=/.test(UI) && !/敬请期待/.test(UI));
 ck('主界面菜单化：只留设置按钮，图鉴/签到收进设置里（真能点开）',
    /id="btn-set"/.test(UI) && !/id="btn-codex"/.test(UI) && !/id="btn-sign"/.test(UI) &&
    /data-open="collection"/.test(UI) && /data-open="sign"/.test(UI) && /querySelectorAll\('\[data-open\]'\)/.test(UI));

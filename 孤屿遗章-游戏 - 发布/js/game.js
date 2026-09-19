@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    孤屿遗章 · 游戏引擎
    时间 / 生存 / 行动 / 战斗 / 建造 / 交易 / 事件 / 结局 / 存档
    ============================================================ */
@@ -2068,20 +2068,23 @@ function change() {
   function nodeDef(kind, id) { const t = treeDef(kind); return t ? (t.nodes || []).find(n => n.id === id) : null; }
   function nodeSpent(n, lv) { let s2 = 0; for (let i = 0; i < lv; i++) s2 += (n.cost[i] || 0); return s2; }
   // —— 数值钩子：采集 ——
-  function gxYieldMul() { return 1 + 0.10 * trunkPicks('gather','yield') + (nodeLv('gather','g_fine') ? 0.20 : 0) - (nodeLv('gather','g_rough') ? 0.10 : 0); }
-  function gxTimeMul() { return Math.max(0.40, 1 - 0.10 * trunkPicks('gather','speed')); }
+  // ⚠️ 主干每级的加成在 2026-09-19 统一从 10% 削到 7%（作者要求，采集/制造都削）：
+  //    主干 7 级满时是 +49%（原来是 +70%），专项节点数值没动。
+  const TRUNK_STEP = 0.07;
+  function gxYieldMul() { return 1 + TRUNK_STEP * trunkPicks('gather','yield') + (nodeLv('gather','g_fine') ? 0.20 : 0) - (nodeLv('gather','g_rough') ? 0.10 : 0); }
+  function gxTimeMul() { return Math.max(0.40, 1 - TRUNK_STEP * trunkPicks('gather','speed')); }
   function gxEnergyMul() {
     const rough = nodeLv('gather','g_rough');
-    return Math.max(0.25, 1 - 0.10 * trunkPicks('gather','stam') + (nodeLv('gather','g_fine') ? 0.15 : 0) - (rough === 1 ? 0.30 : rough >= 2 ? 0.40 : 0));
+    return Math.max(0.25, 1 - TRUNK_STEP * trunkPicks('gather','stam') + (nodeLv('gather','g_fine') ? 0.15 : 0) - (rough === 1 ? 0.30 : rough >= 2 ? 0.40 : 0));
   }
   function gxPineBonus() { return 0.07 * nodeLv('gather','g_nature'); }      // 美人松概率加成
   function gxWoodExtra() { return 0.5 * nodeLv('gather','g_wood'); }         // 每次砍树额外木材（攒够 1 份给）
   // —— 数值钩子：制造 ——
-  function cxTimeMul() { return Math.max(0.40, 1 - 0.10 * trunkPicks('craft','speed')); }
-  function cxRefundChance() { return 0.10 * trunkPicks('craft','refund'); }   // 制作返还材料
-  function cxExtraChance() { return 0.10 * trunkPicks('craft','extra'); }     // 制作多产 1 件
+  function cxTimeMul() { return Math.max(0.40, 1 - TRUNK_STEP * trunkPicks('craft','speed')); }
+  function cxRefundChance() { return TRUNK_STEP * trunkPicks('craft','refund'); }   // 制作返还材料
+  function cxExtraChance() { return TRUNK_STEP * trunkPicks('craft','extra'); }     // 制作多产 1 件
   function cxRepairFree() { return [0, 0.25, 0.50, 0.75][nodeLv('craft','c_patch')] || 0; }   // 修补匠：修补不消耗材料
-  function cxMatMul() { return (nodeLv('craft','c_line') ? 0.5 : 1) * (nodeLv('craft','c_finework') ? 1.3 : 1); }
+  // ⚠️ 材料倍率现在按配方算（「精工细作 +30%」只对有耐久的成品生效）→ 见 cxMatMulFor()
   function cxDurMul() { return (nodeLv('craft','c_line') ? 0.8 : 1) * (nodeLv('craft','c_finework') ? 1.3 : 1); }
   // —— 数值钩子：战斗主干（攻/防/暴击；武器组合技在 B2 批次）——
   function cxAtk() { return trunkPicks('combat','atk'); }
@@ -2097,7 +2100,9 @@ function change() {
   function vampRate() { return [0, 0.30, 0.40, 0.50, 0.60][nodeLv('combat','f_vamp')] || 0; }
   function execThreshold() { return [0, 0.20, 0.25, 0.30][nodeLv('combat','f_exec')] || 0; }
   function revengeBonus() { return [0, 0.20, 0.30, 0.40][nodeLv('combat','f_revenge')] || 0; }
-  function hasDualOneHand() { return meleeWeapons().length >= 2; }   // 双持两把单手武器才吃"嗜血狂刀"
+  // 「嗜血狂刀」只认**双持两把匕首**（作者 2026-09-19：以前任何双持单手都吃吸血，等于白送）
+  // dual:1 = 匕首类（石质匕首 / 铁匕首）
+  function hasDualDagger() { const w = meleeWeapons(); return w.length >= 2 && w.every(x => !!x.dual); }
   // B2b：盾墙 / 疾风连击 / 狂战 / 铁壁 / 弓术 / 枪械精通
   function wallBlockBonus() { return 0.15 * nodeLv('combat','f_shield'); }        // 盾墙：格挡率 +15/20/25%
   function wallDurMul() { return [1, 0.80, 0.65, 0.50][nodeLv('combat','f_shield')] || 1; }   // 盾耐久消耗
@@ -2181,6 +2186,34 @@ function change() {
     log(`【技能】你遗忘了「${n.name}」，返还 ${gain} 点${t.expName}。`, 'sys');
     save(); change();
     return { ok:true, gain };
+  }
+  // ---------- 主干遗忘（作者 2026-09-19）：想换流派时，主干也得能退 ----------
+  // 规矩和专项一样：只能从**最末端往外剥**（先退最后加的那一级），返还那一级的一半经验。
+  // 额外一条：主干这一级如果正撑着某个已学会的专项（专项的 need 门槛），得先把专项忘掉。
+  function trunkForgetInfo(kind) {
+    const t = treeDef(kind);
+    if (!t) return { ok:false, reason:'没有这棵技能树' };
+    treeState();
+    const lv = trunkLv(kind);
+    if (lv <= 0) return { ok:false, reason:'主干还没升过级' };
+    const blockers = (t.nodes || []).filter(n => nodeLv(kind, n.id) > 0 && (n.need || 0) >= lv);
+    if (blockers.length) {
+      return { ok:false, reason:`主干 ${lv} 级正撑着「${blockers.map(n => n.name).join('、')}」，先把它们忘掉再退主干` };
+    }
+    const cost = SKILL_TRUNK_COST[lv - 1] || 0;
+    const optId = (S.skillPicks[kind] || [])[lv - 1];
+    const opt = (t.trunk || []).find(o => o.id === optId) || {};
+    return { ok:true, lv, optId, optName: opt.name || optId || '主干', cost, gain: Math.floor(cost / 2) };
+  }
+  function skillTrunkForget(kind) {
+    const info = trunkForgetInfo(kind);
+    if (!info.ok) return info;
+    S.skillPicks[kind] = (S.skillPicks[kind] || []).slice(0, info.lv - 1);
+    S.skill[kind] = info.lv - 1;
+    S.exp[kind] = Math.round(((S.exp[kind] || 0) + info.gain) * 10) / 10;
+    log(`【技能】你遗忘了主干「${info.optName}」那一级，返还 ${info.gain} 点${treeDef(kind).expName}（主干 ${info.lv} → ${info.lv - 1}）。`, 'sys');
+    save(); change();
+    return { ok:true, gain: info.gain, lv: S.skill[kind] };
   }
   // UI 用的一份完整快照
   function skillTreeInfo() {
@@ -2335,7 +2368,7 @@ function change() {
           if (e.traits.includes('stoneGuard')) { dealt = Math.max(1, Math.round(dealt * 0.75)); const rc = Math.max(1, Math.round(dealt * 0.25)); S.stats.hp -= rc; roundLines.push(`石甲的符文把力道反噬回来（-${rc}）。`); if (S.stats.hp <= 0) S.stats.hp = 0; }
           e.ehp -= dealt; n++;
           roundLines.push(`${e.name}挨了一记横扫，受到 ${dealt} 点伤害。`);
-          if (vampRate() > 0 && hasDualOneHand()) { const heal = Math.max(1, Math.round(dealt * vampRate())); S.stats.hp = Math.min(hpMax(), S.stats.hp + heal); roundLines.push(`【嗜血狂刀】双刀饮血，回复 ${heal} 点生命。`); }
+          if (vampRate() > 0 && hasDualDagger()) { const heal = Math.max(1, Math.round(dealt * vampRate())); S.stats.hp = Math.min(hpMax(), S.stats.hp + heal); roundLines.push(`【嗜血狂刀】双刀饮血，回复 ${heal} 点生命。`); }
           if (e.ehp <= 0) { e.ehp = 0; roundLines.push(`${e.name}被击倒了！`); }
         }
         roundLines.unshift(n ? `你抡起武器横扫一圈，扫中 ${n} 个目标！` : '你横扫一圈，却谁也没扫中。');
@@ -2399,8 +2432,8 @@ function change() {
           const wTag = usedW ? `〔${wNameOf(usedW)}〕` : '';
           roundLines.push(`你${anyRanged ? '拉弓射箭' : act==='heavy'?'奋力重击':'攻击'}${tg.name}${wTag}，造成 ${dealt} 点伤害。`);
           if (!anyRanged && act !== 'throw') drainWeapon();
-          // 技能树「嗜血狂刀」：双持两把单手武器时，造成伤害的 30~60% 回血（触发写日志）
-          if (vampRate() > 0 && !anyRanged && hasDualOneHand()) {
+          // 技能树「嗜血狂刀」：双持两把**匕首**时，造成伤害的 30~60% 回血（触发写日志）
+          if (vampRate() > 0 && !anyRanged && hasDualDagger()) {
             const heal = Math.max(1, Math.round(dealt * vampRate()));
             S.stats.hp = Math.min(hpMax(), S.stats.hp + heal);
             roundLines.push(`【嗜血狂刀】双刀饮血，回复 ${heal} 点生命。`);
@@ -2879,8 +2912,18 @@ function change() {
   function lotusLeft() { return Math.max(0, LOTUS_LIMIT - (S.lotusMade || 0)); }
   // 配方实际材料表：技能树「流水线（-50% 材料）/ 精工细作（+30% 材料）」在这里生效。
   // 全项目凡是要"扣 / 查 / 数"材料的地方都走这个函数，别再去读 r.in。
+  // 「精工细作」的 +30% 材料只对**有耐久的成品**生效（作者 2026-09-19）：
+  //    以前连烤肉、药剂、木板这种压根没有耐久的东西也一起涨价，技能点了纯亏，玩家反馈"不合理"。
+  //    「流水线」的 -50% 材料照旧对所有配方生效 —— 那是折扣，不是代价，没有"白涨价"的问题。
+  function cxMatMulFor(r) {
+    const line = nodeLv('craft','c_line') ? 0.5 : 1;
+    const outKey = Object.keys((r && r.out) || {})[0];
+    const hasDur = !!(outKey && DURA[outKey] !== undefined);
+    const fine = (hasDur && nodeLv('craft','c_finework')) ? 1.3 : 1;
+    return line * fine;
+  }
   function craftIn(r) {
-    const mul = cxMatMul();
+    const mul = cxMatMulFor(r);
     if (!r || !r.in || mul === 1) return (r && r.in) || {};
     const o = {};
     for (const k in r.in) o[k] = Math.max(1, Math.round(r.in[k] * mul));
@@ -3109,7 +3152,9 @@ function change() {
     const outKeys = Object.keys(r.out);
     for (const k in r.out) addItem(k, r.out[k] * n + (k === outKeys[0] ? bonusN : 0));
     // 成品耐久：精工细作 +30% / 流水线 -20%（批量也一样生效）
-    if (cxDurMul() !== 1) {
+    // ⚠️ 必须"这批里真有带耐久的成品"才动手：否则点了精工细作去烤肉干，会白写一行
+    //    "这批成品的初始耐久按 130% 算"（东西压根没耐久，玩家看得莫名其妙）。
+    if (outKeys.some(k => DURA[k] !== undefined) && cxDurMul() !== 1) {
       for (const k of outKeys) {
         if (DURA[k] === undefined) continue;
         const nd = Math.max(1, Math.round(DURA[k] * cxDurMul()));
@@ -4221,7 +4266,8 @@ function change() {
 
   // ---------- 备份系统（3 备份槽 + 备份点；防刷魂点） ----------
   // ---------- 每日签到（账号级，每天一次：30 魂点 + 2 备份点） ----------
-  const SIGN_SOUL = 30, SIGN_BACKUP = 2;
+  // 作者 2026-09-19：每日签到奖励下调为 魂点 ×10 + 备份点 ×1
+  const SIGN_SOUL = 10, SIGN_BACKUP = 1;
   function todayKey() {
     const d = new Date(), p = (n) => String(n).padStart(2, '0');
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
@@ -4242,6 +4288,24 @@ function change() {
     return { ok:true, soul: SIGN_SOUL, backup: SIGN_BACKUP, total: m.soul, bp: m.backupPoints };
   }
   function backupPoints() { const m = metaState(); return m.backupPoints === undefined ? 3 : m.backupPoints; }
+  // ---------- 皮肤包解锁（作者 2026-09-19）：深海琥珀 / 彩绘卡面各 50 魂点，账号级永久 ----------
+  const SKIN_COST = 50;
+  function skinCost() { return SKIN_COST; }
+  function skinOwned(id) {
+    if (id === 'ink') return true;                 // 墨白原味永远免费
+    const m = metaState();
+    return !!(m.skins && m.skins[id]);
+  }
+  function unlockSkin(id) {
+    if (!id || id === 'ink' || skinOwned(id)) return { ok:true, already:true, cost:0 };
+    const m = metaState();
+    if ((m.soul || 0) < SKIN_COST) return { ok:false, reason:`魂点不足（需要 ${SKIN_COST}，现有 ${m.soul || 0}）` };
+    m.soul -= SKIN_COST;
+    m.skins = m.skins || {};
+    m.skins[id] = 1;
+    metaSave();
+    return { ok:true, cost:SKIN_COST, soul:m.soul };
+  }
   function slotList() { const m = metaState(); return (m.slots || [null, null, null]).map(s => s ? { day: s.day, settled: !!s.settled } : null); }
   function delSlot(i) {
     if (i < 0 || i > 2) return { ok:false, reason:'无效备份槽' };
@@ -4337,6 +4401,8 @@ function change() {
     checkEndingActions, doEnding, settleEnding, collection, currentObjective, metaState, metaBuy, metaBonus, metaSettle, metaNum, metaLast, reviveToday, redeemCode, mailboxList, claimMailbox, mailboxCount, devEnabled, unlockDev, hasRelic, hpMax, gainRandomRelic, durOf, sleepQuality, unlockRelicSlot, equipRelic, unequipRelic, relicSlotCost, atlVendorInfo, buyRelicFromVendor, lotusLeft, backupPoints, slotList, buyBackupPoint, backupSlot, loadSlot, delSlot, exportCode, importCode, metaReload, raidDay, acceptCommission, sharpen, repairWeapon, nameWeapon, repairMatOf, wNameOf, craftMax, craftBatch, repairPistol, fixBrokenPistol, travelCost, equipTool, unequipTool, capUsed, unequip, newGame, achCheck, achClaim, achUnlocked, achState,
     // 技能树（B1）
     skillTreeInfo, skillUpTrunk, skillNodeLearn, skillNodeForget, nodeLv, trunkPicks, trunkLv, nodeCheck, nodeIsLeaf, nodeForgetGain, craftIn,
+    trunkForgetInfo, skillTrunkForget,          // 主干遗忘（只能从末端退，返还一半）
+    skinCost, skinOwned, unlockSkin,            // 皮肤包解锁（深海琥珀 / 彩绘卡面 各 50 魂点）
     scanLocalSaves, restoreLocalSave, rescueInfo,   // 存档救援：扫描本机痕迹 / 恢复某一份
     confirmSettleEnding,   // 结算前二次确认（一局只能结算一个结局，所以要单独再问一次）
     skillCritRate: cxCrit, gatherYieldMul: gxYieldMul, gatherTimeMul: gxTimeMul, gatherEnergyMul: gxEnergyMul,

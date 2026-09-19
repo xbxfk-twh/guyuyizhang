@@ -1300,9 +1300,9 @@ const SKILL_TREES = {
   gather: {
     name: '采集', glyph: '⛏', expName: '采集经验',
     trunk: [
-      { id:'yield', name:'熟手', icon:'g_yield', desc:'采集 / 捕捞产出 +10%' },
-      { id:'speed', name:'迅捷', icon:'g_speed', desc:'采集 / 钓鱼 / 砍伐耗时 -10%' },
-      { id:'stam',  name:'耐劳', icon:'g_stam',  desc:'采集体力消耗 -10%' },
+      { id:'yield', name:'熟手', icon:'g_yield', desc:'采集 / 捕捞产出 +7%' },
+      { id:'speed', name:'迅捷', icon:'g_speed', desc:'采集 / 钓鱼 / 砍伐耗时 -7%' },
+      { id:'stam',  name:'耐劳', icon:'g_stam',  desc:'采集体力消耗 -7%' },
     ],
     nodes: [
       { id:'g_wood',   name:'伐木专精', icon:'g_wood', need:2, side:'r', max:2, cost:[30,70], mutex:'g_nature',
@@ -1318,9 +1318,9 @@ const SKILL_TREES = {
   craft: {
     name: '制造', glyph: '🔨', expName: '制造经验',
     trunk: [
-      { id:'speed',  name:'熟手', icon:'c_speed',  desc:'制造耗时 -10%' },
-      { id:'refund', name:'精算', icon:'c_refund', desc:'每次制作 10% 概率返还材料' },
-      { id:'extra',  name:'巧手', icon:'c_extra',  desc:'每次制作 10% 概率多产 1 件' },
+      { id:'speed',  name:'熟手', icon:'c_speed',  desc:'制造耗时 -7%' },
+      { id:'refund', name:'精算', icon:'c_refund', desc:'每次制作 7% 概率返还材料' },
+      { id:'extra',  name:'巧手', icon:'c_extra',  desc:'每次制作 7% 概率多产 1 件' },
     ],
     nodes: [
       { id:'c_patch',  name:'修补匠', icon:'c_patch', need:3, side:'r', max:3, cost:[30,70,130],
@@ -1328,7 +1328,7 @@ const SKILL_TREES = {
       { id:'c_line',   name:'流水线', icon:'c_line', need:4, side:'r', max:1, cost:[60], mutex:'c_finework',
         desc:['耗材料 -50%，但成品耐久 -20%'] },
       { id:'c_finework', name:'精工细作', icon:'c_finework', need:4, side:'l', max:1, cost:[60], mutex:'c_line',
-        desc:['成品耐久 +30%，但耗材料 +30%'] },
+        desc:['成品耐久 +30%，耗材料 +30%（只对武器/工具/防具这类有耐久的东西生效）'] },
     ],
   },
   combat: {
@@ -1347,8 +1347,8 @@ const SKILL_TREES = {
       { id:'f_exec', name:'处决', icon:'k_exec', need:3, needNode:'f_sweep', side:'r', max:3, cost:[30,70,130],
         desc:['敌人生命 <20% 时，你的伤害 +50%','敌人生命 <25% 时，你的伤害 +50%','敌人生命 <30% 时，你的伤害 +50%'] },
       { id:'f_vamp', name:'嗜血狂刀', icon:'k_vamp', need:3, side:'l', max:4, cost:[30,70,130,190], mutex:'f_sweep',
-        req:'双持两把单手',
-        desc:['造成伤害的 30% 回血（需双持两把单手）','造成伤害的 40% 回血','造成伤害的 50% 回血','造成伤害的 60% 回血'] },
+        req:'双持两把匕首',
+        desc:['造成伤害的 30% 回血（需双持两把匕首）','造成伤害的 40% 回血','造成伤害的 50% 回血','造成伤害的 60% 回血'] },
       { id:'f_revenge', name:'复仇', icon:'k_revenge', need:3, needNode:'f_vamp', side:'l', max:3, cost:[30,70,130],
         desc:['每被打一次，下一次攻击 +20%','下一次攻击 +30%','下一次攻击 +40%'] },
       { id:'f_shield', name:'盾墙', icon:'k_shield', need:4, side:'l', max:3, cost:[30,70,130], mutex:'f_swift',

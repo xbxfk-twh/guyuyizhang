@@ -1058,7 +1058,22 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
   const AUDIO = fs.readFileSync(ROOT + '/js/audio.js', 'utf8');
   // 设置面板
   ck('菜单里有「设置」入口', /data-savemenu="settings"/.test(UI) && /kind === 'settings'/.test(UI) && /function settingsModal\(\)/.test(UI));
-  ck('设置里有音乐 / 音效 / 环境音三个独立开关', /btn\('music:on'/.test(UI) && /btn\('sfx:on'/.test(UI) && /btn\('amb:on'/.test(UI) && /AudioFX\.toggleSfx\(\)/.test(UI));
+  // 作者 2026-09-19：三个声音开关并成同一行的单按钮开关
+  ck('设置里音乐 / 音效 / 环境音三个开关（同一行，单按钮翻转）',
+     /tgl\('audio:music'/.test(UI) && /tgl\('audio:sfx'/.test(UI) && /tgl\('audio:amb'/.test(UI) &&
+     /AudioFX\.toggleSfx\(\)/.test(UI) && /set-inline/.test(UI) &&
+     /set-inline/.test(fs.readFileSync(ROOT + '/css/style.css', 'utf8')));
+  ck('日志栏显示方式与大小合并到同一行',
+     /<b>日志栏<\/b>[\s\S]{0,400}btn\('log:always'[\s\S]{0,400}btn\('logw:narrow'/.test(UI) &&
+     /set-lbl/.test(UI));
+  ck('设置里能关掉「当前目标」提示（本机偏好，存 localStorage）',
+     /data-set="obj:on"/.test(UI) && /data-set="obj:off"/.test(UI) && /guyuyizhang_obj/.test(UI) &&
+     /st\.scene !== 'camp' \|\| !showObjective/.test(UI));
+  ck('皮肤包要花魂点解锁：深海琥珀 / 彩绘卡面 各 50 魂点',
+     /data-askin=/.test(UI) && /function unlockSkin\(id\)/.test(_GAME_SRC) && /const SKIN_COST = 50;/.test(_GAME_SRC) &&
+     /skinOwned\(s\.id\)/.test(UI));
+  ck('云存档说明改成一句话（已同步 + 最近时间），版本号只留小字',
+     /已同步 · 最近 \$\{t\}/.test(UI) && /help-sub">版本 \$\{ver\}/.test(UI) && !/存档同时留在本地 \+ cookie \+ 云端/.test(UI));
   ck('音效是独立总线（不再跟着音乐开关一起哑）',
      /function toggleSfx\(\)/.test(AUDIO) && /sfxBus = ctx\.createGain\(\)/.test(AUDIO) && /if \(!ctx \|\| !sfxOn\) return;\s*\/\/ 音效跟着/.test(AUDIO));
   // 皮肤包：默认纯黑白木刻，另一套是"深海琥珀"上色皮肤（换肤靠覆盖 CSS 变量，不改布局）
@@ -1081,7 +1096,7 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
      /\.furn\.built \.mini-btn \{ color: var\(--ink\); \}/.test(CSS));
   // 营地面板不再重复放声音开关（设置里已有）
   ck('营地面板不再重复放声音开关',
-     !/data-audm/.test(UI) && !/data-auda/.test(UI) && /btn\('music:on'/.test(UI));
+     !/data-audm/.test(UI) && !/data-auda/.test(UI) && /tgl\('audio:music'/.test(UI));
   // 石板改回"纯任务道具"：只能捡，不能买也不能卖（防止玩家卖掉山顶捡到的石板卡死解谜）
   ck('石板不可买卖（只能靠捡）',
      LAOCHAO.buy.every(e => e.id !== 'slate') &&
@@ -3504,9 +3519,10 @@ section('11. 玩家反馈（蛛巢白扣体力 / 救了四个小满 / 双持不�
     const r1 = G.dailySign();
     const s2 = G.dailySignState();
     const r2 = G.dailySign();
-    ck('每日签到：首次可领，奖励 30 魂点 + 2 备份点',
-       s1.canSign && r1.ok && r1.soul === 30 && r1.backup === 2, JSON.stringify(r1));
-    ck('每日签到：备份点真的到账', G.backupPoints() === bpBefore + 2, bpBefore + ' → ' + G.backupPoints());
+    // 作者 2026-09-19：签到奖励下调为 魂点 ×10 + 备份点 ×1
+    ck('每日签到：首次可领，奖励 10 魂点 + 1 备份点',
+       s1.canSign && r1.ok && r1.soul === 10 && r1.backup === 1, JSON.stringify(r1));
+    ck('每日签到：备份点真的到账', G.backupPoints() === bpBefore + 1, bpBefore + ' → ' + G.backupPoints());
     ck('每日签到：同一天不能重复领', !s2.canSign && !r2.ok, r2.reason || '');
     // 跨天可再领（把 lastSign 改成昨天）
     const mm = G.metaState(); mm.lastSign = '2000-01-01'; G.metaReload && 0;
@@ -3576,11 +3592,12 @@ section('9. 技能树（B1：框架 + 主干三选一 + 遗忘 + 采集/制造�
      SKILL_TREES.combat.trunk.map(o => o.id).join(',') === 'atk,def,crit' &&
      /攻击 \+1/.test(SKILL_TREES.combat.trunk[0].desc) && /防御 \+0\.5/.test(SKILL_TREES.combat.trunk[1].desc) &&
      /暴击率/.test(SKILL_TREES.combat.trunk[2].desc));
-  ck('采集主干是「产出 +10% / 耗时 -10% / 体力 -10%」',
+  // 作者 2026-09-19：采集/制造主干每级 10% → 7%（战斗主干数值不变）
+  ck('采集主干是「产出 +7% / 耗时 -7% / 体力 -7%」',
      SKILL_TREES.gather.trunk.map(o => o.id).join(',') === 'yield,speed,stam' &&
-     /\+10%/.test(SKILL_TREES.gather.trunk[0].desc) && /10%/.test(SKILL_TREES.gather.trunk[1].desc) && /10%/.test(SKILL_TREES.gather.trunk[2].desc));
-  ck('制造主干是「耗时 -10% / 10% 返还材料 / 10% 多产 1 件」',
-     /耗时 -10%/.test(SKILL_TREES.craft.trunk[0].desc) && /10% 概率返还材料/.test(SKILL_TREES.craft.trunk[1].desc) && /10% 概率多产 1 件/.test(SKILL_TREES.craft.trunk[2].desc));
+     /\+7%/.test(SKILL_TREES.gather.trunk[0].desc) && /7%/.test(SKILL_TREES.gather.trunk[1].desc) && /7%/.test(SKILL_TREES.gather.trunk[2].desc));
+  ck('制造主干是「耗时 -7% / 7% 返还材料 / 7% 多产 1 件」',
+     /耗时 -7%/.test(SKILL_TREES.craft.trunk[0].desc) && /7% 概率返还材料/.test(SKILL_TREES.craft.trunk[1].desc) && /7% 概率多产 1 件/.test(SKILL_TREES.craft.trunk[2].desc));
   {
     const miss = [];
     for (const k of kinds) for (const n of SKILL_TREES[k].nodes) {
@@ -3606,8 +3623,8 @@ section('9. 技能树（B1：框架 + 主干三选一 + 遗忘 + 采集/制造�
     ck('新局主干从 0 级、没有任何选择', s.skill.gather === 0 && G.trunkPicks('gather') === 0);
     const r1 = G.skillUpTrunk('gather', 'yield'), r2 = G.skillUpTrunk('gather', 'yield'), r3 = G.skillUpTrunk('gather', 'stam');
     ck('升三级按 12+28+50 扣经验', r1.ok && r2.ok && r3.ok && s.exp.gather === 0, '剩 ' + s.exp.gather);
-    ck('同一个方向可以重复选（产出 +20%）', G.gatherYieldMul() === 1.2, G.gatherYieldMul());
-    ck('选的不是同一个方向就各自生效（体力 -10%）', Math.round(G.gatherEnergyMul() * 100) / 100 === 0.9, G.gatherEnergyMul());
+    ck('同一个方向可以重复选（产出 7% ×2 = +14%）', Math.round(G.gatherYieldMul() * 100) / 100 === 1.14, G.gatherYieldMul());
+    ck('选的不是同一个方向就各自生效（体力 -7%）', Math.round(G.gatherEnergyMul() * 100) / 100 === 0.93, G.gatherEnergyMul());
     ck('经验不够时升不动', G.skillUpTrunk('gather', 'yield').ok === false && s.skill.gather === 3);
   }
   // ---- 分支：门槛 / 互斥 / 学习 / 遗忘 ----
@@ -3645,9 +3662,9 @@ section('9. 技能树（B1：框架 + 主干三选一 + 遗忘 + 采集/制造�
       return Math.abs(d3 - (G.playerDef() + 1.5)) < 1e-6; })());
     ck('战斗主干：选 2 次暴击 = 10% → 20%', (() => { s.skill.combat = 2; s.skillPicks.combat = ['crit','crit']; return Math.abs(G.skillCritRate() - 0.20) < 1e-6; })());
     s.skill.combat = 0; s.skillPicks.combat = [];
-    ck('精细采集：产出 +20%、体力 +15%',
+    ck('精细采集：产出 +20%、体力 +15%（主干 7%×4 叠加后 = 1.48 / 1.15）',
        (() => { s.skill.gather = 4; s.skillPicks.gather = ['yield','yield','yield','yield']; G.skillNodeLearn('gather','g_fine');
-         return Math.round(G.gatherYieldMul() * 100) / 100 === 1.6 && Math.round(G.gatherEnergyMul() * 100) / 100 === 1.15; })());
+         return Math.round(G.gatherYieldMul() * 100) / 100 === 1.48 && Math.round(G.gatherEnergyMul() * 100) / 100 === 1.15; })());
     ck('★ 流水线：材料 -50%（全项目都走 craftIn）',
        (() => { s.skill.craft = 4; s.skillPicks.craft = ['speed','speed','refund','extra']; G.skillNodeLearn('craft','c_line');
          const c = G.craftIn({ in:{ plank:10, nail:4 } }); return c.plank === 5 && c.nail === 2; })());
@@ -3658,6 +3675,74 @@ section('9. 技能树（B1：框架 + 主干三选一 + 遗忘 + 采集/制造�
   // ---- 界面接线 ----
   ck('技能面板给出「展开技能树」入口，并接到 skilltree 弹窗',
      /data-skilltree="\$\{k\}"/.test(UI) && /kind === 'skilltree'/.test(UI) && /function skillTreeModal\(kind\)/.test(UI));
+  // 主干遗忘（作者 2026-09-19）：想换流派时主干也得能退，规矩和专项一样——只从末端退、返还一半
+  {
+    G.newGame('fisher', 'normal');
+    const st = G.S(); st.tut = null; st.exp.gather = 9999; st.exp.craft = 9999;
+    G.skillUpTrunk('gather', 'yield'); G.skillUpTrunk('gather', 'speed');
+    ck('主干加了两级：Lv2，产出/耗时各 1 次',
+       G.trunkLv('gather') === 2 && G.S().skillPicks.gather.join(',') === 'yield,speed',
+       'Lv' + G.trunkLv('gather') + ' picks=' + G.S().skillPicks.gather.join(','));
+    const ti = G.trunkForgetInfo('gather');
+    ck('★ 主干只能从最末端退：给出的是最后那级（迅捷）和一半经验',
+       ti.ok && ti.lv === 2 && ti.optName === '迅捷' && ti.gain === Math.floor(SKILL_TRUNK_COST[1] / 2),
+       JSON.stringify(ti));
+    const rf = G.skillTrunkForget('gather');
+    ck('★ 退主干成功：等级 -1、那次的选项也撤掉、经验返还一半',
+       rf.ok && G.trunkLv('gather') === 1 && G.S().skillPicks.gather.join(',') === 'yield' && rf.gain === ti.gain,
+       'Lv' + G.trunkLv('gather') + ' picks=' + G.S().skillPicks.gather.join(',') + ' 返还=' + rf.gain);
+    ck('★ 退掉的那级效果真的没了（耗时倍率回到 1）', Math.round(G.gatherTimeMul() * 100) / 100 === 1, G.gatherTimeMul());
+    // 被专项撑着的主干不能退：石斧需要主干 2 —— 先把专项学到手，再试着退主干
+    G.skillUpTrunk('gather', 'yield');
+    st.exp.gather = 9999; G.skillUpTrunk('gather', 'yield');   // 回到 Lv3
+    st.exp.gather = 9999; G.skillNodeLearn('gather', 'g_wood');  // 伐木专精需要主干 2
+    G.skillTrunkForget('gather'); G.skillTrunkForget('gather');  // 退到 Lv1
+    const blocked = G.trunkForgetInfo('gather');
+    ck('★ 主干正被专项撑着时不许退（先忘专项）',
+       G.trunkLv('gather') === 2 && blocked.ok === false && /正撑着/.test(blocked.reason), blocked.reason || JSON.stringify(blocked));
+    ck('主干遗忘的按钮接进了技能树界面',
+       /data-trunkforget="\$\{kind\}"/.test(UI) && /Game\.skillTrunkForget\(k\)/.test(UI));
+  }
+  // 嗜血狂刀：只对匕首（作者 2026-09-19）
+  {
+    ck('嗜血狂刀的要求写成"双持两把匕首"（技能树文案 + 实现）',
+       (() => { const n = SKILL_TREES.combat.nodes.find(x => x.id === 'f_vamp');
+         return n.req === '双持两把匕首' && /双持两把匕首/.test(n.desc[0]) && /function hasDualDagger\(\)/.test(_GAME_SRC); })(),
+       (SKILL_TREES.combat.nodes.find(x => x.id === 'f_vamp') || {}).req);
+    ck('匕首判定用的是 dual 标记（石质匕首 / 铁匕首）',
+       /w\.every\(x => !!x\.dual\)/.test(_GAME_SRC) && ITEMS.knifeStone.dual === 1 && ITEMS.ironDagger.dual === 1);
+    ck('实测：双匕首能吸血、双剑/剑+匕首不吸',
+       (() => {
+         const mk = (a, b) => { G.newGame('fisher', 'normal'); const s = G.S(); s.inv = {}; s.tut = null;
+           ['knifeStone','ironDagger','ironSword','steelSword'].forEach(id => G.addItem(id, 1, true));
+           s.equipment.weapon = a; s.equipment.weapon2 = b;
+           s.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
+           s.skill.combat = 3; s.skillPicks.combat = ['atk','atk','atk']; s.tree.combat.f_vamp = 1;
+           s.stats.hp = 50; return s; };
+         const vampOn = (a, b) => { const s = mk(a, b); s.stats.hp = 50; G.startFight({ id:'dummy', name:'木桩', hp:9999, atk:0, def:0, spd:1, traits:[], drops:[] }, true);
+           s.combat.enemies[0].ehp = 9999; s.combat.enemies[0].def = 0;
+           const r0 = Math.random; Math.random = () => 0.1;
+           const before = s.stats.hp; G.fightAction('attack'); Math.random = r0;
+           const heal = s.stats.hp - before; return heal > 0; };
+         const both = vampOn('knifeStone', 'ironDagger');
+         const swordDagger = vampOn('ironSword', 'ironDagger');
+         const swords = vampOn('ironSword', 'steelSword');
+         return both === true && swordDagger === false && swords === false;
+       })());
+  }
+  // 皮肤包解锁（深海琥珀 / 彩绘卡面 各 50 魂点）
+  {
+    const m = G.metaState();
+    m.soul = 0; delete m.skins;
+    ck('皮肤解锁：魂点不够时拒绝并说明差多少', (() => { const r = G.unlockSkin('accent'); return r.ok === false && /魂点不足/.test(r.reason); })());
+    m.soul = 120;
+    const r1 = G.unlockSkin('accent');
+    ck('★ 花 50 魂点解锁「深海琥珀」', r1.ok && r1.cost === 50 && G.metaState().soul === 70 && G.skinOwned('accent'), JSON.stringify(r1));
+    ck('墨白原味永远免费，重复解锁不扣钱',
+       G.skinOwned('ink') === true && G.unlockSkin('accent').already === true && G.metaState().soul === 70);
+    const r2 = G.unlockSkin('card');
+    ck('★ 花 50 魂点解锁「彩绘卡面」', r2.ok && G.metaState().soul === 20 && G.skinOwned('card'), '剩 ' + G.metaState().soul);
+  }
   ck('主干升级 / 学习 / 遗忘三个按钮都接到 Game 接口',
      /data-trunkup="\$\{kind\}:\$\{o\.id\}"/.test(UI) && /Game\.skillUpTrunk\(k, o\)/.test(UI) &&
      /data-nodelearn="\$\{kind\}:\$\{n\.id\}"/.test(UI) && /Game\.skillNodeLearn\(k, id\)/.test(UI) &&
@@ -3811,13 +3896,30 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
   // ① 制造界面必须显示"实际要扣的材料"（受技能树加成影响），否则会出现"显示要 2、实际扣 3"
   ck('★ 制造列表显示的是实际材料（含流水线/精工细作加成），不再显示配方原价',
      /Object\.entries\(Game\.craftIn\(r\)\)\.map/.test(UI) && !/Object\.entries\(r\.in\)\.map\(\(\[k,v\]\)/.test(UI));
-  ck('★ 精工细作会把材料算进去（烧木炭 2 → 3）',
+  // 作者 2026-09-19：「精工细作 +30% 材料」**只对有耐久的成品生效**（以前连烧木炭这种没耐久的也涨价）
+  ck('★ 精工细作：有耐久的成品才加材料（木盾 木板3→4、绳2→3）',
+     (() => { G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
+       s.exp.craft = 9999; s.skill.craft = 4; s.skillPicks.craft = ['speed','speed','speed','speed'];
+       const r = RECIPES.find(x => x.id === 'r_woodshield');
+       G.skillNodeLearn('craft', 'c_finework');
+       const c = G.craftIn(r);
+       return c.plank === 4 && c.rope === 3; })());
+  ck('★ 精工细作：没有耐久的成品不加材料（烧木炭 木2 → 还是 2）',
      (() => { G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
        s.exp.craft = 9999; s.skill.craft = 4; s.skillPicks.craft = ['speed','speed','speed','speed'];
        const r = RECIPES.find(x => x.id === 'r_charcoal');
        G.skillNodeLearn('craft', 'c_finework');
        const c = G.craftIn(r);
-       return c.wood === 3; })());
+       return c.wood === 2; })());
+  ck('★ 精工细作 + 流水线：无耐久的只吃 -50%，有耐久的按 0.5×1.3=0.65 算',
+     (() => { G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
+       s.exp.craft = 9999; s.skill.craft = 4; s.skillPicks.craft = ['speed','speed','speed','speed'];
+       s.tree.craft.c_finework = 1; s.tree.craft.c_line = 1;
+       const rc = RECIPES.find(x => x.id === 'r_charcoal');
+       const ra = RECIPES.find(x => x.id === 'r_woodshield');
+       const woodOK = G.craftIn(rc).wood === 1;                 // 木炭：只吃流水线的 -50%
+       const shield = G.craftIn(ra);                             // 木盾：0.65 → 木板 3→2、绳 2→1
+       return woodOK && shield.plank === 2 && shield.rope === 1; })());
   // ② 【精算】退款必须真的把材料加回去
   {
     G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
@@ -4029,8 +4131,8 @@ section('9e. 三层存档（本地 + cookie + TapTap 云存档 v4）');
   ck('启动时会初始化云存档（浏览器里自动跳过）', /metaLoad\(\);\s*cloudInit\(\);/.test(_GAME_SRC));
   ck('设置面板有云存档说明行，支持时还能手动上传',
      /<b>云存档<\/b>/.test(UI) && /data-cloudpush/.test(UI) && /Game\.cloudPush\(true\)/.test(UI));
-  ck('★ 云存档自检：面板里显示当前版本 + 没 tap 时写明原因 + 有「重新检测」',
-     /当前版本 <b>\$\{ver\}<\/b>/.test(UI) && /没检测到 TapTap 容器/.test(UI) &&
+  ck('★ 云存档自检：面板里写明"未启用"的原因 + 留一行小字版本号 + 有「重新检测」',
+     /不在 TapTap 小游戏里跑/.test(UI) && /help-sub">版本 \$\{ver\}/.test(UI) &&
      /data-cloudretry/.test(UI) && /Game\.cloudInit\(\)/.test(UI) &&
      /cloud\.diag = 'no-tap';/.test(_GAME_SRC) && /cloud\.diag = 'ok';/.test(_GAME_SRC));
 }

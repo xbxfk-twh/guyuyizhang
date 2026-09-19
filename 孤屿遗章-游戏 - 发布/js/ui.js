@@ -194,6 +194,13 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   const LOG_WIDTHS = { narrow: 190, mid: 250, wide: 330 };
   let logSize = (() => { try { const v = localStorage.getItem('guyuyizhang_logw'); return LOG_WIDTHS[v] ? v : 'mid'; } catch (e) { return 'mid'; } })();
   let logCollapsed = (() => { try { return localStorage.getItem('guyuyizhang_logcollapse') === '1'; } catch (e) { return false; } })();
+  // 营地里的「当前目标」提示：作者 2026-09-19 加开关（本机偏好，存 localStorage）
+  let showObjective = (() => { try { return localStorage.getItem('guyuyizhang_obj') !== '0'; } catch (e) { return true; } })();
+  function setShowObjective(on) {
+    showObjective = !!on;
+    try { localStorage.setItem('guyuyizhang_obj', showObjective ? '1' : '0'); } catch (e) {}
+    renderObjective();
+  }
   function logWidthFor(w) {
     const base = LOG_WIDTHS[logSize] || 250;
     return Math.round(Math.min(w * 0.5, Math.max(150, Math.min(380, base * (w < 700 ? 0.8 : 1)))));
@@ -236,7 +243,8 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     const o = $('#objective');
     if (!o) return;
     const st = S();
-    if (!st || st.scene !== 'camp') { o.innerHTML = ''; return; }   // 只在营地显示当前目标
+    // 只在营地显示当前目标；设置里可以整个关掉（作者 2026-09-19）
+    if (!st || st.scene !== 'camp' || !showObjective) { o.innerHTML = ''; return; }
     const obj = Game.currentObjective();
     o.innerHTML = obj ? `<span class="obj-mark">◈</span> 当前目标：${esc(obj)}` : '';
   }
@@ -1485,9 +1493,12 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     }
     return `<div class="modal-title">${t.glyph} ${t.name}技能树 <span style="font-size:11px">主干 ${t.lv}/${t.max} · ${t.expName} <b>${t.exp}</b>${maxed ? ' · 已满级' : ` · 下一级 ${t.cost}`}</span></div>
       <div class="st-tree">${rows}</div>
-      <div class="hint">主干每升一级从三个方向里选一个（同一个可以重复选，效果叠加）；专项挂在对应等级的两侧，互斥的一对分居左右（中间红虚线）。<b>只能遗忘最末端的技能</b>，返还一半经验。<br>
+      <div class="hint">主干每升一级从三个方向里选一个（同一个可以重复选，效果叠加）；专项挂在对应等级的两侧，互斥的一对分居左右（中间红虚线）。<b>遗忘只能从最末端往外剥</b>（专项和主干都一样），返还一半经验——想换流派就一层层退回去。<br>
       经验不够就去采集 / 钓鱼 / 砍树 / 打怪攒（每次 +1，打赢精英 +3、首领 +10），或者靠《历代遗章》里的「采集/制造/战斗心得」每局开局送经验。</div>
-      <div class="modal-actions"><button id="st-back">返 回</button><button id="modal-close">关 闭</button></div>`;
+      <div class="modal-actions">${(() => {
+        const ti = Game.trunkForgetInfo(kind);
+        return ti.ok ? `<button class="mini-btn" data-trunkforget="${kind}">遗忘主干「${ti.optName}」第 ${ti.lv} 级 · 返还 ${ti.gain}</button>` : '';
+      })()}<button id="st-back">返 回</button><button id="modal-close">关 闭</button></div>`;
   }
   // 商店清单统一入口：批量弹窗和"确定"结算都用它，避免两处各写一份导致货架对不上
   function shopBuyList(key) {
@@ -2280,34 +2291,32 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   }
   function settingsModal() {
     const btn = (v, label, on) => `<button class="mini-btn ${on ? 'active' : ''}" data-set="${v}">${label}</button>`;
+    const tgl = (v, label, on) => `<button class="mini-btn ${on ? 'active' : ''}" data-set="${v}">${label} ${on ? '开' : '关'}</button>`;
     return `<div class="modal-title">设 置</div>
       <div class="help-list">
-        <div class="help-item"><b>音乐</b><span>场景配乐与氛围（关掉后音效照常响）</span>
-          <div class="modal-actions">${btn('music:on', '开', AudioFX.enabledState())}${btn('music:off', '关', !AudioFX.enabledState())}</div></div>
-        <div class="help-item"><b>音效</b><span>点击咔哒、采集、战斗提示音</span>
-          <div class="modal-actions">${btn('sfx:on', '开', AudioFX.sfxState())}${btn('sfx:off', '关', !AudioFX.sfxState())}</div></div>
-        <div class="help-item"><b>环境音</b><span>海浪 / 风 / 鸟虫 / 雨声</span>
-          <div class="modal-actions">${btn('amb:on', '开', AudioFX.ambientState())}${btn('amb:off', '关', !AudioFX.ambientState())}</div></div>
-        <div class="help-item"><b>日志栏</b><span>左侧那栏日志怎么显示</span>
-          <div class="modal-actions">${btn('log:always', '常驻', logMode === 'always')}${btn('log:fade', '3 秒后淡出', logMode === 'fade')}${btn('log:hidden', '隐藏', logMode === 'hidden')}</div></div>
-        <div class="help-item"><b>日志栏大小</b><span>窄一点能多看画面，宽一点看得清文字</span>
-          <div class="modal-actions">${btn('logw:narrow', '窄', logSize === 'narrow')}${btn('logw:mid', '中', logSize === 'mid')}${btn('logw:wide', '宽', logSize === 'wide')}</div></div>
+        <div class="help-item"><b>声音</b><span>音乐（配乐与氛围）/ 音效（咔哒、采集、战斗）/ 环境音（海浪、风、鸟虫、雨）</span>
+          <div class="set-inline">${tgl('audio:music', '音乐', AudioFX.enabledState())}${tgl('audio:sfx', '音效', AudioFX.sfxState())}${tgl('audio:amb', '环境音', AudioFX.ambientState())}</div></div>
+        <div class="help-item"><b>日志栏</b><span>怎么显示 / 多宽（窄一点能多看画面，宽一点看得清文字）</span>
+          <div class="set-inline">
+            <span class="set-lbl">显示</span>${btn('log:always', '常驻', logMode === 'always')}${btn('log:fade', '淡出', logMode === 'fade')}${btn('log:hidden', '隐藏', logMode === 'hidden')}
+            <span class="set-lbl">宽度</span>${btn('logw:narrow', '窄', logSize === 'narrow')}${btn('logw:mid', '中', logSize === 'mid')}${btn('logw:wide', '宽', logSize === 'wide')}
+          </div></div>
+        <div class="help-item"><b>当前目标</b><span>营地顶部那行「当前目标：…」提示；嫌它占地方可以关掉</span>
+          <div class="set-inline"><button class="mini-btn ${showObjective ? 'active' : ''}" data-set="obj:on">显示</button><button class="mini-btn ${!showObjective ? 'active' : ''}" data-set="obj:off">关闭</button></div></div>
         <div class="help-item"><b>皮肤包</b><span>当前：<b>${skinName()}</b>${skin === 'ink' ? ' · 纯黑白木刻' : ' · 深海navy + 琥珀金'}</span>
-          <div class="modal-actions">${SKINS.map(s => btn('skin:' + s.id, s.name, skin === s.id)).join('')}</div></div>
-        <div class="help-item"><b>图鉴 · 每日签到</b><span>图鉴是账号级的，不开局也能翻；签到每天可领 魂点 ×30 + 备份点 ×2。</span>
+          <div class="set-inline">${SKINS.map(s => Game.skinOwned(s.id)
+            ? btn('skin:' + s.id, s.name, skin === s.id)
+            : `<button class="mini-btn" data-askin="${s.id}">🔒 ${s.name} · ${Game.skinCost()} 魂点</button>`).join('')}</div></div>
+        <div class="help-item"><b>图鉴 · 每日签到</b><span>图鉴是账号级的，不开局也能翻；签到每天可领 魂点 ×${Game.dailySignState().soul} + 备份点 ×${Game.dailySignState().backup}。</span>
           <div class="modal-actions"><button class="mini-btn" data-open="collection">📜 图 鉴</button><button class="mini-btn" data-open="sign">📅 每日签到${Game.dailySignState().canSign ? ' <b style="color:#e8c66a">· 可领</b>' : ''}</button></div></div>
         <div class="help-item"><b>云存档</b><span>${(() => {
           const cs = Game.cloudStatus();
+          // 作者 2026-09-19：这段别写太长，一句状态 + 最近时间就够（版本号留一行小字，方便玩家反馈时对版本）
           const ver = (typeof window !== 'undefined' && window.BUILD_VER) || '（未知版本）';
-          const head = `当前版本 <b>${ver}</b><br>`;
-          if (!cs.supported) {
-            const why = cs.diag === 'no-tap'
-              ? '没检测到 TapTap 容器 —— 说明这份不是在小游戏里跑的（浏览器直接打开、或当前这个入口不给 <code>tap</code>），云存档不生效，本地存档照常。'
-              : cs.msg;
-            return head + why + '<br>把它上传成 TapTap 小游戏并在后台开通云存档后，这里会显示「云存档已就绪」。';
-          }
-          const t = cs.at ? new Date(cs.at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '还没同步过';
-          return head + `${cs.msg}${cs.at ? `（最近：${t}）` : ''}<br>存档同时留在本地 + cookie + 云端，读取时取最新的那份；平台限制一分钟最多上传一次，所以刚玩完的那一分钟可能还没上云。`;
+          const note = `<span class="help-sub">版本 ${ver}</span>`;
+          if (!cs.supported) return (cs.diag === 'no-tap' ? '未启用（不在 TapTap 小游戏里跑）· 本地存档照常' : (cs.msg || '未启用')) + note;
+          const t = cs.at ? new Date(cs.at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '';
+          return (t ? `已同步 · 最近 ${t}` : '已就绪 · 还没同步过') + note;
         })()}</span>
           <div class="modal-actions">${Game.cloudStatus().supported ? '<button class="mini-btn" data-cloudpush="1">立刻传到云端</button>' : ''}<button class="mini-btn" data-cloudretry="1">重新检测</button></div></div>
       </div>
@@ -2429,7 +2438,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
             '图纸<b>不占背包格子</b>，买到就永久记住，不会挤仓库。',
           ])
         + G('魂点怎么来', [
-            '死亡后按这一局的表现沉淀进《历代遗章》；每天<b>邮箱 → 邮箱页的「每日签到」</b>（在主界面/菜单里）给 30 魂点 + 2 备份点。',
+            '死亡后按这一局的表现沉淀进《历代遗章》；每天<b>邮箱 → 邮箱页的「每日签到」</b>（在主界面/菜单里）给 10 魂点 + 1 备份点。',
             '成就解锁、兑换码也会给；魂点用来买《历代遗章》里的继承加成与备份点。',
           ])
         + G('夜里被袭击 / 赶路被拦路', [
@@ -2638,7 +2647,9 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       const leftNow = Math.max(0, 2 - ((Game.S().combat && Game.S().combat.usedItems) || 0));
       html = `<div class="modal-title">使用道具 <span style="font-size:11px">本场还能用 ${leftNow} 次</span></div><div class="modal-actions">${cfg.meds.map(md => `<button data-med-id="${md}">${ITEMS[md].glyph} ${ITEMS[md].name}（有${Game.invCount(md)}）</button>`).join('')}<button id="modal-back">返 回</button></div>`;
     }
-    m.innerHTML = `<div class="modal-content">${html}</div>`;
+    // 设置面板在窄屏上要多占一点宽度（.set-wide）：里面有几行"多个开关排一行"，
+    // 沿用手机端默认的 64vw 会挤到换行（作者 2026-09-19）
+    m.innerHTML = `<div class="modal-content${kind === 'settings' ? ' set-wide' : ''}">${html}</div>`;
     const mcx = m.querySelector('.modal-content');
     mcx.insertAdjacentHTML('afterbegin', '<button class="modal-x" aria-label="关闭">×</button>');
     mcx.querySelector('.modal-x').onclick = closeModal;
@@ -2749,18 +2760,39 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     m.querySelectorAll('[data-set]').forEach(b => b.onclick = () => {
       const v = b.dataset.set;
       AudioFX.init();
-      if (v === 'music:on' && !AudioFX.enabledState()) AudioFX.toggle();
+      // 声音三件套：现在是一行里的单按钮开关（点一下翻转）
+      if (v === 'audio:music') AudioFX.toggle();
+      else if (v === 'audio:sfx') AudioFX.toggleSfx();
+      else if (v === 'audio:amb') AudioFX.toggleAmbient();
+      else if (v === 'music:on' && !AudioFX.enabledState()) AudioFX.toggle();
       else if (v === 'music:off' && AudioFX.enabledState()) AudioFX.toggle();
       else if (v === 'sfx:on' && !AudioFX.sfxState()) AudioFX.toggleSfx();
       else if (v === 'sfx:off' && AudioFX.sfxState()) AudioFX.toggleSfx();
       else if (v === 'amb:on' && !AudioFX.ambientState()) AudioFX.toggleAmbient();
       else if (v === 'amb:off' && AudioFX.ambientState()) AudioFX.toggleAmbient();
+      else if (v === 'obj:on') setShowObjective(true);
+      else if (v === 'obj:off') setShowObjective(false);
       else if (v.startsWith('log:')) setLogMode(v.slice(4));
       else if (v.startsWith('logw:')) setLogSize(v.slice(5));
       else if (v.startsWith('skin:')) {
         setSkin(v.slice(5));
         addLog(`已切换皮肤包：${skinName()}。`, 'sys');
         AudioFX.play('good');
+      }
+      showModal('settings');
+    });
+    // 皮肤解锁：深海琥珀 / 彩绘卡面 各 50 魂点（账号级，解锁后永久）
+    m.querySelectorAll('[data-askin]').forEach(b => b.onclick = () => {
+      const id = b.dataset.askin;
+      const r = Game.unlockSkin(id);
+      if (r.ok) {
+        const nm = (SKINS.find(s => s.id === id) || {}).name || id;
+        addLog(`已解锁皮肤包「${nm}」（消耗 ${r.cost} 魂点，现有 ${Game.metaState().soul}）。`, 'good');
+        try { centerToast(`解锁成功：${nm}`); } catch (e) {}
+        try { AudioFX.play('good'); } catch (e) {}
+      } else {
+        addLog(r.reason, 'warn');
+        try { centerToast(r.reason); } catch (e) {}
       }
       showModal('settings');
     });
@@ -2892,6 +2924,14 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       const [k, id] = String(b.dataset.nodeforget).split(':');
       const r = Game.skillNodeForget(k, id);
       if (!r.ok) addLog(r.reason, 'warn');
+      showModal('skilltree', { kind: k });
+    });
+    // 主干遗忘：想换流派时把主干也退回去（只能从最末端退，返还一半）
+    m.querySelectorAll('[data-trunkforget]').forEach(b => b.onclick = () => {
+      const k = String(b.dataset.trunkforget);
+      const r = Game.skillTrunkForget(k);
+      if (!r.ok) addLog(r.reason, 'warn');
+      else try { centerToast(`主干退到 ${r.lv} 级 · 返还 ${r.gain}`); } catch (e) {}
       showModal('skilltree', { kind: k });
     });
     { const stb = m.querySelector('#st-back'); if (stb) stb.onclick = () => showModal('skill'); }
