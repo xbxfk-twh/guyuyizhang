@@ -1494,7 +1494,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     return `<div class="modal-title">${t.glyph} ${t.name}技能树 <span style="font-size:11px">主干 ${t.lv}/${t.max} · ${t.expName} <b>${t.exp}</b>${maxed ? ' · 已满级' : ` · 下一级 ${t.cost}`}</span></div>
       <div class="st-tree">${rows}</div>
       <div class="hint">主干每升一级从三个方向里选一个（同一个可以重复选，效果叠加）；专项挂在对应等级的两侧，互斥的一对分居左右（中间红虚线）。<b>遗忘只能从最末端往外剥</b>（专项和主干都一样），返还一半经验——想换流派就一层层退回去。<br>
-      经验不够就去采集 / 钓鱼 / 砍树 / 打怪攒（每次 +1，打赢精英 +3、首领 +10），或者靠《历代遗章》里的「采集/制造/战斗心得」每局开局送经验。</div>
+      经验不够就去采集 / 钓鱼 / 砍树 / 打怪攒（采集每次 +2、制造每件 +3、战斗按怪强度 +1/+2/+3、首领 +15），或者靠《历代遗章》里的「采集/制造/战斗心得」每局开局送经验。</div>
       <div class="modal-actions">${(() => {
         const ti = Game.trunkForgetInfo(kind);
         return ti.ok ? `<button class="mini-btn" data-trunkforget="${kind}">遗忘主干「${ti.optName}」第 ${ti.lv} 级 · 返还 ${ti.gain}</button>` : '';
@@ -2294,6 +2294,8 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     const tgl = (v, label, on) => `<button class="mini-btn ${on ? 'active' : ''}" data-set="${v}">${label} ${on ? '开' : '关'}</button>`;
     return `<div class="modal-title">设 置</div>
       <div class="help-list">
+        <div class="help-item"><b>图鉴 · 每日签到</b><span>图鉴是账号级的，不开局也能翻；签到每天可领 魂点 ×${Game.dailySignState().soul} + 备份点 ×${Game.dailySignState().backup}。</span>
+          <div class="modal-actions"><button class="mini-btn" data-open="collection">📜 图 鉴</button><button class="mini-btn" data-open="sign">📅 每日签到${Game.dailySignState().canSign ? ' <b style="color:#e8c66a">· 可领</b>' : ''}</button></div></div>
         <div class="help-item"><b>声音</b><span>音乐（配乐与氛围）/ 音效（咔哒、采集、战斗）/ 环境音（海浪、风、鸟虫、雨）</span>
           <div class="set-inline">${tgl('audio:music', '音乐', AudioFX.enabledState())}${tgl('audio:sfx', '音效', AudioFX.sfxState())}${tgl('audio:amb', '环境音', AudioFX.ambientState())}</div></div>
         <div class="help-item"><b>日志栏</b><span>怎么显示 / 多宽（窄一点能多看画面，宽一点看得清文字）</span>
@@ -2307,8 +2309,6 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
           <div class="set-inline">${SKINS.map(s => Game.skinOwned(s.id)
             ? btn('skin:' + s.id, s.name, skin === s.id)
             : `<button class="mini-btn" data-askin="${s.id}">🔒 ${s.name} · ${Game.skinCost()} 魂点</button>`).join('')}</div></div>
-        <div class="help-item"><b>图鉴 · 每日签到</b><span>图鉴是账号级的，不开局也能翻；签到每天可领 魂点 ×${Game.dailySignState().soul} + 备份点 ×${Game.dailySignState().backup}。</span>
-          <div class="modal-actions"><button class="mini-btn" data-open="collection">📜 图 鉴</button><button class="mini-btn" data-open="sign">📅 每日签到${Game.dailySignState().canSign ? ' <b style="color:#e8c66a">· 可领</b>' : ''}</button></div></div>
         <div class="help-item"><b>云存档</b><span>${(() => {
           const cs = Game.cloudStatus();
           // 作者 2026-09-19：这段别写太长，一句状态 + 最近时间就够（版本号留一行小字，方便玩家反馈时对版本）

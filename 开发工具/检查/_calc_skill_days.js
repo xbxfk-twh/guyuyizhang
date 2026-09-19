@@ -44,16 +44,25 @@ for (const kind of ['gather', 'craft', 'combat']) {
 }
 
 // —— 每天大概能拿多少经验（按"正常游玩"的动作频次估）——
-// 采集：每次点位 +1 经验（钓鱼/砍树/拾取都一样），体力是天花板。
+// 每次动作的经验值直接从 game.js 里读，避免这份核算和代码漂移（作者 2026-09-19 调过一轮）
+const mG = GAME.match(/const EXP_GATHER = (\d+), EXP_CRAFT = (\d+);/);
+const EXP_GATHER = mG ? +mG[1] : 2;
+const EXP_CRAFT = mG ? +mG[2] : 3;
+const EXP_BOSS = /const xg = en\.boss \? (\d+) :/.test(GAME) ? +GAME.match(/const xg = en\.boss \? (\d+) :/)[1] : 15;
+console.log(`（每次动作经验：采集 +${EXP_GATHER} / 制造每件 +${EXP_CRAFT} / 小怪 +1 普通 +2 精英 +3 首领 +${EXP_BOSS}）\n`);
+// 采集：每次点位 +EXP_GATHER 经验（钓鱼/砍树/拾取都一样），体力是天花板。
 //   体力：睡一觉回满（上限 150，普通难度）、吃两顿 +16~20、休息每小时 +10。
 //   采集一个点位平均 -15 体力，另外一天赶路来回约 -30 → 约 10 次/天。
-// 制造：每做 1 件 +1 经验（有书架 +10%），耗时不占体力；一天按"造多少件"估。
-// 战斗：打赢一只小怪 +1、普通 +2、精英 +3、Boss +10（见 finish 战斗结算）。
+// 制造：每件 +EXP_CRAFT（有书架 +10%），耗时不占体力；一天按"造多少件"估。
+// 战斗：打赢一只小怪 +1、普通 +2、精英 +3、首领 +EXP_BOSS。
 const TIERS = [
-  { key: '休闲', gather: 5,  craft: 8,  combat: 3,  note: '每天上线一会儿：采 5 次、造 8 件、打 3 只' },
-  { key: '正常', gather: 10, craft: 20, combat: 6,  note: '稳步推进：采 10 次、造 20 件、打 6 只（含 1 只精英）' },
-  { key: '肝',   gather: 18, craft: 40, combat: 12, note: '集中肝一天：采 18 次、造 40 件、打 12 只（补体力药）' },
+  { key: '休闲', gather: 5,  craft: 8,  small: 3, normal: 0, elite: 0, boss: 0, note: '每天上线一会儿：采 5 次、造 8 件、打 3 只小怪' },
+  { key: '正常', gather: 10, craft: 20, small: 2, normal: 3, elite: 1, boss: 0, note: '稳步推进：采 10 次、造 20 件、打 6 只（2 小怪 + 3 普通 + 1 精英）' },
+  { key: '肝',   gather: 18, craft: 40, small: 4, normal: 6, elite: 2, boss: 1, note: '集中肝一天：采 18 次、造 40 件、打 12 只 + 1 个首领' },
 ];
+const perDayExp = (k, t) => k === 'gather' ? t.gather * EXP_GATHER
+  : k === 'craft' ? t.craft * EXP_CRAFT
+  : (t.small * 1 + t.normal * 2 + t.elite * 3 + t.boss * EXP_BOSS);
 
 console.log('===== 升满需要多少经验（真实数据）=====');
 console.log('主干 ' + SKILL_TRUNK_MAX + ' 级合计 ' + trunkTotal + ' 点（' + SKILL_TRUNK_COST.join(' / ') + '）');
@@ -67,7 +76,7 @@ for (const k of ['gather', 'craft', 'combat']) {
   const o = out[k];
   console.log(`\n【${o.name}】`);
   for (const t of TIERS) {
-    const perDay = t[k];
+    const perDay = perDayExp(k, t);
     const dTrunk = Math.ceil(o.trunk / perDay);
     const dFull = Math.ceil(o.full / perDay);
     console.log(`  ${t.key}（${t.note}）→ 约 ${perDay} 点/天：主干满 ${dTrunk} 天 · 全满 ${dFull} 天`);

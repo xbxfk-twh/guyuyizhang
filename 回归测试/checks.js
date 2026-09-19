@@ -1069,6 +1069,8 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
   ck('设置里能关掉「当前目标」提示（本机偏好，存 localStorage）',
      /data-set="obj:on"/.test(UI) && /data-set="obj:off"/.test(UI) && /guyuyizhang_obj/.test(UI) &&
      /st\.scene !== 'camp' \|\| !showObjective/.test(UI));
+  ck('每日签到挪到设置面板最上面（第一块就是它）',
+     /<div class="help-list">\s*<div class="help-item"><b>图鉴 · 每日签到<\/b>/.test(UI));
   ck('皮肤包要花魂点解锁：深海琥珀 / 彩绘卡面 各 50 魂点',
      /data-askin=/.test(UI) && /function unlockSkin\(id\)/.test(_GAME_SRC) && /const SKIN_COST = 50;/.test(_GAME_SRC) &&
      /skinOwned\(s\.id\)/.test(UI));
@@ -1508,6 +1510,24 @@ section('7. 收尾：休息时长 / 夜袭 / 存档');
   S.stats.stamina = 10; G.rest(1); ck('休息1小时 +10 体力', S.stats.stamina === 20);
   S.stats.stamina = 10; G.rest(3); ck('休息3小时 +30 体力', S.stats.stamina === 40);
   S.stats.stamina = 10; G.rest(); ck('不传参数默认 1 小时', S.stats.stamina === 20);
+  // 玩家反馈"21:55 休息到 23:55，跳了每日收益，休息的体力消失了"：
+  // 根因是 rest() 先走时间、跨天时 newDay() 会先 save()（存的是加体力之前的状态），而 rest() 自己从不 save()。
+  {
+    const savedStam = () => { try { return Math.round(JSON.parse(localStorage.getItem('guyuyizhang_save')).stats.stamina); } catch (e) { return null; } };
+    G.newGame('fisher', 'normal');
+    const sR = G.S(); sR.tut = null; sR.minute = 21 * 60 + 55; sR.stats.stamina = 50; sR.stats.hunger = 80; sR.stats.thirst = 80;
+    G.rest(2);
+    ck('★ 休息后体力真的进了存档（21:55 休息 2 小时：内存 = 存档）',
+       Math.round(G.S().stats.stamina) === 70 && savedStam() === 70, '内存 ' + Math.round(G.S().stats.stamina) + ' / 存档 ' + savedStam());
+    ck('★ 读档回来体力还在（不会"休息白休"）', (() => { G.load(); return Math.round(G.S().stats.stamina) === 70; })(), Math.round(G.S().stats.stamina));
+    // 跨午夜那一档最容易出事（newDay 会顺手 save）
+    G.newGame('fisher', 'normal');
+    const sR2 = G.S(); sR2.tut = null; sR2.minute = 23 * 60; sR2.stats.stamina = 50; sR2.stats.hunger = 80; sR2.stats.thirst = 80;
+    G.rest(2);
+    ck('★ 跨午夜休息也不会丢（23:00 休息 2 小时 → 存档里是 70）',
+       G.S().day === 2 && Math.round(G.S().stats.stamina) === 70 && savedStam() === 70,
+       '第' + G.S().day + '天 内存 ' + Math.round(G.S().stats.stamina) + ' / 存档 ' + savedStam());
+  }
   ck('界面里有休息时长循环按钮', /btn-rest-h/.test(UI) && /restHours = \(restHours % 3\) \+ 1/.test(UI));
   // 午觉：任何状态下都不该倒扣生命
   function sleepTrial(mode, hour, st3) {
@@ -3665,9 +3685,13 @@ section('9. 技能树（B1：框架 + 主干三选一 + 遗忘 + 采集/制造�
     ck('精细采集：产出 +20%、体力 +15%（主干 7%×4 叠加后 = 1.48 / 1.15）',
        (() => { s.skill.gather = 4; s.skillPicks.gather = ['yield','yield','yield','yield']; G.skillNodeLearn('gather','g_fine');
          return Math.round(G.gatherYieldMul() * 100) / 100 === 1.48 && Math.round(G.gatherEnergyMul() * 100) / 100 === 1.15; })());
-    ck('★ 流水线：材料 -50%（全项目都走 craftIn）',
+    // 作者 2026-09-19：流水线从 -50% 削到 -40%，而且只对有耐久的成品生效
+    ck('★ 流水线：有耐久的成品材料 -40%（木盾 木板3→2、绳2→1）',
        (() => { s.skill.craft = 4; s.skillPicks.craft = ['speed','speed','refund','extra']; G.skillNodeLearn('craft','c_line');
-         const c = G.craftIn({ in:{ plank:10, nail:4 } }); return c.plank === 5 && c.nail === 2; })());
+         const c = G.craftIn({ out:{ woodShield:1 }, in:{ plank:3, rope:2 } }); return c.plank === 2 && c.rope === 1; })());
+    ck('★ 流水线对没有耐久的配方一点不减（烤肉 肉1+柴1 → 不变）',
+       (() => { const r = RECIPES.find(x => x.id === 'r_roastmeat');
+         const c = G.craftIn(r); return c.meat === 1 && c.wood === 1; })());
     ck('★ 精工细作与流水线互斥，学不了', G.nodeCheck('craft','c_finework').ok === false && /互斥/.test(G.nodeCheck('craft','c_finework').reason));
     ck('★ 修建材 / 打磨等所有消耗材料的地方改用 craftIn（不再直接读 r.in）',
        /function craftIn\(r\)/.test(_GAME_SRC) && (_GAME_SRC.match(/craftIn\(r\)/g) || []).length >= 3 && !/for \(const k in r\.in\) removeItem/.test(_GAME_SRC));
@@ -3675,6 +3699,25 @@ section('9. 技能树（B1：框架 + 主干三选一 + 遗忘 + 采集/制造�
   // ---- 界面接线 ----
   ck('技能面板给出「展开技能树」入口，并接到 skilltree 弹窗',
      /data-skilltree="\$\{k\}"/.test(UI) && /kind === 'skilltree'/.test(UI) && /function skillTreeModal\(kind\)/.test(UI));
+  // 作者 2026-09-19：所有专项最大等级 -1（一级/二级数值照旧），cost/desc 也要跟着裁到同样长度
+  {
+    const OVER = { g_wood:1, g_nature:1, g_rough:1, c_patch:2, f_sweep:2, f_exec:2, f_vamp:3, f_revenge:2,
+                   f_shield:2, f_swift:2, f_rage:2, f_iron:2, f_bow:2, f_gun:2 };
+    const wrong = [];
+    for (const k of ['gather','craft','combat']) for (const n of SKILL_TREES[k].nodes) {
+      if (OVER[n.id] === undefined) continue;
+      if (n.max !== OVER[n.id] || n.cost.length !== n.max || n.desc.length !== n.max) wrong.push(n.id + '(max=' + n.max + ' cost=' + n.cost.length + ' desc=' + n.desc.length + ')');
+    }
+    ck('★ 所有专项最大等级 -1，且 cost/desc 与上限等长', wrong.length === 0, wrong.join('、') || '14 个专项全部对齐');
+    // 一级/二级数值照旧（抽查几个）
+    ck('一级/二级数值照旧（抽查：嗜血狂刀 30/40/50、处决 20/25、修补匠 25/50）',
+       /30% 回血/.test(SKILL_TREES.combat.nodes.find(n => n.id === 'f_vamp').desc[0]) &&
+       /40% 回血/.test(SKILL_TREES.combat.nodes.find(n => n.id === 'f_vamp').desc[1]) &&
+       /<20%/.test(SKILL_TREES.combat.nodes.find(n => n.id === 'f_exec').desc[0]) &&
+       /<25%/.test(SKILL_TREES.combat.nodes.find(n => n.id === 'f_exec').desc[1]) &&
+       /25% 概率/.test(SKILL_TREES.craft.nodes.find(n => n.id === 'c_patch').desc[0]) &&
+       /50% 概率/.test(SKILL_TREES.craft.nodes.find(n => n.id === 'c_patch').desc[1]));
+  }
   // 主干遗忘（作者 2026-09-19）：想换流派时主干也得能退，规矩和专项一样——只从末端退、返还一半
   {
     G.newGame('fisher', 'normal');
@@ -3804,19 +3847,20 @@ section('9d. 战斗技能树（B2 第一批：阔刃横扫 / 处决 ⇄ 嗜血�
   s.skill.combat = 3; s.skillPicks.combat = ['atk', 'atk', 'atk'];
   G.skillNodeLearn('combat', 'f_sweep');
   ck('★ 横扫 1 级：1.0 倍 / CD 18 秒', G.sweepMul() === 1.0 && G.sweepCdTotal() === 18);
-  G.skillNodeLearn('combat', 'f_sweep'); G.skillNodeLearn('combat', 'f_sweep');
-  ck('★ 横扫 3 级：1.4 倍 / CD 14 秒（每级 -2 秒）', G.sweepMul() === 1.4 && G.sweepCdTotal() === 14);
+  G.skillNodeLearn('combat', 'f_sweep');
+  ck('★ 横扫 2 级（满级）：1.2 倍 / CD 16 秒（专项上限 -1 之后最高就到这）',
+     G.sweepMul() === 1.2 && G.sweepCdTotal() === 16 && G.nodeCheck('combat', 'f_sweep').ok === false);
   ck('★ 与嗜血狂刀互斥：学不了', G.nodeCheck('combat', 'f_vamp').ok === false && /互斥/.test(G.nodeCheck('combat', 'f_vamp').reason));
   G.skillNodeLearn('combat', 'f_exec');
   ck('★ 处决 1 级：敌人 <20% 生命时伤害 +50%',
      Math.abs(G.execThreshold() - 0.20) < 1e-9 && /【处决】/.test(_GAME_SRC) && /dealt = Math\.round\(dealt \* 1\.5\)/.test(_GAME_SRC));
   G.skillNodeForget('combat', 'f_exec');
-  for (let i = 0; i < 3; i++) G.skillNodeForget('combat', 'f_sweep');
+  for (let i = 0; i < 2; i++) G.skillNodeForget('combat', 'f_sweep');
   ck('★ 忘掉横扫后嗜血狂刀解除互斥、可以学', G.nodeCheck('combat', 'f_vamp').ok === true);
   G.skillNodeLearn('combat', 'f_vamp');
   ck('★ 嗜血狂刀 1 级 = 吸血 30%', Math.abs(G.vampRate() - 0.30) < 1e-9);
-  G.skillNodeLearn('combat', 'f_vamp'); G.skillNodeLearn('combat', 'f_vamp'); G.skillNodeLearn('combat', 'f_vamp');
-  ck('★ 嗜血狂刀 4 级 = 吸血 60%', Math.abs(G.vampRate() - 0.60) < 1e-9);
+  G.skillNodeLearn('combat', 'f_vamp'); G.skillNodeLearn('combat', 'f_vamp');
+  ck('★ 嗜血狂刀 3 级（满级）= 吸血 50%', Math.abs(G.vampRate() - 0.50) < 1e-9);
   G.skillNodeLearn('combat', 'f_revenge');
   ck('★ 复仇 1 级 = 挨打一次后下一击 +20%',
      Math.abs(G.revengeBonus() - 0.20) < 1e-9 && /C\.revenge = Math\.min\(3/.test(_GAME_SRC));
@@ -3833,10 +3877,10 @@ section('9d. 战斗技能树（B2 第一批：阔刃横扫 / 处决 ⇄ 嗜血�
     ck('主干没到 4 级时盾墙/疾风学不了', G.nodeCheck('combat', 'f_shield').ok === false && /主干 4 级/.test(G.nodeCheck('combat', 'f_shield').reason));
     s2.skill.combat = 4; s2.skillPicks.combat = ['atk', 'atk', 'atk', 'atk'];
     const spd0 = G.combatSpeed();
-    G.skillNodeLearn('combat', 'f_swift'); G.skillNodeLearn('combat', 'f_swift'); G.skillNodeLearn('combat', 'f_swift');
-    ck('★ 疾风连击 3 级 = 攻速 +3', Math.abs(G.combatSpeed() - (spd0 + 3)) < 1e-6, `${spd0} → ${G.combatSpeed()}`);
+    G.skillNodeLearn('combat', 'f_swift'); G.skillNodeLearn('combat', 'f_swift');
+    ck('★ 疾风连击 2 级（满级）= 攻速 +2', Math.abs(G.combatSpeed() - (spd0 + 2)) < 1e-6, `${spd0} → ${G.combatSpeed()}`);
     ck('★ 与盾墙互斥', G.nodeCheck('combat', 'f_shield').ok === false && /互斥/.test(G.nodeCheck('combat', 'f_shield').reason));
-    G.skillNodeForget('combat', 'f_swift'); G.skillNodeForget('combat', 'f_swift'); G.skillNodeForget('combat', 'f_swift');
+    G.skillNodeForget('combat', 'f_swift'); G.skillNodeForget('combat', 'f_swift');
     G.skillNodeLearn('combat', 'f_shield');
     ck('★ 盾墙 1 级 = 格挡率 +15%', Math.abs(G.wallBlockBonus() - 0.15) < 1e-9);
     ck('★ 盾墙 1 级 = 盾耐久消耗 -20%', Math.abs(G.wallDurMul() - 0.80) < 1e-9);
@@ -3851,9 +3895,9 @@ section('9d. 战斗技能树（B2 第一批：阔刃横扫 / 处决 ⇄ 嗜血�
     // 弓术 / 枪械
     G.skillNodeLearn('combat', 'f_bow');
     ck('★ 弓术 1 级 = 弓命中 0.90 → 0.95、15% 不耗箭', Math.abs(G.rangedAcc ? G.rangedAcc('bow') - 0.95 : 0) < 1e-9 && Math.abs(G.ammoSaveChance('bow') - 0.15) < 1e-9);
-    G.skillNodeLearn('combat', 'f_gun'); G.skillNodeLearn('combat', 'f_gun'); G.skillNodeLearn('combat', 'f_gun');
-    ck('★ 枪械精通 3 级 = 命中 +10%（上限 95%）、40% 不耗子弹',
-       Math.abs(G.ammoSaveChance('gun') - 0.40) < 1e-9 && /【枪械精通】/.test(_GAME_SRC) && /【弓术】/.test(_GAME_SRC));
+    G.skillNodeLearn('combat', 'f_gun'); G.skillNodeLearn('combat', 'f_gun');
+    ck('★ 枪械精通 2 级（满级）= 命中 +10%（上限 95%）、30% 不耗子弹',
+       Math.abs(G.ammoSaveChance('gun') - 0.30) < 1e-9 && /【枪械精通】/.test(_GAME_SRC) && /【弓术】/.test(_GAME_SRC));
   }
   ck('★ 界面上每个按钮都写了消耗（学习花多少 / 遗忘返多少 / 主干花多少）',
      /学习（花 \$\{n\.cost\} 经验）/.test(UI) && /学习（需 \$\{n\.cost === null/.test(UI) &&
@@ -3911,15 +3955,15 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
        G.skillNodeLearn('craft', 'c_finework');
        const c = G.craftIn(r);
        return c.wood === 2; })());
-  ck('★ 精工细作 + 流水线：无耐久的只吃 -50%，有耐久的按 0.5×1.3=0.65 算',
+  ck('★ 精工细作 + 流水线：无耐久的完全不动，有耐久的按 0.6×1.3=0.78 算',
      (() => { G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
        s.exp.craft = 9999; s.skill.craft = 4; s.skillPicks.craft = ['speed','speed','speed','speed'];
        s.tree.craft.c_finework = 1; s.tree.craft.c_line = 1;
        const rc = RECIPES.find(x => x.id === 'r_charcoal');
        const ra = RECIPES.find(x => x.id === 'r_woodshield');
-       const woodOK = G.craftIn(rc).wood === 1;                 // 木炭：只吃流水线的 -50%
-       const shield = G.craftIn(ra);                             // 木盾：0.65 → 木板 3→2、绳 2→1
-       return woodOK && shield.plank === 2 && shield.rope === 1; })());
+       const woodOK = G.craftIn(rc).wood === 2;                 // 木炭：没有耐久 → 两个技能都不动它
+       const shield = G.craftIn(ra);                            // 木盾：0.78 → 木板 3→2、绳 2→2
+       return woodOK && shield.plank === 2 && shield.rope === 2; })());
   // ② 【精算】退款必须真的把材料加回去
   {
     G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
@@ -4036,6 +4080,56 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
        JSON.stringify(s.toolDurs.axeStone));
     ck('批量制作也走新公式（不再残留旧的"每级 -8% 耗时"）',
        /let t = Math\.round\(r\.time \* \(1 - metaBonus\(\)\.craft\) \* cxTimeMul\(\)\);/.test(_GAME_SRC) && !/function craftLv\(\)/.test(_GAME_SRC));
+    // 作者 2026-09-19：经验到手量上调（采集 ×2、制造 ×3、首领 +15）+ 制造与批量必须完全兼容
+    {
+      G.newGame('fisher', 'normal');
+      const sX = G.S(); sX.tut = null; sX.capacity = 99;
+      G.addItem('wood', 60, true); G.addItem('flint', 60, true);
+      const rAx2 = RECIPES.find(x => x.out && x.out.axeStone);
+      const e0 = sX.exp.craft;
+      G.craft(rAx2);
+      const one = sX.exp.craft - e0;                       // 单件
+      G.newGame('fisher', 'normal');
+      const sY = G.S(); sY.tut = null; sY.capacity = 99;
+      G.addItem('wood', 60, true); G.addItem('flint', 60, true);
+      const woodBefore = G.invCount('wood'), flintBefore = G.invCount('flint');
+      const e1 = sY.exp.craft;
+      G.craftBatch(rAx2, 3);
+      const three = sY.exp.craft - e1;                     // 批量 3 件
+      const woodAfter = G.invCount('wood'), flintAfter = G.invCount('flint');
+      ck('★ 制造经验：每件 +3（单件 = 3）', Math.round(one) === 3, '单件 +' + one);
+      ck('★ 批量与单个完全兼容：批量 3 件经验 = 3 × 单件', Math.round(three) === Math.round(one) * 3, '批量 +' + three + ' / 单件 +' + one);
+      ck('★ 批量扣的材料也 = 3 × 单件（石斧 木1+燧石1 → 各扣 3）',
+         woodAfter === woodBefore - 3 && flintAfter === flintBefore - 3,
+         '木 ' + woodBefore + '→' + woodAfter + ' / 燧石 ' + flintBefore + '→' + flintAfter);
+      // 采集经验 ×2
+      G.newGame('fisher', 'normal');
+      const sG = G.S(); sG.tut = null; sG.stats.stamina = 999; sG.stats.hp = 9999;
+      const g0 = sG.exp.gather;
+      // 挑一个"不需要工具"的点位（带工具需求的点位没工具会直接返回，测不到经验）
+      let gp = null, gsc = null, gzone = null;
+      for (const sc0 of SCENES) {
+        const zs = sc0.zones || { _: sc0 };
+        for (const zk in zs) for (const p of (zs[zk].points || [])) {
+          if ((p.type === 'gather' || p.type === 'wood' || p.type === 'fish') && (!p.need || (!p.need.tool && !p.need.item))) { gp = p; gsc = sc0.id; gzone = zk === '_' ? null : zk; break; }
+        }
+        if (gp) break;
+      }
+      sG.scene = gsc; sG.zone = gzone;
+      G.doPoint(gp);
+      ck('★ 采集经验：每个点位 +2', Math.round(sG.exp.gather - g0) === 2, '一次采集 +' + (sG.exp.gather - g0) + '（' + gp.name + '）');
+      // Boss 经验 +15
+      G.newGame('fisher', 'normal');
+      const sB = G.S(); sB.tut = null; sB.stats.hp = 999999; sB.stats.stamina = 9999;
+      G.addItem('ironSword', 2, true); sB.equipment.weapon = 'ironSword';
+      sB.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
+      const b0 = sB.exp.combat;
+      G.startFight(ENEMIES.sunkenKing, true);
+      const rkB = Math.random; Math.random = () => 0.05;
+      for (let i = 0; i < 80 && Game.S().combat; i++) G.fightAction('attack');
+      Math.random = rkB;
+      ck('★ 首领经验 +15（打赢沉没之王）', Math.round(G.S().exp.combat - b0) >= 15, '获得 ' + Math.round(G.S().exp.combat - b0));
+    }
     // 战斗里点「道具」→ 面板的 ✕ 应该返回战斗，而不是把整场战斗关掉
     ck('★ 战斗中「道具」面板的 ✕ = 返回战斗（不再直接结束战斗）',
        /if \(kind === 'medpick'\) m\.querySelectorAll\('#modal-close, \.modal-x'\)\.forEach\(b => b\.onclick = \(\) => renderCombat\('start', Game\.S\(\)\.combat\)\);/.test(UI));

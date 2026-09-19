@@ -1544,7 +1544,7 @@ function change() {
         S.flags.riverNetBan = S.day + 3;
         log('这一网把河湾捞了个干净——接下来 4 天，这里既钓不到也网不到鱼了。', 'warn');
       }
-      S.exp.gather++;
+      S.exp.gather += EXP_GATHER;
       if (p.need) { if (p.need.tool) drainTool(p.need.tool); if (p.need.item && DURA[p.need.item] !== undefined) drainById(p.need.item); }
     } else if (p.type === 'fish') {
       let q = rnd(1,3) * diff;
@@ -1553,7 +1553,7 @@ function change() {
       const intoBag = gainItem('fish', q);
       log(p.text || '鱼线一动，你提起一条银亮的鱼。');
       if (intoBag) log(`获得：鱼×${q}。`, 'good');
-      S.exp.gather++;
+      S.exp.gather += EXP_GATHER;
       if (p.need && p.need.item && DURA[p.need.item] !== undefined) drainById(p.need.item);
     } else if (p.type === 'hunt') {
       // 猎物已经在上面 pre-flight 里抽好（首领还得等玩家点"迎战"才会扣费开打）
@@ -1568,7 +1568,7 @@ function change() {
       S.dailyReport = S.dailyReport || { day: S.day, ranch: null, trap: null };
       S.dailyReport.trap = { waiting: true, placed: S.traps.placed };
       log('你在兽径上布下陷阱，明天去草地上看看有没有收获。', 'good');
-      S.exp.gather++;
+      S.exp.gather += EXP_GATHER;
     } else if (p.type === 'drift') {
       if (chance(0.6)) {
         const roll = Math.random();
@@ -1577,7 +1577,7 @@ function change() {
         else if (roll < 0.9) { addItem('driftbottle', 1); log('一个漂流瓶！你把它捞了上来。', 'good'); triggerStory({ id:'e_driftbottle' }); }
         else { log('只有水草和泡沫。'); }
       } else { log('今天河里很干净，什么也没漂来。'); }
-      S.exp.gather++;
+      S.exp.gather += EXP_GATHER;
     } else if (p.type === 'adventure') {
       adventure(p);
     } else if (p.type === 'atlantisGate') {
@@ -2071,6 +2071,8 @@ function change() {
   // ⚠️ 主干每级的加成在 2026-09-19 统一从 10% 削到 7%（作者要求，采集/制造都削）：
   //    主干 7 级满时是 +49%（原来是 +70%），专项节点数值没动。
   const TRUNK_STEP = 0.07;
+  // 经验到手量（作者 2026-09-19 调整）：采集每次 ×2、制造每件 ×3、Boss 从 +10 提到 +15
+  const EXP_GATHER = 2, EXP_CRAFT = 3;
   function gxYieldMul() { return 1 + TRUNK_STEP * trunkPicks('gather','yield') + (nodeLv('gather','g_fine') ? 0.20 : 0) - (nodeLv('gather','g_rough') ? 0.10 : 0); }
   function gxTimeMul() { return Math.max(0.40, 1 - TRUNK_STEP * trunkPicks('gather','speed')); }
   function gxEnergyMul() {
@@ -2565,7 +2567,7 @@ function change() {
       if (got.length) log(`战利品：${got.join('、')}。`, 'good');
       else log(`（${en.name}身上没留下什么可用的东西。）`, 'sys');
       // 战斗经验按怪强度分档：小怪+1 普通+2 精英+3 Boss+10
-      const xg = en.boss ? 10 : (en.hp >= 100 ? 3 : en.hp >= 30 ? 2 : 1);
+      const xg = en.boss ? 15 : (en.hp >= 100 ? 3 : en.hp >= 30 ? 2 : 1);
       S.exp.combat += xg;
       log(`战斗经验 +${xg}。`, 'sys');
       if (en.boss) { S.flags['boss_'+en.id] = 1; diaryAdd(`我击败了${en.name}。`); }
@@ -2780,7 +2782,7 @@ function change() {
     S.buildings[chainId]++;
     log(`建成了：${next.name}！`, 'good');
     diaryAdd(`我建起了${next.name}。`);
-    S.exp.craft += 2;
+    S.exp.craft += EXP_CRAFT * 2;
     if (chainId === 'watch') {
       const unlocks = next.unlock || [];
       if (unlocks.length) log(`视野扩展！现在可以前往：${unlocks.map(u => sceneOf(u).name).join('、')}。`, 'good');
@@ -2830,7 +2832,7 @@ function change() {
     S.furniture[fid] = true;
     log(`完工了：${f.name}！`, 'good');
     diaryAdd(`我做好了${f.name}。`);
-    S.exp.craft += 2;
+    S.exp.craft += EXP_CRAFT * 2;
     change();
   }
 
@@ -2916,10 +2918,13 @@ function change() {
   //    以前连烤肉、药剂、木板这种压根没有耐久的东西也一起涨价，技能点了纯亏，玩家反馈"不合理"。
   //    「流水线」的 -50% 材料照旧对所有配方生效 —— 那是折扣，不是代价，没有"白涨价"的问题。
   function cxMatMulFor(r) {
-    const line = nodeLv('craft','c_line') ? 0.5 : 1;
     const outKey = Object.keys((r && r.out) || {})[0];
     const hasDur = !!(outKey && DURA[outKey] !== undefined);
-    const fine = (hasDur && nodeLv('craft','c_finework')) ? 1.3 : 1;
+    // 作者 2026-09-19 追加：**没有耐久的配方两个技能都不动**（以前流水线的 -50% 连烤肉/药剂/木板都减，
+    // 等于凭空放大产能），流水线本身也从 -50% 削到 -40%。
+    if (!hasDur) return 1;
+    const line = nodeLv('craft','c_line') ? 0.6 : 1;
+    const fine = nodeLv('craft','c_finework') ? 1.3 : 1;
     return line * fine;
   }
   function craftIn(r) {
@@ -3086,7 +3091,7 @@ function change() {
         log(`【${nodeLv('craft','c_line') ? '流水线' : '精工细作'}】这次成品的初始耐久是 ${nd}。`, 'sys');
       }
     }
-    S.exp.craft = Math.round((S.exp.craft + (S.furniture.shelf ? 1.1 : 1)) * 10) / 10;   // 书架：制造经验 +10%（取一位小数避免浮点尾巴）
+    S.exp.craft = Math.round((S.exp.craft + EXP_CRAFT * (S.furniture.shelf ? 1.1 : 1)) * 10) / 10;   // 书架：制造经验 +10%（取一位小数避免浮点尾巴）
     S.craftCount = (S.craftCount || 0) + 1;
     log(`完成：${Object.keys(r.out).map(k=>`${ITEMS[k].name}×${r.out[k]}`).join('、')}${bonus ? '（额外多做了 1 件！）' : ''}。`, 'good');
     if (S.tut === 1 && Object.keys(S.inv).some(id => ITEMS[id] && ITEMS[id].tool)) S.tut = 2;   // 已做出首件工具→去装备
@@ -3165,7 +3170,7 @@ function change() {
       }
       log(`【${nodeLv('craft','c_line') ? '流水线' : '精工细作'}】这批成品的初始耐久按 ${Math.round(cxDurMul() * 100)}% 算。`, 'sys');
     }
-    S.exp.craft = Math.round((S.exp.craft + (S.furniture.shelf ? 1.1 : 1) * n) * 10) / 10;
+    S.exp.craft = Math.round((S.exp.craft + EXP_CRAFT * (S.furniture.shelf ? 1.1 : 1) * n) * 10) / 10;
     S.craftCount = (S.craftCount || 0) + n;
     log(`连续制作：${r.name}×${n}（耗时 ${t * n} 分钟）${bonusN ? `，其中【巧手】多做了 ${bonusN} 件` : ''}${backN ? `，【精算】退回 ${backN} 份材料` : ''}。`, 'good');
     change();
@@ -3194,7 +3199,7 @@ function change() {
     camp.furniture[fid] = true;
     log(`礁石栖息地建成了：${f.name}！`, 'good');
     diaryAdd(`我在礁石栖息地做好了${f.name}。`);
-    S.exp.craft += 2;
+    S.exp.craft += EXP_CRAFT * 2;
     change();
     return { ok:true };
   }
@@ -3509,9 +3514,15 @@ function change() {
   function rest(hours) {
     const h = Math.max(1, Math.min(3, Math.round(hours || 1)));
     if (S.stats.stamina >= maxStam()) { log('体力充沛，不需要休息。', 'warn'); return; }
-    addMin(60 * h);
+    // ⚠️ 顺序要紧（玩家反馈"21:55 休息到 23:55，体力消失了"）：
+    //    以前是【先走时间、再加体力】。如果这段时间跨过午夜，addMin() 里的 newDay() 会顺手 save()，
+    //    存进去的是**加体力之前**的状态；而 rest() 自己从来不 save() → 之后一旦读档/切后台回来，
+    //    这 +体力 就没了（看着就像"休息白休了"）。
+    //    现在和 sleep() 一致：先把恢复结算进 S，再推进时间（这样跨天那次 save 一定带上它），末尾再补一次 save。
     S.stats.stamina = Math.min(maxStam(), S.stats.stamina + 10 * h);
+    addMin(60 * h);
     log(`你坐下歇了一会儿（${h} 小时，体力+${10 * h}）。`);
+    save();
     change();
   }
 
