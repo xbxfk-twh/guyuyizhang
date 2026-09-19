@@ -41,7 +41,9 @@ async function main() {
     const S = Game.S(); S.tut = null; S.day = 7; S.inv.branch = 42; Game.save();
     const m = (() => { try { return JSON.parse(localStorage.getItem('guyuyizhang_meta')); } catch (e) { return {}; } })();
     // ⚠️ 魂点要走正式 API 写（会同时写 localStorage + cookie），直接改 localStorage 不会更新 cookie
-    const soulWant = (Game.metaState().soul || 0) + 30;
+    // ⚠️ 别写死 +30：签到奖励是 SIGN_SOUL（作者 2026-09-19 改成 10 了），这里从接口读
+    const st0 = Game.dailySignState();
+    const soulWant = (Game.metaState().soul || 0) + (st0.soul || 0);
     Game.dailySign();
     window.__soulWant = soulWant;
     return { day: S.day, soulWant: soulWant, saveCookie: (document.cookie.indexOf('guyu_save=') >= 0), metaCookie: (document.cookie.indexOf('guyu_meta=') >= 0), cookieLen: document.cookie.length };
