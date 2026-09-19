@@ -4294,6 +4294,20 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
          rLong.name + ' ' + rLong.time + ' 分 ×2 → ' + (ov && ov.title));
       ck('确认框里写明"饱食/水分一直在掉"的风险', /饱食和水分会一直掉/.test((ov && ov.text) || ''));
       G.bind({ onOverlay: () => {} });
+      // 造家具 / 建建筑同样要预警（作者 2026-09-19：不光是批量制作，"打造 XX""建造 XX"也要拦）
+      {
+        let ovF = null;
+        G.newGame('fisher', 'normal');
+        const sF = G.S(); sF.tut = null;
+        G.bind({ onOverlay: (c) => { ovF = c; } });
+        G.addItem('plank', 40, true); G.addItem('thatch', 40, true); G.addItem('vine', 20, true);
+        G.buildChain('house');                 // 草房 240 分钟：不超过 5 小时 → 不拦
+        G.addItem('stonebrick', 40, true); G.addItem('nail', 40, true); G.addItem('tile', 40, true);
+        G.buildChain('house');                 // 木屋 480 分钟 → 8 小时，要拦
+        ck('★ 建造超过 5 小时的建筑会先弹窗提醒', !!ovF && /小时/.test(ovF.text || ''), ovF && ovF.title);
+        ck('提示里写明"饱食和水分会一直掉"', /饱食和水分会一直掉/.test((ovF && ovF.text) || ''));
+        G.bind({ onOverlay: () => {} });
+      }
       // 单件不超过 5 小时就别打扰
       G.newGame('fisher', 'normal');
       let ov2 = null; G.bind({ onOverlay: (c) => { ov2 = c; } });

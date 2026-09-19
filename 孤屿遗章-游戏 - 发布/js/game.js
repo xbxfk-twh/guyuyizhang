@@ -318,8 +318,11 @@ function change() {
         const foods = all.filter(okFood).sort((a, b) => val(a) - val(b));
         return foods[0] || null;
       }
-      // 喝：有正经饮品（水/蜂蜜水/药）先喝水分最小的；只剩带水分的食物时挑水分最多的
-      const drinks = all.filter(k => has(k) && ITEMS[k].cat === 'drink' && val(k) > 0).sort((a, b) => val(a) - val(b));
+      // 喝：**淡水优先**（作者 2026-09-19：口渴了当然先喝淡水），没有淡水才喝别的饮品；
+      //     只剩带水分的食物时挑水分最多的那份。
+      if (has('water') && val('water') > 0) return 'water';
+      const drinks = all.filter(k => has(k) && ITEMS[k].cat === 'drink' && val(k) > 0)
+        .sort((a, b) => (a === 'water' ? -1 : b === 'water' ? 1 : val(a) - val(b)));
       if (drinks.length) return drinks[0];
       const juicy = all.filter(okDrink).sort((a, b) => val(b) - val(a));
       return juicy[0] || null;
@@ -2887,6 +2890,8 @@ function change() {
     if (!next) { log('已经升到顶了。', 'warn'); return; }
     if (next.needBp && !hasItem(next.needBp)) { log(`需要图纸：${ITEMS[next.needBp].name}。`, 'warn'); return; }
     if (!matsOk(next.mats)) { log(`材料不足：${missingMats(next.mats).join('、')}。`, 'warn'); return; }
+    // 建建筑动辄几小时（草房 4 小时、远洋船 12 小时）：超过 5 小时先提醒一次（作者 2026-09-19）
+    if (longActWarn(Math.round(next.time * (1 - metaBonus().craft)), `建造${next.name}`, () => buildChain(chainId))) return;
     takeMats(next.mats);
     log(`开始建造${next.name}（需 ${next.time/60} 小时）……`, 'sys');
     addMin(Math.round(next.time * (1 - metaBonus().craft)));
@@ -2935,6 +2940,8 @@ function change() {
     // 家具位判定统一走 furnSlotFull，避免这里再抄一份规则导致两边不一致
     if (furnSlotFull(fid)) { const slots = (BUILDING_CHAINS.house[S.buildings.house].slots || 1) + (S.houseExt || 0); log(`家具位已满（${furnitureUsed()}/${slots}），先升级住所。`, 'warn'); return; }
     if (!matsOk(f.mats)) { log(`材料不足：${missingMats(f.mats).join('、')}。`, 'warn'); return; }
+    // 「别把自己做没了」：耗时超过 5 小时的家具/建造先弹窗提醒（作者 2026-09-19）
+    if (longActWarn(Math.round(f.time * (1 - metaBonus().craft)), `打造${f.name}`, () => buildFurniture(fid))) return;
     takeMats(f.mats);
     log(`开始打造${f.name}（需 ${f.time} 分钟）……`, 'sys');
     addMin(Math.round(f.time * (1 - metaBonus().craft)));
@@ -3222,16 +3229,7 @@ function change() {
     {
       const perOne = Math.max(3, Math.round(r.time * (1 - metaBonus().craft) * cxTimeMul() * (S.identity === 'smith' ? 0.8 : 1)));
       const totalMin = perOne * Math.max(1, n);
-      if (!r.hang && totalMin > 300 && !craftBatchConfirmed) {
-        const hrs = (totalMin / 60).toFixed(1);
-        showOverlay({
-          title: '⚠ 这批要花很久',
-          text: `连续制作 ${n} 件「${r.name}」大约要花 <b>${hrs} 小时</b>——这段时间饱食和水分会一直掉，饿着肚子硬做会出事（已经有人这么做把自己做没了）。\n\n要不要先吃点东西、或者少做一些？`,
-          choices: [
-            { label:`仍然开工（${hrs} 小时）`, hint:'我知道风险', ok: () => { craftBatchConfirmed = true; try { craftBatch(r, n); } finally { craftBatchConfirmed = false; } } },
-            { label:'再想想', hint:'先去吃东西 / 少做一点', ok: () => { log('你把材料先放下，打算准备准备再做。', 'sys'); } },
-          ],
-        });
+      if (!r.hang && longActWarn(totalMin, `连续制作 ${n} 件「${r.name}」`, () => craftBatch(r, n))) {
         return { ok:false, reason:'' };   // 交给弹窗处理（空 reason = 界面不要当报错写日志）
       }
     }
@@ -4269,6 +4267,22 @@ function change() {
   }
   let _lastSettle = null;
   let craftBatchConfirmed = false;   // 批量制作"超过 5 小时"的二次确认：确认过这一次就不再拦
+  // 统一的"长时间动手"预警（作者 2026-09-19）：批量制作、造家具、建建筑只要预计超过 5 小时，
+  // 都先弹一次确认——这段时间饱食和水分一直在掉，已经有人把自己做没了。
+  function longActWarn(minutes, what, retry) {
+    const total = Math.max(0, Math.round(minutes || 0));
+    if (total <= 300 || craftBatchConfirmed) return false;
+    const hrs = (total / 60).toFixed(1);
+    showOverlay({
+      title: '⚠ 这活儿要花很久',
+      text: `「${what}」大约要花 <b>${hrs} 小时</b>——这段时间饱食和水分会一直掉，饿着肚子硬干会出事（已经有人这么做把自己做没了）。\n\n要不要先吃点东西、喝口水再来？`,
+      choices: [
+        { label:`仍然开工（${hrs} 小时）`, hint:'我知道风险', ok: () => { craftBatchConfirmed = true; try { if (typeof retry === 'function') retry(); } finally { craftBatchConfirmed = false; } } },
+        { label:'再想想', hint:'先去吃东西 / 喝水', ok: () => { log('你把材料先放下，打算准备准备再动手。', 'sys'); } },
+      ],
+    });
+    return true;
+  }
   function metaLast() { return _lastSettle; }
   function reviveToday() {
     if (S.difficulty === 'legend') { log('传奇难度无法复活。', 'warn'); return; }

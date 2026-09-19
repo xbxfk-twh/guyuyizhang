@@ -517,7 +517,7 @@ const RECIPES = [
   { id:'r_ironpart', name:'打铁件', out:{ ironpart:1 }, in:{ ironingot:1 }, station:'work1', time:45 },
   { id:'r_claypot', name:'烧陶锅', out:{ claypot:1 }, in:{ clay:2 }, station:'furn1', time:30 },
   // 盐的用途规划（作者 2026-09-19）：鞣革要盐、熏肉要盐、肉汤要盐 —— 盐不再只服务腌肉/肉干
-  { id:'r_leather', name:'鞣皮革', out:{ leather:1 }, in:{ hide:1, salt:1 }, station:'tannery', time:30 },
+  { id:'r_leather', name:'鞣皮革', out:{ leather:1 }, in:{ hide:1 }, station:'tannery', time:30 },
   { id:'r_cloth', name:'纺布', out:{ cloth:1 }, in:{ fiber:4 }, station:'spin', time:45 },
   { id:'r_felt', name:'压毛毡', out:{ felt:1 }, in:{ wool:2 }, station:'spin', time:45 },
   { id:'r_canvas', name:'织帆布', out:{ canvas:1 }, in:{ cloth:2, resin:1 }, station:'loom', time:60 },
@@ -568,7 +568,7 @@ const RECIPES = [
   { id:'r_meatsoup', name:'肉汤', out:{ meatSoup:1 }, in:{ meat:1, water:1, wood:1, salt:1 }, station:'fire', time:25, needItem:'claypot' },
   { id:'r_honeywater', name:'蜂蜜水', out:{ honeyWater:1 }, in:{ honey:1, water:1 }, station:'fire', time:15, needItem:'claypot' },
     { id:'r_smokedfish', name:'熏鱼', out:{ smokedFish:1 }, in:{ fish:1, branch:2 }, station:'smoke1', time:40 },
-    { id:'r_smokedmeat', name:'熏肉', out:{ smokedMeat:1 }, in:{ meat:1, branch:2, salt:1 }, station:'smoke1', time:40 },
+    { id:'r_smokedmeat', name:'熏肉', out:{ smokedMeat:1 }, in:{ meat:1, branch:2 }, station:'smoke1', time:40 },
   { id:'r_saltedmeat', name:'腌肉', out:{ saltedMeat:1 }, in:{ meat:1, salt:1 }, station:'fire', time:20 },
   { id:'r_jerky', name:'肉干', out:{ jerky:1 }, in:{ meat:1, salt:1, wood:1 }, station:'smoke2', time:60 },
   // 晾肉架：一次挂两份肉（作者 2026-09-18：一批只晾 1 份、效率太低 → 改成一次晾两个）；
