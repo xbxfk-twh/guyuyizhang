@@ -4030,6 +4030,30 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
   ck('★ 弓/枪的先手箭改成开局当场打完，不再吞掉玩家的 攻击/逃跑/防御/道具',
      /for \(let k = 0; k < shots; k\+\+\)/.test(_GAME_SRC) &&
      !/if \(C\.bowShots > 0\) \{[\s\S]{0,900}?onFight\('update', C\); change\(\); return;/.test(_GAME_SRC));
+  // 玩家反馈"装备弓时必须先射箭、不能直接逃跑"——用实测盯住：开局第一下点逃跑就要真的跑掉
+  {
+    const fleeTrial = (weapon, ammo) => {
+      G.newGame('fisher', 'normal');
+      const s = G.S(); s.inv = {}; s.tut = null; s.stats.hp = 99999; s.stats.stamina = 9999;
+      G.addItem(weapon, 1, true); if (ammo) G.addItem(ammo, 30, true);
+      s.equipment.weapon = weapon; s.equipment.weapon2 = null;
+      s.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
+      const rnd = Math.random; Math.random = () => 0.01;      // 逃跑必成
+      G.startFight(ENEMIES.sunkenKing, true);                 // 血厚：开局先手几箭打不死，才能测到"开局之后"
+      const started = !!G.S().combat;
+      if (started) G.fightAction('flee');
+      Math.random = rnd;
+      return { started, fled: !G.S().combat, log: (G.S().log || []).some(l => /逃开/.test(l.text || '')) };
+    };
+    const bowFlee = fleeTrial('bow', 'arrow');
+    const divineFlee = fleeTrial('divineBow', 'arrow');
+    const gunFlee = fleeTrial('pistol', 'bullet');
+    ck('★ 装备弓时开局第一下就能逃跑（不用先射箭）',
+       bowFlee.started && bowFlee.fled && bowFlee.log, JSON.stringify(bowFlee));
+    ck('★ 神弓 / 手枪同理（开局直接点逃跑都能跑掉）',
+       divineFlee.started && divineFlee.fled && gunFlee.started && gunFlee.fled,
+       '神弓 ' + JSON.stringify(divineFlee) + ' 手枪 ' + JSON.stringify(gunFlee));
+  }
   {
     G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
     G.addItem('bow', 1, true); G.addItem('arrow', 30, true); G.addItem('ironSword', 1, true);
