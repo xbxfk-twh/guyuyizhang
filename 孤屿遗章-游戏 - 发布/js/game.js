@@ -2313,30 +2313,21 @@ function change() {
       revenge: 0,        // 技能树「复仇」攒的反击层数
       multi: packN > 1,  // 开场是否多目标 —— 决定敌人会不会用蓄力/掩护/猛击
     };
-    // 弓先手：装备了弓且带箭 → 开局先射（按速度±，默认2次），敌人还未靠近
+    // ⚠️ 作者 2026-09-19：**取消了"进战斗自动射箭"**。
+    //    以前装备弓/枪时一进战斗就自动先射 2~3 发（本来是"先手"的意思），玩家反馈"这不算先手，
+    //    这是入场自动战斗"，而且那几发还可能抢掉神弓"第一次命中必会心"的特权。
+    //    现在改成：带弓/枪（且有弹药）时 **第一轮你先出手**（先手 = 抢在敌人前面，而不是替你打），
+    //    要不要射、要不要跑、要不要防御，全都由你点。
     const rn = hasRanged();
+    C.bowShots = 0;
     if (rn !== null) {
       const rw0 = rangedWeapon();
       const isGun = !!(rw0 && rw0.ammoItem);
-      const shots = isGun ? 1 : ((playerAtk() >= 8 || S.skill.combat >= 2) ? 3 : 2);   // 手枪只抢射 1 发，弓保持 2~3 发
-      C.bowShots = 0;
-      C.log.push(isGun ? '你抬枪就射，敌人还没靠近。' : '你搭弓就射，敌人还没靠近。');
-      // ⚠️ 先手这几发必须【当场打完】，不能留到 fightAction 里"边射边 return"：
-      //    老写法是每次点操作先射一箭然后直接 return，把玩家那一次操作整个吃掉 ——
-      //    装备弓/神弓时"逃跑、防御、道具"点了全都没反应（玩家反馈"装备弓不给我逃跑""只能射箭"）。
-      for (let k = 0; k < shots; k++) {
-        const rw2 = rangedWeapon();
-        const ammoOk = rw2 ? (rw2.ammoItem ? invCount(rw2.ammoItem) > 0 : (invCount('eagleArrow') > 0 || invCount('arrow') > 0)) : false;
-        const tg0 = C.enemies.find(e => e.ehp > 0);
-        if (!rw2 || !ammoOk || !tg0) break;
-        let dmg = Math.max(1, rangedAtk(rw2) - C.def);
-        const dCrit = divineCritRoll(C, rw2, dmg);          // 神弓特权：先手这几箭也算
-        if (dCrit !== null) { dmg = dCrit; C.log.push('神弓的弦音一响，这一箭必中要害！'); }
-        tg0.ehp -= dmg; ammoConsume(rw2);
-        C.log.push((rw2.ammoItem ? `你抢先开枪，造成 ${dmg} 点伤害。` : `你抢先射出一箭，造成 ${dmg} 点伤害。`));
-        if (tg0.ehp <= 0) { tg0.ehp = 0; C.log.push(`${tg0.name}被击倒了！`); }
+      const ammoOk = rw0 ? (rw0.ammoItem ? invCount(rw0.ammoItem) > 0 : (invCount('eagleArrow') > 0 || invCount('arrow') > 0)) : false;
+      if (ammoOk) {
+        C.bowFirst = 1;   // 第一轮你先出手（enemyFirst 会被它压掉）
+        C.log.push(isGun ? '你抬枪在手，抢在它扑过来之前——这一轮你先出手。' : '你搭弓在手，抢在它扑过来之前——这一轮你先出手。');
       }
-      C.log.push(`${enemy.name}咆哮着逼近了！${meleeWeapons().length ? '你握紧手中武器迎击。' : ((rw0 && rw0.ammoItem) ? '你再次给手枪上膛。' : '你再次搭上箭矢。')}`);
     }
     if (enemy.nightBuff && isNight()) {
       C.atk = Math.round(C.atk * 1.3);
@@ -2346,7 +2337,6 @@ function change() {
     C.spdP = combatSpeed(); C.spdE = enemy.spd; C.spdBank = 0;
     S.combat = C;
     if (onFight) onFight('start', C);
-    if (!C.enemies.some(e => e.ehp > 0)) { endFight(true); return; }   // 先手几箭就打死了：直接结算
     change();
   }
 
@@ -2535,9 +2525,11 @@ function change() {
       C.defending = false;
     };
 
-    // 先手箭已经在 startFight 里一次性打完了（见那里的说明）：这里只做兜底清零，
+    // 先手箭已经取消（作者 2026-09-19）：这里只做兜底清零，
     // 绝不能再 return —— 否则玩家点的这一次操作会被吃掉。
     C.bowShots = 0;
+    // 带弓/枪且有弹药 → 第一轮你先出手（先手 = 抢在敌人前面，不替你打）
+    const bowFirstNow = (C.bowFirst && C.round === 1);
     if (act === 'ranged' && first) first = false;
     // ---------- 出手时间表（时间追赶）：速度 = 每单位时间的出手次数 ----------
     // 你点一次 = 你出手一次；这期间敌人按 敌速/我速 的比例积累出手次数。
@@ -2548,7 +2540,7 @@ function change() {
     let nE = Math.floor(C.accE + 1e-9);
     if (nE > 3) nE = 3;
     C.accE = Math.max(0, Math.min(2, C.accE - nE));
-    const enemyFirst = (en.traits || []).includes('first') || _spdE > _spdP;   // 谁快谁先手（同速你先手；「先手」特性一定先）
+    const enemyFirst = !bowFirstNow && ((en.traits || []).includes('first') || _spdE > _spdP);   // 谁快谁先手（同速你先手；「先手」特性一定先；带弓第一轮你先）
     const twin = (nE >= 2);                    // 敌人这轮出手 ≥2 次 → 最后一次与你同时结算
     const before = enemyFirst ? (twin ? nE - 1 : nE) : 0;
     for (let i = 0; i < before; i++) { if (C.fled) break; if (!aliveNow().length) break; doEnemyTurn(); }
@@ -2673,7 +2665,13 @@ function change() {
       log:['狼群趁夜来袭！', `${CN[wolfCount] || wolfCount}匹${base.name}的绿眼睛在夜色里盯着你。`], ranged:null, raid:true,
     };
     const rn = hasRanged();
-    if (rn !== null) { const rw2 = rangedWeapon(); const isGun2 = !!(rw2 && rw2.ammoItem); C.bowShots = isGun2 ? 1 : ((playerAtk()>=8 || S.skill.combat>=2) ? 3 : 2); C.log.push(isGun2 ? '你抬枪就射，狼群还没扑近。' : '你搭弓就射，狼群还没扑近。'); }
+    // 夜袭同样不再"入场自动射"：带弓/枪且有弹药 → 第一轮你先出手（作者 2026-09-19）
+    if (rn !== null) {
+      const rw2 = rangedWeapon();
+      const isGun2 = !!(rw2 && rw2.ammoItem);
+      const ammoOk2 = rw2 ? (rw2.ammoItem ? invCount(rw2.ammoItem) > 0 : (invCount('eagleArrow') > 0 || invCount('arrow') > 0)) : false;
+      if (ammoOk2) { C.bowFirst = 1; C.log.push(isGun2 ? '你抬枪在手，抢在狼群扑近之前——这一轮你先出手。' : '你搭弓在手，抢在狼群扑近之前——这一轮你先出手。'); }
+    }
     C.spdP = combatSpeed(); C.spdE = base.spd; C.spdBank = 0;
     S.combat = C;
     S._raid = cb;
@@ -4037,7 +4035,7 @@ function change() {
     if (S.equipment.weapon2 === 'divineBow') S.equipment.weapon2 = null;
     // 耐久一起带走（存的是"这一把"，不是全新的）
     if (S.toolDurs) delete S.toolDurs.divineBow;
-    m.mailbox.push({ item:'divineBow', qty:1, divineBow:true, dur, title:'限定 · 神弓（26.9.15-26.9.30）', date:'' });
+    m.mailbox.push({ item:'divineBow', qty:1, divineBow:true, dur, title:'限定 · 神弓', date:'' });
     metaSave();
     log(`你把神弓收进邮箱（剩余耐久 ${dur}）——它会在下一局等你。`, 'good');
     change();

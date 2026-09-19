@@ -49,7 +49,9 @@ ck('带 divineCrit 标记', ITEMS[BOW].divineCrit === 1);
 const ON_SALE = !!REC;
 console.log('  　活动状态：' + (ON_SALE ? '配方在架（活动期内）' : '配方已下架（活动结束后）'));
 if (ON_SALE) {
-  ck('配方在工作台、标「限定」与日期、带 uniqueItem', REC.station === 'work2' && /限定/.test(REC.name) && /26\.9\.15-26\.9\.30/.test(REC.name) && REC.uniqueItem === BOW,
+  // 作者 2026-09-19：配方名里的日期删掉了（界面别扭），活动时间只留在说明里
+  ck('配方在工作台、标「限定」、带 uniqueItem（名字里不再带日期）',
+     REC.station === 'work2' && /限定/.test(REC.name) && !/26\.9\.15/.test(REC.name) && REC.uniqueItem === BOW,
      REC.station + ' / ' + REC.name);
   ck('配方材料跨多线（秘银锭/鹰羽/女王丝/深珊瑚/源质锭/绳索）',
      ['mithrilingot','eaglefeather','queenSilk','deepCoral','sourceBar','rope'].every(k => REC.in[k] > 0), JSON.stringify(REC.in));
@@ -108,31 +110,35 @@ sec('D. 领取（跨局）');
   if (REC) ck('但身上有弓，仍然不允许再做（唯一性看两处都没有）', !Game.canCraft(REC).ok, Game.canCraft(REC).reason);
 }
 
-sec('E. 每场战斗第一次命中必定会心（开局的先手几箭也算）');
+sec('E. 每场战斗第一次命中必定会心（玩家自己开的第一枪）');
 {
   clearMail(); fresh();
   equipBow();
-  const r0 = Math.random; Math.random = () => 0.99;    // 普通会心(10%)永不触发，只看神弓特权
-  // ⚠️ 目标必须够厚：装备弓时开局会自动先手几箭(2~3 发)，拿野猪试会被当场秒掉，
-  //    战斗瞬间结束 → combat 变 null（旧写法就是在这里崩的）。
+  const r0 = Math.random; Math.random = () => 0.5;     // 必命中(≤0.9)、又不触发 10% 普通会心
+  // ⚠️ 作者 2026-09-19 取消"入场自动开火"：开局不再自动射箭，特权落在玩家自己点的第一枪上
   Game.startFight(ENEMIES.sunkenKing, true);
   const C = Game.S().combat;
-  ck('战斗开起来了（目标够厚，先手几箭打不死）', !!C, C ? '敌人 ' + C.enemies.length + ' 只' : '战斗已结束');
+  ck('战斗开起来了（而且不再自动开火：开局没造成伤害、没消耗箭矢）',
+     !!C && C.enemies[0].ehp === C.enemies[0].emax && !C.log.some(x => /造成 \d+ 点伤害/.test(x)),
+     C ? '敌人血 ' + C.enemies[0].ehp + '/' + C.enemies[0].emax : '战斗已结束');
   if (C) {
-    const dmgs = C.log.map(x => (x.match(/射出一箭，造成 (\d+) 点伤害/) || [])[1]).filter(Boolean).map(Number);
-    const iSound = C.log.findIndex(x => /神弓的弦音/.test(x));
-    const iFirstDmg = C.log.findIndex(x => /造成 \d+ 点伤害/.test(x));
-    console.log('    先手几箭：' + JSON.stringify(dmgs));
-    ck('★ 第一次命中就吃到特权（弦音在第一条伤害之前）',
-       iSound >= 0 && iFirstDmg >= 0 && iSound <= iFirstDmg, '弦音@' + iSound + ' 首条伤害@' + iFirstDmg);
-    ck('★ 第一箭 = 普通箭的 1.5 倍',
-       dmgs.length >= 2 && dmgs[0] === Math.round(dmgs[1] * 1.5),
-       dmgs[0] + ' 与 ' + dmgs[1] + '×1.5=' + Math.round((dmgs[1] || 0) * 1.5));
-    ck('一场只给一次：打完立刻打标记', C.divineCritUsed === 1);
-    Game.startFight(ENEMIES.sunkenKing, true);          // 新一场要重置
+    const hp0 = C.enemies[0].ehp;
+    Game.fightAction('ranged');
     const C2 = Game.S().combat;
+    const dmg1 = hp0 - (C2 ? C2.enemies[0].ehp : 0);
+    ck('★ 玩家第一枪吃到特权（日志出现"神弓的弦音"）', !!C2 && C2.log.some(x => /神弓的弦音/.test(x)), C2 ? C2.log.slice(-2).join(' ') : '');
+    ck('一场只给一次：打完立刻打标记', !!C2 && C2.divineCritUsed === 1);
+    const hp1 = C2 ? C2.enemies[0].ehp : 0;
+    if (C2) Game.fightAction('ranged');
+    const C3 = Game.S().combat;
+    const dmg2 = hp1 - (C3 ? C3.enemies[0].ehp : 0);
+    ck('★ 第一枪 = 第二枪的 1.5 倍（特权只吃一次）', dmg2 > 0 && dmg1 === Math.round(dmg2 * 1.5),
+       dmg1 + ' vs ' + dmg2 + '×1.5=' + Math.round(dmg2 * 1.5));
+    Game.startFight(ENEMIES.sunkenKing, true);          // 新一场要重置
+    const C4 = Game.S().combat;
+    if (C4) { const h0 = C4.enemies[0].ehp; Game.fightAction('ranged'); }
     ck('★ 新战斗重置（又能吃一次特权）',
-       !!C2 && C2.divineCritUsed === 1 && C2.log.some(x => /弦音/.test(x)));
+       !!(Game.S().combat && Game.S().combat.log.some(x => /弦音/.test(x))));
   }
   Math.random = r0;
 }
@@ -174,10 +180,11 @@ sec('G. 耐久 120：坏了不消失、回营地能用磨刀石修');
   s.toolDurs[BOW] = [120]; s.dur[BOW] = 120;
   ck('耐久上限 120', Game.durOf(BOW) === 120, 'dur=' + Game.durOf(BOW));
   // 打坏：耐久归零只自动卸下，不从背包消失（活动结束后再也造不出来，不能让它凭空没了）
-  // 走真实路径：留着最后 1 点耐久去打一场，开局先手那一箭就会把它打光
+  // 走真实路径：留着最后 1 点耐久去打一场，自己开一枪把它打光（作者 2026-09-19 起不再自动开火）
   s.toolDurs[BOW] = [1]; s.dur[BOW] = 1;
   s.equipment.weapon = BOW; s.equipIdx = { weapon: 0, weapon2: 0, armor: 0, cloth: 0, accessory: 0 };
   Game.startFight(ENEMIES.sunkenKing, true);
+  { const rr = Math.random; Math.random = () => 0.5; Game.fightAction('ranged'); Math.random = rr; }
   ck('★ 耐久归零只自动卸下，神弓还留在背包里',
      Game.invCount(BOW) === 1 && Game.durOf(BOW) === 0 && !Game.S().equipment.weapon,
      '背包 ' + Game.invCount(BOW) + ' 件 / 耐久 ' + Game.durOf(BOW) + ' / 主手 ' + Game.S().equipment.weapon);

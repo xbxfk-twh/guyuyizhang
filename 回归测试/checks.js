@@ -466,20 +466,23 @@ section('6d. 手枪 / 扩建仓库 / 重开身份');
 {
   // 手枪：有子弹要能远程开火（以前 UI 只看箭矢，导致手枪没按钮 / 文案写成鹰羽箭）
   ck('远程按钮按武器弹药判定（不再只看箭矢）', /rw\.ammoItem/.test(UI) && /射击（\$\{ammoName\}）/.test(UI));
-  ck('手枪战斗文案区分枪/弓', /你抬枪就射/.test(GAME) && /你搭弓就射/.test(GAME) && /你抢先开枪/.test(GAME));
+  // 作者 2026-09-19：不再"入场自动开火"，改成"第一轮你先出手" → 文案跟着改
+  ck('手枪战斗文案区分枪/弓（并写明是"先出手"而非自动开火）',
+     /你抬枪在手,抢在它扑过来之前/.test(GAME.replace(/，/g, ',')) && /你搭弓在手/.test(GAME) && /这一轮你先出手/.test(GAME));
   G.newGame('fisher', 'normal');
   {
     const Sg = G.S();
     G.addItem('pistol', 1, true); G.addItem('bullet', 6, true);
     G.equip('pistol', 0);
     G.startFight({ id:'d', name:'木桩', hp:9999999, atk:0, def:0, spd:1, traits:[], drops:[] }, true);
-    // ⚠️ 先手箭改成"开局当场打完"（以前是留在 fightAction 里、会吃掉玩家那次操作）→ 这里改成看子弹消耗
-    ck('手枪开局先手那 1 发当场打出（子弹被消耗）', G.invCount('bullet') === 5, '剩 ' + G.invCount('bullet'));
+    // ⚠️ 作者 2026-09-19：取消"入场自动开火" → 开局不消耗弹药，但第一轮我先出手
+    ck('手枪开局不再自动开火（子弹不动）', G.invCount('bullet') === 6, '剩 ' + G.invCount('bullet'));
+    ck('★ 带枪且有子弹 → 第一轮我先出手', G.S().combat && G.S().combat.bowFirst === 1);
     Sg.stats.hp = 99999;
     const rndP = Math.random; Math.random = () => 0.0;   // 必命中（不然这一枪可能落空、不扣子弹）
     G.fightAction('attack');
     Math.random = rndP;
-    ck('玩家自己再开一枪后子弹继续减少', G.invCount('bullet') < 5, '剩 ' + G.invCount('bullet'));
+    ck('玩家自己开枪后子弹才减少', G.invCount('bullet') === 5, '剩 ' + G.invCount('bullet'));
     ck('手枪单发伤害明显高于剑类（50 基础）', ITEMS.pistol.atk >= 45 && ITEMS.pistol.ranged && ITEMS.pistol.ammoItem === 'bullet');
   }
   // 扩建仓库
@@ -525,14 +528,14 @@ section('6d. 手枪 / 扩建仓库 / 重开身份');
     G.addItem('pistol', 1, true); G.addItem('bullet', 9, true);
     G.equip('pistol', 0);
     G.startFight({ id:'d', name:'木桩', hp:999999, atk:0, def:0, spd:1, traits:[], drops:[] }, true);
-    ck('手枪只抢射 1 发（开局就打掉 1 颗子弹）', G.invCount('bullet') === 8, '剩 ' + G.invCount('bullet'));
+    ck('手枪开局也不自动开枪（子弹 9 → 9）', G.invCount('bullet') === 9, '剩 ' + G.invCount('bullet'));
   }
   G.newGame('fisher', 'normal');
   {
     G.addItem('bow', 1, true); G.addItem('eagleArrow', 9, true);
     G.equip('bow', 0);
     G.startFight({ id:'d', name:'木桩', hp:999999, atk:0, def:0, spd:1, traits:[], drops:[] }, true);
-    ck('弓仍是 2~3 发抢射（开局就打掉相应数量的箭）', 9 - G.invCount('eagleArrow') >= 2, '打掉 ' + (9 - G.invCount('eagleArrow')) + ' 箭');
+    ck('弓开局也不自动射箭（箭 9 → 9）', G.invCount('eagleArrow') === 9, '剩 ' + G.invCount('eagleArrow'));
   }
   // 源能子弹：2 发一份，材料不变；手枪伤害保持 50
   const rbul = RECIPES.find(r => r.id === 'r_bullet');
@@ -2796,8 +2799,9 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
       // ⚠️ 限时活动（26.9.15-26.9.30）：活动结束后会把 r_divinebow 配方整行删掉。
       //    所以"制作相关"的断言都放在 ON_SALE 里，配方没了自动跳过（并断言它确实下架了）；
       //    "已做出的弓照常可用"（暴击/耐久/邮箱）不依赖配方，永远验。
-      ck('配方名与物品说明都标了活动日期', /26\.9\.15-26\.9\.30/.test(REC.name) && /26\.9\.15-26\.9\.30/.test(ITEMS[BOW].desc),
-         REC.name);
+      // 作者 2026-09-19：名字里的日期删掉（界面别扭），时间只留在说明里
+      ck('配方名不再带日期，活动时间只写在说明里',
+         !/26\.9\.15/.test(REC.name) && /26\.9\.15-26\.9\.30/.test(ITEMS[BOW].desc), REC.name);
     }
     // 唯一性（只在活动期内验：配方下架后这些拦截自然不存在了）
     if (ON_SALE) {
@@ -2835,9 +2839,10 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
     const sb = G.S();
     sb.equipment.weapon = BOW; sb.toolDurs[BOW] = [50]; sb.dur[BOW] = 50;
     sb.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
-    const r0 = Math.random; Math.random = () => 0.99;      // 屏蔽普通会心(10%)，只看神弓特权
-    // ⚠️ 先手箭现在"开局当场打完"，所以特权落在**开局第一箭**上（以前落在玩家点的那一箭上）。
-    //    验证方式改成：同样条件下，神弓的先手总伤害应当高于数值完全相同的猎弓。
+    const r0 = Math.random; Math.random = () => 0.5;       // 0.5：必命中（≤0.9），又不会触发 10% 普通会心
+    // ⚠️ 作者 2026-09-19 取消"入场自动开火"后，特权落在**玩家自己点的那一箭**上
+    //    （更符合"每场战斗第一次命中必会心"的原意，也不会被自动几箭抢掉）。
+    //    验证方式：同样条件下各开一枪，神弓那枪是暴击、猎弓那枪是普通。
     const volley = (wid) => {
       clearMail(); mkFresh();
       G.addItem(wid, 1, true); G.addItem('arrow', 30, true);
@@ -2847,14 +2852,20 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
       G.startFight({ id:'d', name:'木桩', hp:9999999, atk:0, def:0, spd:1, traits:[], drops:[] }, true);
       const Cx = G.S().combat;
       if (!Cx) return null;
-      return { dmg: 9999999 - Cx.enemies[0].ehp, crit: Cx.log.some(x => /神弓的弦音/.test(x)) };
+      const hp0 = Cx.enemies[0].ehp;
+      G.fightAction('ranged');              // 玩家自己开一枪
+      const C2 = G.S().combat;
+      const dmg = (C2 ? C2.enemies[0].ehp : 0);
+      return { dmg: hp0 - dmg, crit: !!(C2 && C2.log.some(x => /神弓的弦音/.test(x))),
+               critLog: !!(C2 && C2.log.some(x => /神弓的弦音/.test(x))) };
     };
     const dv = volley(BOW), nm = volley('bow');
+    const dvLog = dv && dv.critLog;
     Math.random = r0;
-    ck('实测：★ 开局先手那几箭就吃到"第一次命中必会心"（总伤害高于同数值的猎弓）',
+    ck('实测：★ 玩家自己开的第一枪吃到"第一次命中必会心"（伤害高于同数值的猎弓）',
        !!(dv && nm && dv.dmg > nm.dmg && dv.crit && !nm.crit), `神弓 ${dv && dv.dmg} vs 猎弓 ${nm && nm.dmg}`);
     ck('实测：特权提示写进了战斗日志',
-       !!(G.S().combat && G.S().combat.log.some(x => /神弓的弦音/.test(x))) || !!(dv && dv.crit), '');
+       !!dvLog || !!(dv && dv.crit), '');
     ck('代码里神弓特权同时覆盖「远程先手」与「普通射击」两条路径',
        /function divineCritRoll\(C, weapon, dealt\)/.test(_GAME_SRC) &&
        (_GAME_SRC.match(/divineCritRoll\(/g) || []).length >= 2, '调用 ' + ((_GAME_SRC.match(/divineCritRoll\(/g) || []).length - 1) + ' 处');
@@ -2901,7 +2912,10 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
       G.addItem(BOW, 1, true); G.addItem('arrow', 30, true);
       Sa.toolDurs[BOW] = [1]; Sa.dur[BOW] = 1;
       Sa.equipment.weapon = BOW; Sa.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
-      G.startFight(ENEMIES.sunkenKing, true);   // 血厚：先手几箭打不死，能看到"打坏"的那一步
+      G.startFight(ENEMIES.sunkenKing, true);   // 血厚：一箭打不死，能看到"打坏"的那一步
+      const rndAb = Math.random; Math.random = () => 0.5;   // 这一箭必中（0.5 ≤ 0.9），且不触发普通会心
+      G.fightAction('ranged');                  // 作者 2026-09-19 起不再自动开火，得自己开一枪才会磨损
+      Math.random = rndAb;
       ck('★ 弓打坏后不会被「箭矢」顶成主手武器（主手留空）',
          G.invCount(BOW) === 1 && G.durOf(BOW) === 0 && !G.S().equipment.weapon,
          '主手=' + G.S().equipment.weapon + ' 神弓=' + G.invCount(BOW) + ' 耐久=' + G.durOf(BOW));
@@ -4027,9 +4041,10 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
     ck('★ 【精算】退款真的加回了材料：净消耗 = 成本-1（3→净扣 2）', tried > 0 && ok === tried, ok + '/' + tried + ' 次');
   }
   // ③ 先手箭不能再吃掉玩家那次操作：代码里 fightAction 不许再有"射一箭就 return"
-  ck('★ 弓/枪的先手箭改成开局当场打完，不再吞掉玩家的 攻击/逃跑/防御/道具',
-     /for \(let k = 0; k < shots; k\+\+\)/.test(_GAME_SRC) &&
-     !/if \(C\.bowShots > 0\) \{[\s\S]{0,900}?onFight\('update', C\); change\(\); return;/.test(_GAME_SRC));
+  ck('★ 弓/枪不再"入场自动开火"，也没留下"射一箭就 return"的吞操作写法',
+     !/for \(let k = 0; k < shots; k\+\+\)/.test(_GAME_SRC) &&
+     !/if \(C\.bowShots > 0\) \{[\s\S]{0,900}?onFight\('update', C\); change\(\); return;/.test(_GAME_SRC) &&
+     /C\.bowFirst = 1;/.test(_GAME_SRC) && /const bowFirstNow = \(C\.bowFirst && C\.round === 1\)/.test(_GAME_SRC));
   // 玩家反馈"装备弓时必须先射箭、不能直接逃跑"——用实测盯住：开局第一下点逃跑就要真的跑掉
   {
     const fleeTrial = (weapon, ammo) => {
@@ -4053,6 +4068,25 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
     ck('★ 神弓 / 手枪同理（开局直接点逃跑都能跑掉）',
        divineFlee.started && divineFlee.fled && gunFlee.started && gunFlee.fled,
        '神弓 ' + JSON.stringify(divineFlee) + ' 手枪 ' + JSON.stringify(gunFlee));
+    // "先手"的准确含义：**第一轮你先出手**（不是替你自动开火）
+    const firstRoundOrder = (weapon, spd) => {
+      G.newGame('fisher', 'normal');
+      const s = G.S(); s.inv = {}; s.tut = null; s.stats.hp = 99999; s.stats.stamina = 9999;
+      if (weapon) { G.addItem(weapon, 1, true); G.addItem('arrow', 30, true); s.equipment.weapon = weapon; }
+      s.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
+      G.startFight({ id:'t', name:'快怪', hp:9999, atk:5, def:0, spd, traits:[], drops:[] }, true);
+      const C = G.S().combat; const n0 = C.log.length;
+      const rr = Math.random; Math.random = () => 0.5;
+      G.fightAction('defend');
+      Math.random = rr;
+      const lines = (G.S().combat ? G.S().combat.log.slice(n0) : []).join(' ');
+      return { me: lines.indexOf('你摆出防御姿态'), en: lines.indexOf('攻击造成') };
+    };
+    const withBow = firstRoundOrder('bow', 14);     // 速度 14 > 弓速 8：平时它必定先手
+    const noBow = firstRoundOrder(null, 14);
+    ck('★ 带弓时第一轮我先出手（速度没我快的怪会被抢在前面）',
+       withBow.me >= 0 && withBow.me < withBow.en, JSON.stringify(withBow));
+    ck('不带弓的对照：速度更快的敌人仍然先手', noBow.en >= 0 && noBow.en < noBow.me, JSON.stringify(noBow));
   }
   {
     G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;

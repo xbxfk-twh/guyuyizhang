@@ -608,7 +608,8 @@ const RECIPES = [
   // ⚠️ 作者 2026-09-17 要求"把神弓的制造放到最下面"——所以它固定在 RECIPES 数组的**最后一条**
   //    （列表是按数组顺序渲染的，放最后就是精工工作台/制造页最底下一格）。
   // 活动结束后：把这一条配方删掉即可（物品定义与领取逻辑不用动，已做出的神弓照常可用）。
-  { id:'r_divinebow', name:'限定 · 神弓（26.9.15-26.9.30）', out:{ divineBow:1 }, station:'work2', time:180, uniqueItem:'divineBow',
+  // 作者 2026-09-19：配方名里的日期看着别扭 → 名字只留"限定 · 神弓"，时间写在下面那行说明里（不然界面很乱）
+  { id:'r_divinebow', name:'限定 · 神弓', out:{ divineBow:1 }, station:'work2', time:180, uniqueItem:'divineBow',
     in:{ mithrilingot:2, eaglefeather:6, queenSilk:1, deepCoral:3, sourceBar:1, rope:4 } },
 ];
 
