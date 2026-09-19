@@ -104,6 +104,7 @@ section('1. 采集 / 遇袭 / 守卫');
   const pt = G.pointsOf().find(p => p.id === 'forest_tree');
   const w0 = G.invCount('wood');
   G.doPoint(pt);
+  winFights();     // 遇袭时收获推迟到打赢之后（作者 2026-09-19 改的次序）
   const a = S.toolDurs.axeStone;
   ck('伐木有产出', G.invCount('wood') > w0);
   ck('一次采集只磨一把工具的耐久', (a[0] === 24 && a[1] === 25) || (a[0] === 25 && a[1] === 24), JSON.stringify(a));
@@ -112,9 +113,13 @@ section('1. 采集 / 遇袭 / 守卫');
   const g1 = G.pointsOf().find(p => p.type === 'gather' && !p.once && !p.guard);
   const before = G.invCount(g1.yields[0].id);
   G.doPoint(g1);
-  ck('遇袭时采集照样完成', G.invCount(g1.yields[0].id) > before);
+  // ⚠️ 作者 2026-09-19 改次序：先花时间 → 遇怪先去打 → **打赢才收获**（以前是产出先进包再开战）
+  ck('遇袭时先进入战斗、还没有产出', !!S.combat && G.invCount(g1.yields[0].id) === before,
+     '战斗=' + !!S.combat + ' 产出变化=' + (G.invCount(g1.yields[0].id) - before));
   ck('遇袭后进入战斗', !!S.combat);
   winFights();
+  ck('★ 打赢之后才结算收获', G.invCount(g1.yields[0].id) > before,
+     '战斗结束后 ' + g1.yields[0].id + ' ' + before + ' → ' + G.invCount(g1.yields[0].id));
   Math.random = RND;
 }
 
@@ -479,6 +484,7 @@ section('6d. 手枪 / 扩建仓库 / 重开身份');
     ck('手枪开局不再自动开火（子弹不动）', G.invCount('bullet') === 6, '剩 ' + G.invCount('bullet'));
     ck('★ 带枪且有子弹 → 第一轮我先出手', G.S().combat && G.S().combat.bowFirst === 1);
     Sg.stats.hp = 99999;
+    G.S().combat.dist = 10;      // 手枪射程 15：先压到射程内（距离制，作者 2026-09-19）
     const rndP = Math.random; Math.random = () => 0.0;   // 必命中（不然这一枪可能落空、不扣子弹）
     G.fightAction('attack');
     Math.random = rndP;
@@ -641,6 +647,7 @@ section('6e. 数据安全（魂点/成就/存档）与难度调整');
       Se.pointUses = {}; Se.stats.stamina = 999;
       const b0 = G.invCount('wood');
       G.doPoint(pt);
+      winFights();          // 随机数 0 也会同时引来遇袭：收获推迟到打赢之后（作者 2026-09-19）
       Math.random = R0;
       const got = G.invCount('wood') - b0;
       ck('砍树彩蛋对「' + IDENTITIES[idn].name + '」生效且额外 +7 木材', got >= 7 && logs.some(l => /美人松/.test(l)), '本次木材 +' + got);
@@ -655,6 +662,7 @@ section('6e. 数据安全（魂点/成就/存档）与难度调整');
     Math.random = () => 0.0;
     Sb.pointUses = {}; Sb.stats.stamina = 999;
     G.doPoint(pb);
+    winFights();
     Math.random = R0;
     ck('砍竹子不会触发美人松彩蛋', !logs2.some(l => /美人松/.test(l)));
   }
@@ -669,7 +677,7 @@ section('6e. 数据安全（魂点/成就/存档）与难度调整');
     G.travel('river');
     let items = 0;
     Math.random = () => 0.0;
-    for (let i = 0; i < 4; i++) { Sw2.pointUses = {}; Sw2.stats.stamina = 999; const b = G.invCount('water'); G.doPoint(wpt); items += G.invCount('water') - b; }
+    for (let i = 0; i < 4; i++) { Sw2.pointUses = {}; Sw2.stats.stamina = 999; const b = G.invCount('water'); G.doPoint(wpt); winFights(); items += G.invCount('water') - b; }
     Math.random = R1;
     ck('普通难度一天取水足够（≥118 口渴点）', items * 25 >= 118, items + ' 份 = ' + items * 25 + ' 点');
   }
@@ -990,20 +998,37 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
   }
   // 死亡后"回到标题再来"：不能把 S.ending='D' 带进新的一次游戏，
   // 否则所有结局按钮失效、时间流逝与自动存档也停摆（玩家实测遇到的真问题）
+  // ⚠️ 2026-09-19 补：**真正死掉的档**读回来必须还是"死"的（以前会被清成可玩状态 →
+  //    回标题点"继续上次游戏"、进去吃口药又活了，玩家反馈"死亡还有啥意义"）。
   {
     G.newGame('fisher', 'normal');
     const Sz = G.S();
     G.addItem('relic', 1, true); G.addItem('slate', 3, true); G.addItem('dragonbone', 1, true);
     Sz.scene = 'peak';
-    Sz.ending = 'D'; Sz.death = '你倒在荒野里，再也没能站起来。';
+    Sz.ending = 'D'; Sz.death = '你倒在荒野里，再也没能站起来。'; Sz.stats.hp = 0;
     ck('死亡结算状态挂着时，结局按钮确实会消失（复现）', G.checkEndingActions().length === 0);
     G.save();
-    ck('读档接着玩会清掉死亡/结算状态', G.load() && !G.S().ending && !G.S().death, 'ending=' + G.S().ending);
+    const loadedDead = G.load();
+    ck('★ 死掉的档读回来仍然是"死亡结算"状态（不能直接放回游戏）',
+       loadedDead && G.S().ending === 'D' && G.S().stats.hp === 0 && !!G.S().death,
+       'ending=' + G.S().ending + ' hp=' + G.S().stats.hp);
+    ck('★ 这种状态下吃药也活不过来（药只会被界面挡住/无法生效）',
+       (() => { G.addItem('herbPaste', 1, true); const hp0 = G.S().stats.hp; try { G.useMed('herbPaste'); } catch (e) {}
+         return G.S().stats.hp === hp0; })(), 'hp=' + G.S().stats.hp);
+    // 活着读档（比如看完结算画面留着继续玩）仍然要把结算状态清掉，恢复成可玩
+    G.newGame('fisher', 'normal');
+    const Sv2 = G.S();
+    G.addItem('relic', 1, true); G.addItem('slate', 3, true); G.addItem('dragonbone', 1, true);
+    Sv2.scene = 'peak'; Sv2.ending = 'C'; Sv2.stats.hp = 88;
+    G.save();
+    ck('活着读档：结算状态会被清掉（继续玩不受影响）', G.load() && !G.S().ending, 'ending=' + G.S().ending);
     const acts = G.checkEndingActions().map(a => a.id);
     ck('清掉之后「祭坛仪式（结局·秘辛）」回来了', acts.includes('endC'), acts.join('/'));
     ck('继续游戏的接口存在（结局界面"留在岛上/回到标题"会调它）', typeof G.continueRun === 'function' && /Game\.continueRun\(\)/.test(UI));
-    // 备份槽读档同样要清
-    G.S().ending = 'A';
+    ck('标题页点「继续上次游戏」遇到死亡档会直接弹结局画面（不给复活按钮）',
+       /s0\.ending === 'D'/.test(UI) && /noRevive: true/.test(UI) && /本局已结算 · 无法复活/.test(UI));
+    // 备份槽读档同样要清（备份槽存的是"当时那份 S"，一般是活着的时候）
+    G.S().ending = 'A'; G.S().stats.hp = 90;
     G.backupSlot(0);
     G.newGame('fisher', 'normal');
     G.loadSlot(0);
@@ -1686,13 +1711,15 @@ section('7c. 蓝牛（体力药水）与精神机制');
     const river = SCENES.find(s => s.id === 'river');
     const netPt = river.points.find(p => p.id === 'river_net'), fishPt = river.points.find(p => p.id === 'river_fish');
     G.doPoint(netPt);
+    winFights();     // 撒网同样可能遇袭：打赢才结算（含"竭泽而渔"的标记）
     const bannedMsg = '先前竭泽而渔了，现在暂时看不到鱼的踪迹。';
     ck('河畔撒网后 4 天：钓鱼和撒网都停，提示语一致',
        G.pointStatus(fishPt) === bannedMsg && G.pointStatus(netPt) === bannedMsg, G.pointStatus(fishPt));
     Sv.day += 4;
     ck('第 4 天之后河畔恢复', G.pointStatus(fishPt) === 'ok', G.pointStatus(fishPt));
   }
-  ck('渔网造价（藤蔓6+木材3）与耐久 10', RECIPES.find(r => r.id === 'r_net').in.vine === 6 && RECIPES.find(r => r.id === 'r_net').in.wood === 3 && DURA.net === 10);
+  ck('渔网造价（作者 2026-09-19 上调：藤蔓8+木材4）与耐久 10',
+     RECIPES.find(r => r.id === 'r_net').in.vine === 8 && RECIPES.find(r => r.id === 'r_net').in.wood === 4 && DURA.net === 10);
   // 渔网到底用在哪：河畔 / 近海 / 海底（之前只扫了顶层 points，漏掉 zones 里的点，别再搞错）
   {
     const netUse = [];
@@ -1982,9 +2009,9 @@ section('7g. 美人松 10% / 连续落空成就');
   const Sp = G.S();
   Sp.scene = 'forest'; Sp.day = 20; Sp.minute = 600; Sp.stats.stamina = 150;
   G.addItem('axeSteel', 1, true); Sp.toolkit = ['axeSteel'];
-  Math.random = always;   // 必触发美人松（同时会引来遇袭，采完自己清掉）
-  G.doPoint(treePt); Sp.combat = null;
-  G.doPoint(treePt); Sp.combat = null;
+  Math.random = always;   // 必触发美人松（同时会引来遇袭 → 打赢才结算）
+  G.doPoint(treePt); winFights();
+  G.doPoint(treePt); winFights();
   Math.random = RND;
   ck('连续两次美人松 → 紫成就「好大一颗美人松啊」', G.achUnlocked('bigPine') === true && Sp.pineStreak === 2, '连续=' + Sp.pineStreak);
   ck('两次都真的触发了美人松（各 +7 木材）', pineLogs.length === 2, '触发 ' + pineLogs.length + ' 次');
@@ -4084,9 +4111,80 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
     };
     const withBow = firstRoundOrder('bow', 14);     // 速度 14 > 弓速 8：平时它必定先手
     const noBow = firstRoundOrder(null, 14);
+    // 敌人在远处时会先"逼近"而不是出手（距离制），所以 en<0 = 这轮它没打到人，同样算"我先"
     ck('★ 带弓时第一轮我先出手（速度没我快的怪会被抢在前面）',
-       withBow.me >= 0 && withBow.me < withBow.en, JSON.stringify(withBow));
-    ck('不带弓的对照：速度更快的敌人仍然先手', noBow.en >= 0 && noBow.en < noBow.me, JSON.stringify(noBow));
+       withBow.me >= 0 && (withBow.en < 0 || withBow.me < withBow.en), JSON.stringify(withBow));
+    ck('不带弓 vs 速度更快的怪：敌人先动手（距离 0 的贴身战不受影响）',
+       noBow.en >= 0 && noBow.en < noBow.me, JSON.stringify(noBow));
+    // ---------- 距离制战斗（作者 2026-09-19）：射程 + 双方按速度靠近 ----------
+    {
+      const setup = (weapon, ammo, enemy) => {
+        G.newGame('fisher', 'normal');
+        const s = G.S(); s.inv = {}; s.tut = null; s.stats.hp = 99999; s.stats.stamina = 9999;
+        if (weapon) { G.addItem(weapon, 1, true); if (ammo) G.addItem(ammo, 30, true); s.equipment.weapon = weapon; }
+        s.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
+        G.startFight(enemy, true);
+        return G.S().combat;
+      };
+      const meleeFoe = { id:'t', name:'木桩怪', hp:99999, atk:5, def:0, spd:6, traits:[], drops:[] };
+      const farFoe = { id:'t2', name:'远程怪', hp:99999, atk:5, def:0, spd:6, range:20, traits:[], drops:[] };
+      ck('★ 双方都是近战 → 直接贴身开打（距离 0，不打空回合）', setup('ironSword', null, meleeFoe).dist === 0);
+      ck('★ 带弓 → 开局距离 30（弓射程内，敌人要冲上来）', setup('bow', 'arrow', meleeFoe).dist === 30);
+      ck('★ 带枪 → 开局也是 30，但手枪射程只有 15（得先压上去）',
+         setup('pistol', 'bullet', meleeFoe).dist === 30 &&
+         /const RANGE_BOW = 30, RANGE_GUN = 15/.test(_GAME_SRC));
+      ck('★ 对面是远程怪（射程 20）→ 开局 30，近战玩家必须先冲上去',
+         setup('ironSword', null, farFoe).dist === 30);
+      // 弓先射几轮，敌人每回合按速度靠近
+      {
+        const C = setup('bow', 'arrow', meleeFoe);
+        const s = G.S(); s.stats.hp = 99999;
+        const rr = Math.random; Math.random = () => 0.5;    // 必中、不触发会心
+        const hp0 = C.enemies[0].ehp;
+        // 连射几轮：看它在敌人冲到脸上之前能白拿几发（这就是"弓的额外回合"）
+        let shots = 0, minDist = 30;
+        for (let i = 0; i < 10 && G.S().combat && G.S().combat.dist > 0; i++) {
+          const before = G.S().combat.enemies[0].ehp;
+          G.fightAction('ranged');
+          if (!G.S().combat) break;
+          if (G.S().combat.enemies[0].ehp < before) shots++;
+          minDist = Math.min(minDist, G.S().combat.dist);
+        }
+        const distNow = G.S().combat ? G.S().combat.dist : 0;
+        Math.random = rr;
+        ck('★ 弓在敌人冲到脸上之前能多打好几发（这就是"额外回合"）',
+           shots >= 2 && minDist < 30, '白拿 ' + shots + ' 发，距离 30 → ' + distNow);
+      }
+      // 手枪在 30 步外点射击：这回合是逼近，不浪费子弹
+      {
+        const C = setup('pistol', 'bullet', meleeFoe);
+        const s = G.S(); s.stats.hp = 99999;
+        const rr = Math.random; Math.random = () => 0.5;
+        const b0 = G.invCount('bullet');
+        G.fightAction('ranged');
+        const C2 = G.S().combat;
+        Math.random = rr;
+        ck('★ 手枪在 30 步外点射击 = 先压上去（不消耗子弹）',
+           G.invCount('bullet') === b0 && !!C2 && C2.dist < 30, '子弹 ' + b0 + '→' + G.invCount('bullet') + '，距离 ' + (C2 ? C2.dist : '?'));
+      }
+      // 海底远程精英：射程 20、经验 5、只在中层黑暗出现
+      ck('★ 海底远程精英「深海哨兵」：射程 20、经验 5',
+         ENEMIES.atlSentry && ENEMIES.atlSentry.range === 20 && ENEMIES.atlSentry.exp === 5, JSON.stringify(ENEMIES.atlSentry && { range: ENEMIES.atlSentry.range, exp: ENEMIES.atlSentry.exp }));
+      {
+        G.newGame('fisher', 'normal');
+        const s = G.S(); s.tut = null; s.stats.hp = 999999; s.stats.stamina = 9999;
+        G.addItem('ironSword', 2, true); s.equipment.weapon = 'ironSword';
+        s.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
+        const e0 = s.exp.combat;
+        G.startFight(ENEMIES.atlSentry, true);
+        const rr = Math.random; Math.random = () => 0.5;
+        winFights();
+        Math.random = rr;
+        ck('★ 打赢深海哨兵给 5 点战斗经验', Math.round(G.S().exp.combat - e0) === 5, '获得 ' + Math.round(G.S().exp.combat - e0));
+      }
+      ck('★ 深海哨兵只在照明 ≥2 的海底区域出现（代码里有 lightLevel() >= 2 的门槛）',
+         /lightLevel\(\) >= 2 && ENEMIES\.atlSentry/.test(_GAME_SRC));
+    }
   }
   {
     G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
@@ -4095,12 +4193,13 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
     const s2 = G.S(); s2.stats.hp = 9999;
     G.startFight({ id:'d', name:'木桩', hp:999999, atk:0, def:0, spd:1, traits:[], drops:[] }, true);
     const bowDur0 = G.durOf('bow'), swDur0 = G.durOf('ironSword');
+    G.S().combat.dist = 0;     // 近战要贴身（距离制）：先站到它脸上再点攻击
     const rnd = Math.random; Math.random = () => 0.1;
     G.fightAction('attack');
     Math.random = rnd;
     ck('★ 装备弓 + 副手近战：点「攻击」真的用副手砍（副手掉耐久）',
        G.durOf('ironSword') < swDur0, '副手 ' + swDur0 + ' → ' + G.durOf('ironSword') + '；弓 ' + bowDur0 + ' → ' + G.durOf('bow'));
-    ck('先手那几箭在开局就已经打出去了（弓耐久开局就掉）', bowDur0 < 120, '弓 ' + bowDur0);
+    ck('带弓开局不再自动开火（弓耐久保持满，先手改成"第一轮你先出手"）', bowDur0 === DURA.bow, '弓 ' + bowDur0 + '/' + DURA.bow);
   }
   // ④ 采集磨损必须扣"工具栏里在用的那把"，不是背包里最好的那把
   ck('★ 采集磨损扣工具栏里那把（不是背包里等级最高的）',
@@ -4239,6 +4338,7 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
       }
       sG.scene = gsc; sG.zone = gzone;
       G.doPoint(gp);
+      winFights();   // 遇袭时收获推迟到打赢之后（作者 2026-09-19）
       ck('★ 采集经验：每个点位 +1（口径纠正后回到原样）', Math.round(sG.exp.gather - g0) === 1, '一次采集 +' + (sG.exp.gather - g0) + '（' + gp.name + '）');
       // 真正调的是"升级消耗"：采集树 ×2、制造树 ×3、战斗树不变
       ck('★ 升级消耗倍率：采集树 ×2、制造树 ×3、战斗树 ×1',

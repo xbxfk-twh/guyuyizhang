@@ -962,6 +962,21 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
 
   // ---------- 场景视图（带缓存：同一场景不重建 DOM，避免图片反复解码闪烁） ----------
   let lastSceneKey = null;
+  // 场景图预取：手机端切场景"等图"最明显。当前场景稳定后，用空闲时间把**相邻几个场景**的图先读进
+  // 浏览器的缓存/解码表（只取少数邻居，不把 20 张图全塞内存——之前"内存被杀"的教训）。
+  const _prefetched = {};
+  function prefetchScenes(curId) {
+    try {
+      const idx = SCENES.findIndex(s => s.id === curId);
+      const list = SCENES.map((s, i) => ({ img: s && s.img, far: Math.abs(i - idx) })).filter(x => x.img && x.far > 0);
+      list.sort((a, b) => a.far - b.far);
+      list.slice(0, 3).forEach((it, i) => {
+        if (_prefetched[it.img]) return;
+        _prefetched[it.img] = 1;
+        setTimeout(() => { try { const im = new Image(); im.decoding = 'async'; im.src = it.img; } catch (e) {} }, 500 + i * 300);
+      });
+    } catch (e) {}
+  }
   const PAPER_FALLBACK = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><rect width="1280" height="720" fill="#d9d4c4"/><text x="640" y="360" font-size="120" text-anchor="middle" fill="#16150f">▚</text></svg>');
   function renderScene() {
     const st = S();
@@ -1008,6 +1023,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
         if (sc.id === 'atlantis') zoneTravelAnim(b.dataset.zone); else Game.setZone(b.dataset.zone);
       });
       lastSceneKey = key;
+      prefetchScenes(sc.id);   // 空闲时预热相邻场景的底图（手机端切场景更快）
     }
     // 动态部分：名称（含昼夜符号与危险点）/ 昼夜滤镜 / 天气覆盖 / 营地热点
     const nameEl = $('#scene-name');
@@ -2446,6 +2462,25 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
             '淡水：河畔取水点直接取；造了「水壶」口渴消耗 -20%，再装「滤雨器」雨天自动接水；老潮也卖。',
             '干草：工匠「晒干草」把茅草变成干草；盐镇杂货商（第 5 天起）有卖；羊圈靠它喂羊。',
           ])
+        + G('树枝', [
+            '主要来源是<b>砍树</b>：树林·老松树（要斧头），每次有 <b>50%</b> 额外掉 1~2 根树枝，同时出 2~4 木材。',
+            '砍树次数每天有限（老松树每天 4 次），但树枝本身不稀缺——做火把、熏鱼熏肉、简易烟雾弹都要它，缺了就多砍两棵树。',
+          ])
+        + G('水晶', [
+            '山洞·<b>发光苔藓</b>：不用工具，每天 2 次，每次 <b>25%</b> 概率出 1 块水晶（主要还产草药）。',
+            '海底·珍珠洞窟「<b>晶簇</b>」：需要<b>铁镐及以上</b>，每天 2 次，每次稳定出 1~2 块水晶（还有 50% 出源矿）。',
+            '打倒 <b>遗迹守卫</b>（山洞/对岸遗迹）和 <b>石板守卫</b>（山顶雪线、石碑前）各有 <b>50%</b> 概率掉 1 块水晶。',
+            '用途：高级工作台/熔炉/砖瓦房这类高阶建造，以及黑市路线的一部分装备。',
+          ])
+        + G('源能晶石', [
+            '只有章二（亚克兰蒂斯）的<b>深海暗区</b>出，而且大多要求<b>照明等级</b>——先去珍珠洞窟凿晶簇做「防水强光潜水手电」（照明 3）。',
+            '· 「晶簇」（珍珠洞窟）：红蓝<b>照明 1</b>，需铁镐，每天 2 次，稳定产水晶 + 50% 源矿（不光源能晶石）。',
+            '· 「<b>珍珠之心</b>」（珍珠洞窟最深处）：照明 1，每天 1 次，<b>50%</b> 出 1 块源能晶石（有守卫）。',
+            '· 「<b>无光深渊</b>」（海沟）：照明 3 + 钢镐，每天 1 次，<b>50%</b> 出 1 块（机械守卫守着）。',
+            '· 「<b>符文密室</b>」（裂缝）：照明 3，每天 1 次，<b>40%</b> 出 1 块（触手 + 机械守卫）。',
+            '· 「<b>源晶簇</b>」（裂谷最底）：照明 3 + 钢镐，每天 1 次，<b>60%</b> 出 1 块（掉落最高，但守卫最强）。',
+            '用途：源能子弹、源能手枪、源质重甲/长枪、推进器、高级潜水服、防水强光手电——都是章二后期装备的核心材料。',
+          ])
         + G('雪莲 / 秘银（山顶）', [
             '都在山顶雪线以上，需要保暖（皮衣/毛皮大衣一类），走到雪线附近可能有石像拦路——可以选择绕开或打倒它。',
           ])
@@ -2522,7 +2557,15 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     $('#php').style.width = Math.max(0, Math.min(100, Game.S().stats.hp / Game.hpMax() * 100)) + '%';
     $('#php-txt').textContent = `${Game.S().stats.hp}/${Game.hpMax()}`;
     const logBox = $('#fight-log');
-    logBox.innerHTML = C.log.map(l => `<div class="fline">${esc(l)}</div>`).join('') + (PENDING_ACT ? '<div class="fline sel-line">—— 点击血条选择你要攻击的目标 ——</div>' : '');
+    // 距离制（作者 2026-09-19）：把"还差多少步"写在战斗日志最上面，玩家一眼知道为什么这刀打不到
+    const distLine = (() => {
+      const d = (typeof C.dist === 'number') ? C.dist : 0;
+      if (!d) return '';
+      const near = (C.enemies || []).find(e => e.ehp > 0);
+      const er = (near && typeof Game.enemyRangeOf === 'function') ? Game.enemyRangeOf(near) : 0;
+      return `<div class="fline dist-line">— 距离 ${d} 步${er > 0 ? `（对方是远程，${er} 步内就能打到你）` : ''} —</div>`;
+    })();
+    logBox.innerHTML = distLine + C.log.map(l => `<div class="fline">${esc(l)}</div>`).join('') + (PENDING_ACT ? '<div class="fline sel-line">—— 点击血条选择你要攻击的目标 ——</div>' : '');
     logBox.scrollTop = logBox.scrollHeight;
     const btns = $('#fight-btns');
     const canHeavy = Game.combatLv() >= 2;
@@ -3276,7 +3319,8 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   }
 
   // ---------- 结局 ----------
-  function showEnding(id, reason) {
+  function showEnding(id, reason, opts) {
+    const noRevive = !!(opts && opts.noRevive);   // 从存档读出来的"已经死了的档"：不给复活按钮
     const st = S();
     const end = ENDINGS[id] || ENDINGS.D;
     try { AudioFX.playEnding(id); } catch (e) {}
@@ -3299,7 +3343,8 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       <div class="ending-diary">${diary}</div>
       <div class="ending-actions">
         ${id === 'D' ? (
-          (st.difficulty !== 'legend' ? (metaSoul >= 50 ? `<button id="end-revive">回到今天日出（-50 魂点）</button>` : `<button id="end-revive" data-lack="1">回到今天日出（需 50 魂点）</button>`) : '') +
+          (noRevive ? `<button disabled title="这一局已经结算过了，没法再回到死亡当时">本局已结算 · 无法复活</button>`
+            : (st.difficulty !== 'legend' ? (metaSoul >= 50 ? `<button id="end-revive">回到今天日出（-50 魂点）</button>` : `<button id="end-revive" data-lack="1">回到今天日出（需 50 魂点）</button>`) : '')) +
           `<button id="end-retry">重新开始</button>`
         ) : `<button id="end-stay">留在岛上（自由模式）</button>`}
         <button id="end-title">回到标题</button>
@@ -3359,7 +3404,16 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       const btn = e.target && e.target.closest ? e.target.closest('button') : null;
       if (!btn) return;
       if (btn.id === 'btn-new') { AudioFX.init(); showJourneySelect(); }
-      else if (btn.id === 'btn-load') { AudioFX.init(); if (Game.load()) { begin(); } }
+      else if (btn.id === 'btn-load') {
+        AudioFX.init();
+        if (Game.load()) {
+          // 上一局已经死了（生命归零 / 带着死亡记录）：别直接放进营地，
+          // 先把结局画面弹出来——复活要花 50 魂点，吃口药复活是不算数的（作者 2026-09-19）
+          const s0 = Game.S();
+          if (s0 && s0.ending === 'D') { begin(); showEnding('D', s0.death || '你在上一局倒下了。', { noRevive: true }); }
+          else begin();
+        }
+      }
       else if (btn.id === 'btn-meta') { AudioFX.init(); showModal('heirloom'); }
       else if (btn.id === 'btn-bak') { AudioFX.init(); showModal('backup'); }
       else if (btn.id === 'btn-set') { AudioFX.init(); showModal('settings'); }

@@ -516,7 +516,8 @@ const RECIPES = [
   { id:'r_nail', name:'打铁钉', out:{ nail:4 }, in:{ ironingot:1 }, station:'furn1', time:30 },
   { id:'r_ironpart', name:'打铁件', out:{ ironpart:1 }, in:{ ironingot:1 }, station:'work1', time:45 },
   { id:'r_claypot', name:'烧陶锅', out:{ claypot:1 }, in:{ clay:2 }, station:'furn1', time:30 },
-  { id:'r_leather', name:'鞣皮革', out:{ leather:1 }, in:{ hide:1 }, station:'tannery', time:30 },
+  // 盐的用途规划（作者 2026-09-19）：鞣革要盐、熏肉要盐、肉汤要盐 —— 盐不再只服务腌肉/肉干
+  { id:'r_leather', name:'鞣皮革', out:{ leather:1 }, in:{ hide:1, salt:1 }, station:'tannery', time:30 },
   { id:'r_cloth', name:'纺布', out:{ cloth:1 }, in:{ fiber:4 }, station:'spin', time:45 },
   { id:'r_felt', name:'压毛毡', out:{ felt:1 }, in:{ wool:2 }, station:'spin', time:45 },
   { id:'r_canvas', name:'织帆布', out:{ canvas:1 }, in:{ cloth:2, resin:1 }, station:'loom', time:60 },
@@ -535,7 +536,8 @@ const RECIPES = [
   { id:'r_irongreatsword', name:'铁大剑', out:{ ironGreatSword:1 }, in:{ ironingot:5, wood:2 }, station:'work2', time:120 },
   { id:'r_hoe', name:'锄头', out:{ hoe:1 }, in:{ wood:2, stone:1 }, station:'none', time:20 },
   { id:'r_rod', name:'鱼竿', out:{ rod:1 }, in:{ bamboo:2, vine:1 }, station:'none', time:15 },
-    { id:'r_net', name:'渔网', out:{ net:1 }, in:{ vine:6, wood:3 }, station:'none', time:30 },
+    // 渔网（作者 2026-09-19：造价略微提高 6藤蔓+3木 → 8藤蔓+4木）
+    { id:'r_net', name:'渔网', out:{ net:1 }, in:{ vine:8, wood:4 }, station:'none', time:30 },
   { id:'r_trap', name:'陷阱', out:{ trap:1 }, in:{ wood:2, vine:2 }, station:'none', time:20 },
   { id:'r_split', name:'劈柴', out:{ branch:4 }, in:{ wood:2 }, station:'none', time:10 },
   { id:'r_torch', name:'火把', out:{ torch:1 }, in:{ branch:2, resin:1 }, station:'none', time:10 },
@@ -563,10 +565,10 @@ const RECIPES = [
   { id:'r_roastfish', name:'烤鱼', out:{ roastFish:1 }, in:{ fish:1, wood:1 }, station:'fire', time:20 },
   { id:'r_roastmeat', name:'烤肉', out:{ roastMeat:1 }, in:{ meat:1, wood:1 }, station:'fire', time:20 },
   { id:'r_vegsoup', name:'野菜汤', out:{ vegSoup:1 }, in:{ wildveg:1, water:1 }, station:'fire', time:20, needItem:'claypot' },
-  { id:'r_meatsoup', name:'肉汤', out:{ meatSoup:1 }, in:{ meat:1, water:1, wood:1 }, station:'fire', time:25, needItem:'claypot' },
+  { id:'r_meatsoup', name:'肉汤', out:{ meatSoup:1 }, in:{ meat:1, water:1, wood:1, salt:1 }, station:'fire', time:25, needItem:'claypot' },
   { id:'r_honeywater', name:'蜂蜜水', out:{ honeyWater:1 }, in:{ honey:1, water:1 }, station:'fire', time:15, needItem:'claypot' },
     { id:'r_smokedfish', name:'熏鱼', out:{ smokedFish:1 }, in:{ fish:1, branch:2 }, station:'smoke1', time:40 },
-    { id:'r_smokedmeat', name:'熏肉', out:{ smokedMeat:1 }, in:{ meat:1, branch:2 }, station:'smoke1', time:40 },
+    { id:'r_smokedmeat', name:'熏肉', out:{ smokedMeat:1 }, in:{ meat:1, branch:2, salt:1 }, station:'smoke1', time:40 },
   { id:'r_saltedmeat', name:'腌肉', out:{ saltedMeat:1 }, in:{ meat:1, salt:1 }, station:'fire', time:20 },
   { id:'r_jerky', name:'肉干', out:{ jerky:1 }, in:{ meat:1, salt:1, wood:1 }, station:'smoke2', time:60 },
   // 晾肉架：一次挂两份肉（作者 2026-09-18：一批只晾 1 份、效率太低 → 改成一次晾两个）；
@@ -767,6 +769,11 @@ const ENEMIES = {
   pirateBoss:{ id:'pirateBoss', name:'海盗头目', img:'assets/img/boss_pirate.png', boss:1, hp:180, atk:26, def:9, spd:14, traits:['gun'], drops:[{ id:'coin', qty:20, ch:1 },{ id:'bpGunpowder', qty:1, ch:0.5 },{ id:'bpDive', qty:1, ch:0.12 },{ id:'bpShip', qty:1, ch:0.12 },{ id:'bpBlack', qty:1, ch:0.12 },{ id:'brokenPistol', qty:1, ch:0.35 }], desc:'独眼海盗头目举起火枪，狞笑着瞄准你。' },
   slateGuard:{ id:'slateGuard', name:'石板守卫', img:'assets/img/enemies/slateguard.png', boss:1, hp:170, atk:24, def:9, spd:7, traits:['stoneGuard'], drops:[{ id:'slate', qty:1, ch:1 },{ id:'coin', qty:12, ch:1 }], desc:'一尊通灵的石碑守卫镇守着石板：石甲把一部分伤害弹回给你，石躯符文闪烁。' },
   slateGuard2:{ id:'slateGuard2', name:'石板守卫', img:'assets/img/enemies/slateguard.png', elite:1, noDex:1, hp:150, atk:22, def:9, spd:7, traits:['stoneGuard'], drops:[{ id:'coin', qty:'4-8', ch:1 },{ id:'crystal', qty:1, ch:0.5 }], desc:'又一尊从碑前站起的石像守卫，守着山上的雪线。它不持石板，但石甲的符文照样反弹伤害。' },
+  // 海底远程精英（作者 2026-09-19）：攻击距离 20，玩家近战要贴到它身边才打得着；它只在中层黑暗（照明 ≥2）出没。
+  // 经验固定 +5（比普通怪高、比首领低）。
+  atlSentry:{ id:'atlSentry', name:'深海哨兵', img:'assets/img/enemies/mechGuard.png', elite:1, exp:5, range:20,
+    hp:110, atk:21, def:8, spd:9, traits:['pierce'], drops:[{ id:'sourceOre', qty:'1-2', ch:0.6 },{ id:'energyCrystal', qty:1, ch:0.35 }],
+    desc:'悬在暗水里的机械哨兵，枪口始终对着你——它会在你靠近之前先开火。' },
   deepGuard:{ id:'deepGuard', name:'深海卫兵', img:'assets/img/enemies/deepGuard.png', hp:70, atk:16, def:6, spd:9, traits:[], drops:[{ id:'sourceOre', qty:1, ch:0.6 },{ id:'deepCoral', qty:1, ch:0.4 }], desc:'手持远古长矛的深海卫兵，眼灯幽蓝。' },
   tentacle:{ id:'tentacle', name:'触手哨兵', img:'assets/img/enemies/tentacle.png', hp:55, atk:14, def:4, spd:12, traits:['pack'], packAlways:1, drops:[{ id:'pearlGranule', qty:'1-2', ch:0.7 }], desc:'从深暗中伸出的触手哨兵，一下一下地收缩——而且从来不单独出现。' },
   mechGuard:{ id:'mechGuard', name:'机械守卫', img:'assets/img/enemies/mechGuard.png', hp:120, atk:20, def:8, spd:7, traits:['ironImmune'], drops:[{ id:'anctDevice', qty:1, ch:0.5 },{ id:'sourceBar', qty:1, ch:0.3 }], desc:'远古机械守卫，在尘埃中缓缓苏醒。' },
@@ -962,15 +969,18 @@ const SCENE_HOTSPOTS = {
     { x:62, y:52, point:'forest_vine',   label:'藤蔓' },
     { x:74, y:76, point:'forest_mushroom', label:'蘑菇' },
     { x:50, y:82, point:'forest_herb',   label:'草药' },
-    { x:84, y:50, point:'forest_hunt',   label:'兽径' },
+    // 作者 2026-09-19：兽径挪到「草药」和「蘑菇」中间，三个采集点看着成一条线
+    { x:62, y:79, point:'forest_hunt',   label:'兽径' },
     { x:36, y:66, point:'forest_resin',  label:'割脂' },
     { x:44, y:70, point:'forest_berry',  label:'野莓' },
   ],
   bamboo: [
-    { x:20, y:50, point:'bamboo_cut',    label:'砍竹' },   // 右移：别被左侧日志栏压住
-    { x:28, y:38, point:'bamboo_fiber',  label:'剖竹' },
+    // 作者 2026-09-19：砍竹/剖竹再右移一点，彻底躲开左侧日志栏
+    { x:26, y:50, point:'bamboo_cut',    label:'砍竹' },
+    { x:34, y:38, point:'bamboo_fiber',  label:'剖竹' },
     { x:36, y:74, point:'bamboo_shoot',  label:'竹笋' },
-    { x:82, y:22, point:'bamboo_deep',   label:'竹影深处' },
+    // 竹影深处：挪进底图那大片最暗的竹林里（按底图亮度算出来的最暗区中心 ≈ x66 / y50）
+    { x:66, y:50, point:'bamboo_deep',   label:'竹影深处' },
   ],
   quarry: [
     { x:50, y:62, point:'quarry_stone',  label:'石堆' },

@@ -70,7 +70,8 @@ console.log('\n【生存与平衡】');
 ck('夏天中暑 / 冬天过冷（每小时扣血）', /season\.heat && clothWarm >= 4/.test(GAME) && /coldNeed > 0 && warm < coldNeed/.test(GAME));
 ck('潜水服保暖 +2', ITEMS.diveSuit.warm === 2 && ITEMS.diveSuit2.warm === 2);
 ck('工具每高一级快 20%', /\(1 - \(tt - 1\) \* 0\.2\)/.test(GAME));
-ck('渔网造价 藤蔓6+木材3、耐久 10', RECIPES.find(r => r.id === 'r_net').in.vine === 6 && RECIPES.find(r => r.id === 'r_net').in.wood === 3 && DURA.net === 10);
+// 作者 2026-09-19：造价略微提高（6藤蔓+3木 → 8藤蔓+4木；耐久仍 10）
+ck('渔网造价 藤蔓8+木材4、耐久 10', RECIPES.find(r => r.id === 'r_net').in.vine === 8 && RECIPES.find(r => r.id === 'r_net').in.wood === 4 && DURA.net === 10);
 ck('夜袭：首次之后才有随机 + 50 天 5 匹', /S\.flags\.firstRaidDone \|\| S\.day > raidDay\(\)/.test(GAME) && /1 \+ Math\.floor\(d \/ 12\.5\)/.test(GAME) && /Math\.min\(5, 1 \+ Math\.floor\(d \/ 12\.5\)\)/.test(GAME));
 ck('草药膏 20 / 绷带 10+止血 / 大煎蛋 10', ITEMS.herbPaste.heal === 20 && ITEMS.bandage.heal === 10 && !!ITEMS.bandage.stopBleed && ITEMS.bigOmelette.heal === 10);
 ck('熏鱼/熏肉 需要 2 树枝', RECIPES.find(r => r.id === 'r_smokedfish').in.branch === 2 && RECIPES.find(r => r.id === 'r_smokedmeat').in.branch === 2);

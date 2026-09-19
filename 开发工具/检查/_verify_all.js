@@ -105,7 +105,15 @@ ck('神物栏仍是字形（神物没有图标，属正常）', /data-unequip="\
 // ---------------------------------------------------------------- 6. 热点与地图
 sec('6. 热点与地图（本轮反馈：热点位置固定、竹林热点右移）');
 const bam = (SCENE_HOTSPOTS.bamboo || []).find(h => h.point === 'bamboo_deep');
-ck('竹林深处的热点已右移（x=82 y=22 右上角）', bam && bam.x === 82 && bam.y === 22, bam ? 'x=' + bam.x + ' y=' + bam.y : '没找到');
+// 作者 2026-09-19：竹影深处挪进底图那片最暗的竹林（按亮度算出来的中心 ≈ x66 / y50）
+ck('竹影深处挪进了背景最暗的那片竹林（x=66 y=50）', bam && bam.x === 66 && bam.y === 50, bam ? 'x=' + bam.x + ' y=' + bam.y : '没找到');
+{
+  const cut = (SCENE_HOTSPOTS.bamboo || []).find(h => h.point === 'bamboo_cut');
+  const fib = (SCENE_HOTSPOTS.bamboo || []).find(h => h.point === 'bamboo_fiber');
+  ck('砍竹 / 剖竹再右移（26 / 34）', cut && cut.x === 26 && fib && fib.x === 34, `砍竹 x=${cut && cut.x} 剖竹 x=${fib && fib.x}`);
+  const hunt = (SCENE_HOTSPOTS.forest || []).find(h => h.point === 'forest_hunt');
+  ck('兽径挪到「草药」和「蘑菇」中间（x=62 y=79）', hunt && hunt.x === 62 && hunt.y === 79, hunt ? `x=${hunt.x} y=${hunt.y}` : '没找到');
+}
 const sceneHotspotPinned = /classList\.add\('pinned'/.test(UI);
 ck('场景热点没有做成"贴边浮动"（位置固定在图上、靠拖动看）', /function applyScenePan\(\)/.test(UI) && /applyBox\('#hotspots', box, scenePanY\)/.test(UI) && !/hotspot[\s\S]{0,80}pinned/.test(UI));
 ck('热点百分比锚在图片内容盒上（不因铺满裁切而错位）', /function coverBox\(iw, ih, bw, bh, zoom\)/.test(UI) && /applyBox\('#hotspots'/.test(UI));

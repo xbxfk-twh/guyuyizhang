@@ -888,9 +888,20 @@ function change() {
       if (S.log.length > LOG_KEEP) S.log.length = LOG_KEEP;   // 老存档读进来先瘦一遍
       // 天气键必须是已知值：老存档/手改档里出现 'clear' 之类会让顶部状态栏直接抛异常（整屏不再刷新）
       if (!WEATHER[S.weather]) S.weather = 'sun';
-      // 读档 = 玩家要接着玩：死亡/已结算的标记必须清掉，不然结局按钮和时间都会卡死
-      if (S.ending) S.ending = undefined;
-      if (S.death) S.death = undefined;
+      // 读档 = 玩家要接着玩：**已结算**的标记要清掉，不然结局按钮和时间都会卡死。
+      // ⚠️ 但"人是死的"这种档不能这样放回游戏（玩家反馈：死后回标题→继续上次游戏→
+      //    进去吃口药又活了，等于死亡没有代价）。生命 ≤ 0 或带着死亡记录 → 恢复成"死亡结算"状态，
+      //    由标题页把结局画面重新弹出来（那里才有 复活 / 重新开始 / 回标题 三个正当选项）。
+      const deadSave = !!S.death || !!(S.stats && (Number(S.stats.hp) || 0) <= 0);
+      if (deadSave) {
+        if (!S.stats) S.stats = { hp:0, stamina:100, hunger:100, thirst:100, spirit:100 };
+        S.stats.hp = 0;
+        S.death = S.death || '你在上一局倒下了。';
+        S.ending = 'D';
+      } else {
+        if (S.ending) S.ending = undefined;
+        if (S.death) S.death = undefined;
+      }
       if (!S.seen) S.seen = {};
       if (!S.killCount) S.killCount = {};
       if (!S.sold) S.sold = {};
@@ -1499,10 +1510,17 @@ function change() {
 
     // 守卫已清（或无守卫）且确认能干：这里才真正开始本次采集
     pointCharge();
+    // 采集类先扣时间（作者 2026-09-19：先花时间，再遇怪，打赢才收获）——末尾那次 addMin 会跳过它
+    const timePaidEarly = (p.type === 'gather');
+    if (timePaidEarly) {
+      const spiritLow0 = (st.spirit === undefined ? 100 : st.spirit) < 20;
+      addMin(Math.max(1, Math.round((p.time || 15) * (1 - (tt - 1) * 0.2) * (spiritLow0 ? 1.1 : 1) * gxTimeMul())));
+    }
 
     if (p.type === 'gather') {
-      let got = [];
-      // 遇袭判定（在本次采集结算"之前"决定；但战斗放到结算完成后触发，产出照拿）
+      // ⚠️ 作者 2026-09-19 定次序：**先花时间 → 可能遇到怪（打赢再继续）→ 才收获**。
+      //    以前是先把产出算完、日志写"获得：…"，最后才扣时间；真遇到怪时东西也已经进包了，
+      //    日志看着像"白拿到手之后才花时间"。现在遇袭就先去打，赢了（S._onFightWin）再回来收。
       {
         const sc0 = sceneOf(S.scene);
         const danger = sc0 ? sc0.danger : 3;
@@ -1513,7 +1531,11 @@ function change() {
         if (rabbit && chance(rabbit) && ENEMIES.rabbit) ambush = ENEMIES.rabbit;
         else if (pool.length && chance(amb)) ambush = ENEMIES[pool[Math.floor(Math.random() * pool.length)]];
         if (!ambush && p.risk && ENEMIES[p.risk] && chance(0.25)) ambush = ENEMIES[p.risk];
+        // 海底远程精英（深海哨兵）：只在中层黑暗及以上（照明 ≥2）出没，作者 2026-09-19
+        if (!ambush && S.scene === 'atlantis' && lightLevel() >= 2 && ENEMIES.atlSentry && chance(0.12)) ambush = ENEMIES.atlSentry;
       }
+      const doHarvest = () => {
+      let got = [];
       let weff = (S.scene === 'atlantis') ? 1 : WEATHER[S.weather].eff;
       if (p.cond && p.cond.rain && (S.weather === 'rain' || S.weather === 'storm')) weff = 1.0;   // 雨天专属资源(蘑菇等)雨天不扣收益
       if (weff < 1 && S.weatherWarned !== S.weather) { S.weatherWarned = S.weather; log(`【${WEATHER[S.weather].name}】干活收益会打折扣（-${Math.round((1 - weff) * 100)}%，雨天专属资源除外）。`, 'warn'); }
@@ -1570,6 +1592,10 @@ function change() {
       }
       S.exp.gather += EXP_GATHER;
       if (p.need) { if (p.need.tool) drainTool(p.need.tool); if (p.need.item && DURA[p.need.item] !== undefined) drainById(p.need.item); }
+      };
+      // 真遇上怪：先去打，赢回来再收（打不过/跑掉就是白花这段时间）
+      if (ambush) { log(`你刚动手，${ambush.name}突然窜了出来！`, 'danger'); S._onFightWin = doHarvest; startFight(ambush); return; }
+      doHarvest();
     } else if (p.type === 'fish') {
       let q = rnd(1,3) * diff;
       if (S.identity === 'fisher') q = Math.round(q * 1.5);
@@ -1619,10 +1645,8 @@ function change() {
     const spiritLow = (st.spirit === undefined ? 100 : st.spirit) < 20;
     const spiritSlow = (spiritLow && ['gather','fish','trap','drift'].includes(p.type)) ? 1.1 : 1;
     // 工具每高一级，干活快 20%（斧/镐/刀/网都一样）
-    addMin(Math.max(1, Math.round((p.time || 15) * (1 - (tt - 1) * 0.2) * spiritSlow * gxTimeMul())));
+    if (!timePaidEarly) addMin(Math.max(1, Math.round((p.time || 15) * (1 - (tt - 1) * 0.2) * spiritSlow * gxTimeMul())));
     if (['gather','fish','trap','drift'].includes(p.type)) S.gatherCount = (S.gatherCount || 0) + 1;
-    // 采集已完整结算（产出入包、时间体力已扣）；若之前判定遇袭，此刻才进入战斗
-    if (p.type === 'gather' && ambush) { log(`你正忙着采集，${ambush.name}突然窜了出来！`, 'danger'); startFight(ambush); return; }
     if (p.type === 'gather' && chance(0.05)) triggerRandomEvent(S.scene);
     change();
   }
@@ -1856,6 +1880,29 @@ function change() {
   function playerDef() { const a = S.equipment.armor ? ITEMS[S.equipment.armor] : null; const ax = (S.equipment.accessory && ITEMS[S.equipment.accessory] && ITEMS[S.equipment.accessory].def) || 0; const w2 = S.equipment.weapon2 ? ITEMS[S.equipment.weapon2] : null; const sh = w2 && w2.cat === 'shield' ? w2 : null; return 2 + (a ? a.def : 0) + ax + (sh ? sh.def : 0) + buffV('def') + cxDef(); }
   function shieldBlock() { const w2 = S.equipment.weapon2 ? ITEMS[S.equipment.weapon2] : null; return w2 && w2.cat === 'shield' ? (w2.block || 0) : 0; }
   // ---------- 横扫（双手重武器专属）与多目标敌人行为 ----------
+  // ---------- 距离制战斗（作者 2026-09-19）----------
+  // 原有"时间追赶"不变（出手次数、同时结算），上面再加一层**距离**：
+  //   · 速度同时代表"每 100 时间单位（= 一个回合）前进的距离"，敌我平等；
+  //   · 近战攻击距离 0（要贴到脸上），弓 30、手枪 15，远程怪各自带 range；
+  //   · 距离不够时这一回合用来**逼近**（日志写明还差多少），不是白点。
+  //   → 带弓的人可以在敌人冲到近身前先射好几轮，这就是"弓的额外回合"。
+  const RANGE_BOW = 30, RANGE_GUN = 15, RANGE_MELEE = 0, FIGHT_START_DIST = 30;
+  const ATTACK_ACTS = ['attack', 'heavy', 'sweep', 'ranged', 'throw'];
+  function rangedRangeOf(it) { if (!it) return 0; return it.ammoItem ? RANGE_GUN : RANGE_BOW; }   // 手枪 15 / 弓 30
+  function enemyRange(e) {
+    if (!e) return RANGE_MELEE;
+    if (typeof e.range === 'number') return e.range;
+    return (e.traits || []).includes('gun') ? RANGE_GUN : RANGE_MELEE;
+  }
+  function myAttackRange() {
+    const rw = rangedWeapon();
+    if (rw) {
+      const ammoOk = rw.ammoItem ? invCount(rw.ammoItem) > 0 : (invCount('eagleArrow') > 0 || invCount('arrow') > 0);
+      if (ammoOk) return rangedRangeOf(rw);
+    }
+    return RANGE_MELEE;
+  }
+  function myMoveSpeed() { return Math.max(1, Math.round(combatSpeed())); }
   const ENEMY_COVER_REDUCE = 0.30;  // 掩护：全体友方受到的伤害 -30%（不叠加，取最大值）
   const ENEMY_HEAVY_MUL = 1.3;      // 猛击：攻击 ×1.3，但自身防御归零
   function hasTwoHand() { return !!(S.equipment.weapon && ITEMS[S.equipment.weapon] && ITEMS[S.equipment.weapon].twoHand); }
@@ -2329,6 +2376,19 @@ function change() {
         C.log.push(isGun ? '你抬枪在手，抢在它扑过来之前——这一轮你先出手。' : '你搭弓在手，抢在它扑过来之前——这一轮你先出手。');
       }
     }
+    // 距离制（作者 2026-09-19）：
+    //   · 双方都是近战 → 直接贴身开打（不然每场都要空走两回合，闷）；
+    //   · 只要有一方带远程（你带弓/枪，或对面是远程怪）→ 拉开 30 步：
+    //     弓（30）当场就能射，手枪（15）和近战得往前压，敌人的远程怪也会边靠近边开火。
+    //     —— 这就是"弓的额外回合"：它能在敌人冲到脸上之前先打好几发。
+    const myRangedReady = (() => {
+      const rw = rangedWeapon();
+      if (!rw) return false;
+      return rw.ammoItem ? invCount(rw.ammoItem) > 0 : (invCount('eagleArrow') > 0 || invCount('arrow') > 0);
+    })();
+    const foeRanged = enemyRange(enemy) > RANGE_MELEE;
+    C.dist = (myRangedReady || foeRanged) ? FIGHT_START_DIST : 0;
+    if (C.dist > 0) C.log.push(`你们相距约 ${C.dist} 步（弓 30 步内可射、手枪 15 步内可射、近战要贴身上去）。`);
     if (enemy.nightBuff && isNight()) {
       C.atk = Math.round(C.atk * 1.3);
       for (const e of C.enemies) e.atk = Math.round(e.atk * 1.3);
@@ -2380,6 +2440,17 @@ function change() {
     const doPlayerTurn = () => {
       const accBase = (S.statuses.fear ? 0.7 : 0.9) + (S.identity === 'hunter' ? 0.1 : 0);
       const isAttack = (act === 'attack' || act === 'heavy' || act === 'ranged');
+      // 距离不够 → 这一回合用来逼近（近战要贴身、远程要进射程）；不是白点，日志写清还差多少。
+      // 需要多远才算够：明确点「射击」用远程距离；点「攻击」时——手里没近战武器就用远程距离
+      // （和下面"没有近战就继续用弓/枪"的攻击逻辑一致），有近战就得贴身。
+      const rangedAct = (act === 'ranged') || (act === 'attack' && myAttackRange() > 0 && !meleeWeapons().length);
+      const need = rangedAct ? myAttackRange() : RANGE_MELEE;
+      if (ATTACK_ACTS.includes(act) && C.dist > need) {
+        const mv = myMoveSpeed(), d0 = C.dist;
+        C.dist = Math.max(0, C.dist - mv);
+        roundLines.push(`你向它逼近（距离 ${d0} → ${C.dist}${C.dist > need ? '，还没进到攻击距离' : '，已经能打到它了'}）。`);
+        return;
+      }
       // 横扫（双手重武器专属）：对全部敌人各造成 1 倍伤害，命中略降；按"出手次数"走冷却
       if (act === 'sweep') {
         if (C.sweepCd > 0) { roundLines.push(`横扫还没缓过劲（还需 ${Math.ceil(C.sweepCd)} 秒）。`); return; }
@@ -2479,6 +2550,14 @@ function change() {
     const doEnemyTurn = () => {
       if (C.fled) return;
       for (const e of aliveNow()) {
+        // 距离制：还没进它的攻击距离 → 这轮它先靠近（远程怪到 20 步就能开火）
+        const er = enemyRange(e);
+        if (C.dist > er) {
+          const mv = Math.max(1, Math.round(e.spd || 1)), d0 = C.dist;
+          C.dist = Math.max(0, C.dist - mv);
+          roundLines.push(`${e.name}正在逼近（距离 ${d0} → ${C.dist}）。`);
+          if (C.dist > er) continue;      // 还没进它的射程，这轮出不了手
+        }
         // 蓄力：本回合不出手，下一击伤害翻倍
         if (e.intent === 'charge') { e.charged = 1; roundLines.push(`${e.name}压低身子开始蓄力……（下一击将造成双倍伤害）`); continue; }
         // 掩护：本回合不出手，为全体友方（含自己）提供 30% 减伤，不叠加
@@ -2591,7 +2670,8 @@ function change() {
       if (got.length) log(`战利品：${got.join('、')}。`, 'good');
       else log(`（${en.name}身上没留下什么可用的东西。）`, 'sys');
       // 战斗经验按怪强度分档：小怪+1 普通+2 精英+3 Boss+10
-      const xg = en.boss ? 15 : (en.hp >= 100 ? 3 : en.hp >= 30 ? 2 : 1);
+      // 经验：怪可以自带 exp（例：海底远程精英 +5），否则按强度分档；首领 15
+      const xg = (en.exp !== undefined) ? en.exp : (en.boss ? 15 : (en.hp >= 100 ? 3 : en.hp >= 30 ? 2 : 1));
       S.exp.combat += xg;
       log(`战斗经验 +${xg}。`, 'sys');
       if (en.boss) { S.flags['boss_'+en.id] = 1; diaryAdd(`我击败了${en.name}。`); }
@@ -2663,6 +2743,7 @@ function change() {
       enemies, round:1, defending:false, usedItems:0, summonTick:0,
       accE: 0,
       log:['狼群趁夜来袭！', `${CN[wolfCount] || wolfCount}匹${base.name}的绿眼睛在夜色里盯着你。`], ranged:null, raid:true,
+      dist: 0,   // 狼群扑上来就是贴身（远程先手那条在上面按需处理）
     };
     const rn = hasRanged();
     // 夜袭同样不再"入场自动射"：带弓/枪且有弹药 → 第一轮你先出手（作者 2026-09-19）
@@ -3477,6 +3558,9 @@ function change() {
     change();
   }
   function useMed(id) {
+    // ⚠️ 本局已经结束（死亡结算中）就不许再吃药：以前"回标题 → 继续上次游戏 → 吃口药又活了"
+    //    等于死亡没代价（玩家反馈）。真正的复活只有结局画面那条 50 魂点的路。
+    if (S.ending === 'D' || S.death || S.stats.hp <= 0) { log('这一局已经结束了。', 'warn'); return; }
     const it = ITEMS[id];
     if (!it || it.cat !== 'med' || !hasItem(id)) return;
     removeItem(id, 1);
@@ -4188,10 +4272,12 @@ function change() {
   function metaLast() { return _lastSettle; }
   function reviveToday() {
     if (S.difficulty === 'legend') { log('传奇难度无法复活。', 'warn'); return; }
+    // ⚠️ 先检查有没有"今天日出"的快照再扣魂点：读档进来的死亡档没有快照（存档里不带 _snap），
+    //    以前会先扣 50 魂点然后 location.reload() → 页面刷新、人还是死的，魂点白扣。
+    if (!S._snap || !S._snap.day) { log('这一局已经结算过了，没法回到当天日出——开新的一局吧。', 'warn'); return; }
     const meta = metaState();
     if (meta.soul < 50) { log('魂点不足（需 50 魂点）。', 'warn'); return; }
     meta.soul -= 50; metaSave();
-    if (!S._snap || !S._snap.day) { location.reload(); return; }
     const sn = S._snap.day;
     // ⚠️ 复活不能绕过"一局一个结局"（作者 2026-09-19 定死）：花 50 魂点回当天日出，
     //    settledEnding（本局定局）与 settled_*（某个结局已结算过）都必须原样保留。
@@ -4468,6 +4554,7 @@ function change() {
     skillTreeInfo, skillUpTrunk, skillNodeLearn, skillNodeForget, nodeLv, trunkPicks, trunkLv, nodeCheck, nodeIsLeaf, nodeForgetGain, craftIn,
     trunkForgetInfo, skillTrunkForget,          // 主干遗忘（只能从末端退，返还一半）
     skinCost, skinOwned, unlockSkin,            // 皮肤包解锁（深海琥珀 / 彩绘卡面 各 50 魂点）
+    enemyRangeOf: enemyRange, myAttackRange, myMoveSpeed,   // 距离制：战斗面板要显示"还差多少步"
     satchelPref: () => (S && S.satchelPref) || { food:'', drink:'' },
     setSatchelPref: (kind, id) => {
       if (kind !== 'food' && kind !== 'drink') return { ok:false, reason:'只有食物 / 饮水两类' };
