@@ -1066,7 +1066,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     html += `<div class="help-item"><b>校准源能手枪</b><span>${hasGun ? (st.pistolCalibrated ? '已校准 · 命中 70% · 可继续修耐久（耗 源矿×2）' : '未校准 · 命中 60% → 校准后 70%（耗 源矿×2）') : '需先把源能手枪装备到主手或副手'}</span><button class="mini-btn" data-rfix="pistol">校 准</button></div>`;
     const bp = Game.invCount('brokenPistol');
     html += `<div class="help-item"><b>修复破损的源能手枪${bp ? `（有${bp}）` : ''}</b><span>耗 源能晶石×1 + 源质锭×1</span><button class="mini-btn" data-rfix="broken">修 复</button></div>`;
-    html += '</div><div class="modal-actions"><button id="modal-close">关 闭</button></div>';
+    html += '</div></div><div class="modal-actions"><button id="modal-close">关 闭</button></div>';
     return html;
   }
   function atlTradeModal() {
@@ -1083,8 +1083,10 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     }
     // 神物：每天随机上架一件（深海售卖机）
     const rv = Game.atlVendorInfo();
-    html += '</div><div class="modal-title" style="margin-top:8px">神物（每天随机上架一件）</div><div class="help-list">';
-    if (!rv.id) html += '<div class="hint">机箱空空如也——你已经把神物收全了。</div>';
+    html += `</div><div class="modal-title" style="margin-top:8px">神物（每天 ${Math.round(Game.vendorRelicChance() * 100)}% 概率上架一件）</div><div class="help-list">`;
+    if (!rv.id) html += rv.noStock
+      ? '<div class="hint">机箱空空如也——今天没有上架神物，明天再来碰碰运气。</div>'
+      : '<div class="hint">机箱空空如也——你已经把神物收全了。</div>';
     else html += `<div class="help-item"><b>${rv.glyph} ${rv.name}</b><span>${rv.desc}<br>${rv.price} 贝壳币 · 每天只上架一件，买走就售罄</span>${rv.sold
       ? '<button class="mini-btn" disabled>今日已售出</button>'
       : `<button class="mini-btn" data-arelic="1" ${Game.invCount('beibi') >= rv.price ? '' : 'disabled'}>购 买</button>`}</div>`;
@@ -1494,7 +1496,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     return `<div class="modal-title">${t.glyph} ${t.name}技能树 <span style="font-size:11px">主干 ${t.lv}/${t.max} · ${t.expName} <b>${t.exp}</b>${maxed ? ' · 已满级' : ` · 下一级 ${t.cost}`}</span></div>
       <div class="st-tree">${rows}</div>
       <div class="hint">主干每升一级从三个方向里选一个（同一个可以重复选，效果叠加）；专项挂在对应等级的两侧，互斥的一对分居左右（中间红虚线）。<b>遗忘只能从最末端往外剥</b>（专项和主干都一样），返还一半经验——想换流派就一层层退回去。<br>
-      经验不够就去采集 / 钓鱼 / 砍树 / 打怪攒（采集每次 +2、制造每件 +3、战斗按怪强度 +1/+2/+3、首领 +15），或者靠《历代遗章》里的「采集/制造/战斗心得」每局开局送经验。</div>
+      经验不够就去采集 / 钓鱼 / 砍树 / 打怪攒（采集每次 +1、制造每件 +1、战斗按怪强度 +1/+2/+3、首领 +15）——注意<b>采集树的经验消耗是 2 倍、制造树是 3 倍</b>（战斗树不变），所以是"慢慢磨"的三条线。也可以靠《历代遗章》里的「采集/制造/战斗心得」每局开局送经验。</div>
       <div class="modal-actions">${(() => {
         const ti = Game.trunkForgetInfo(kind);
         return ti.ok ? `<button class="mini-btn" data-trunkforget="${kind}">遗忘主干「${ti.optName}」第 ${ti.lv} 级 · 返还 ${ti.gain}</button>` : '';
@@ -1743,7 +1745,9 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       ['med','药品'], ['fire','篝火·烹饪'], ['grind','磨刀石'], ['furniture','加工台'],
     ];
     if (atAtlantis) tabs.push(['pearlWork','珠光工作台'], ['sourceForge','源质熔炉']);
-    let html = '<div class="modal-title">制 造 <button class="mini-btn" data-crafthelp="1" style="float:right">？长按批量</button></div><div class="tabs">';
+    // 作者 2026-09-19（玩家建议）：工位分类从"顶上横着两行"改成**左侧竖栏**，右侧留给配方列表，
+    // 面板一下子清爽很多；窄屏（手机竖屏）自动退回横排，免得竖栏把配方挤没。
+    let html = '<div class="modal-title">制 造 <button class="mini-btn" data-crafthelp="1" style="float:right">？长按批量</button></div><div class="craft-body"><div class="craft-rail">';
     for (const [sid, name] of tabs) {
       const stationOk = atCamp || (atAtlantis && (sid === 'pearlWork' || sid === 'sourceForge'));
       const avail = sid === 'none' || (stationOk && (sid === 'fire' || (sid === 'grind' ? S().furniture.grindstone : stationBuilt(sid))));
@@ -1759,7 +1763,8 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
         const named = (S().weaponNames || {})[w];
         const [rmat, rqty] = Game.repairMatOf(w);
         const rcost = (rmat === 'stone' || rmat === 'ironingot') ? `${ITEMS[rmat].name}×${rqty}` : `${ITEMS[rmat].name}×${rqty}`;
-        html += `<div class="recipe-row"><b>${ITEMS[w].glyph} 磨刀</b><span class="rcost">+3攻击 · 20%流血 · 持续3场（耗 燧石×1）</span><button class="mini-btn" data-grind="sharpen">磨刀</button></div>`;
+        // 玩家反馈"磨刀磨的是哪把"——明确写出作用于主手武器（作者 2026-09-19）
+        html += `<div class="recipe-row"><b>${ITEMS[w].glyph} 磨刀</b><span class="rcost">磨的是<b>主手武器</b>（${ITEMS[w].name}）· +3攻击 · 20%流血 · 持续3场（耗 燧石×1）</span><button class="mini-btn" data-grind="sharpen">磨刀</button></div>`;
         html += `<div class="recipe-row"><b>${ITEMS[w].glyph} 修补</b><span class="rcost">${ITEMS[w].name} 耐久恢复满（耗 ${rcost}）</span><button class="mini-btn" data-grind="repair">修补</button></div>`;
         html += `<div class="recipe-row"><b>${ITEMS[w].glyph} 命名</b><span class="rcost">${named ? '已命名（+1生效）· 每把只能一次' : '武器伤害永久+1（耗 命名牌×1）'}</span><button class="mini-btn" data-grind="name">${named ? '已命名' : '命名'}</button></div>`;
       }
@@ -1961,6 +1966,18 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       const canEquip = rOwned.filter(r => !equip.includes(r));
       if (canEquip.length) { html += '<div class="modal-title" style="margin-top:8px">已拥有（点击装备）</div><div class="help-list">'; for (const rid of canEquip) html += `<button class="mini-btn" data-equiprelic="${rid}" style="margin:3px">装备 ${RELICS[rid].glyph} ${RELICS[rid].name} · ${RELICS[rid].desc}</button>`; html += '</div>'; }
       else if (!rOwned.length) html += '<div class="hint">尚未获得神物（对岸盐镇的货郎 30 金币、深海售卖机 1200 贝壳，或洞穴神龛之类的奇遇）。</div>';
+      // 食之包：自动进食/饮水用哪一件，可以自己指定（作者 2026-09-19，玩家反馈"总吃超级大蛋很心疼"）
+      if (rOwned.includes('satchel') && equip.includes('satchel')) {
+        const pref = Game.satchelPref();
+        const nm = (id) => (id && ITEMS[id]) ? ITEMS[id].name : '自动挑最省的那份';
+        html += `<div class="modal-title" style="margin-top:10px">食之包 · 自动吃喝</div>
+          <div class="help-item"><b>优先用</b><span>饱食低于 50 时先吃：<b>${esc(nm(pref.food))}</b><br>水分低于 50 时先喝：<b>${esc(nm(pref.drink))}</b></span>
+            <div class="set-inline">
+              <button class="mini-btn" data-satchel="food">选食物</button>
+              <button class="mini-btn" data-satchel="drink">选饮料</button>
+              <button class="mini-btn" data-satchel="clear">回到"挑最省的"</button>
+            </div></div>`;
+      }
     } else if (equipTab === 'skill') {
       html += '<div class="modal-title" style="margin-top:10px">技能 <span style="font-size:11px">制造／采集／战斗 · 消耗经验手动升级</span></div>' + skillBody();
     } else if (equipTab === 'attr') {
@@ -2602,7 +2619,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       const w0 = Game.S().equipment.weapon;
       const rm = (w0 && DURA[w0] !== undefined) ? Game.repairMatOf(w0) : null;
       const rmTxt = (rm && ITEMS[rm[0]]) ? `${ITEMS[rm[0]].name}×${rm[1]}` : '石头×2';
-      html = `<div class="modal-title">磨刀石 <span style="font-size:11px">${Game.S().furniture.grindstone ? '· 作用于当前主手武器' : '· 需先建造磨刀石家具'}</span></div><div class="overlay-text">${Game.S().furniture.grindstone ? `磨刀：+3攻击 · 20%流血 · 持续3场（耗 燧石×1）<br>修补：主手武器耐久恢复满（耗 ${rmTxt}）<br>命名：武器伤害永久+1（耗 命名牌×1）` : '请先在营地·家具建造「磨刀石」石台（石头×4+燧石×1）。'}</div><div class="modal-actions"><button data-grind="sharpen">磨 刀</button><button data-grind="repair">修 补</button><button data-grind="name">命 名</button><button id="modal-close">关 闭</button></div>`;
+      html = `<div class="modal-title">磨刀石 <span style="font-size:11px">${Game.S().furniture.grindstone ? '· 只作用于当前主手武器' : '· 需先建造磨刀石家具'}</span></div><div class="overlay-text">${Game.S().furniture.grindstone ? `<b>下面三项都只作用于你装备的主手武器</b>：<br>磨刀：+3攻击 · 20%流血 · 持续3场（耗 燧石×1）<br>修补：主手武器耐久恢复满（耗 ${rmTxt}）<br>命名：武器伤害永久+1（耗 命名牌×1）` : '请先在营地·家具建造「磨刀石」石台（石头×4+燧石×1）。'}</div><div class="modal-actions"><button data-grind="sharpen">磨 刀</button><button data-grind="repair">修 补</button><button data-grind="name">命 名</button><button id="modal-close">关 闭</button></div>`;
     }
     else if (kind === 'town') html = townModal();
     else if (kind === 'black') html = blackModal();
@@ -2623,6 +2640,19 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     else if (kind === 'rescue') html = rescueModal();
     else if (kind === 'skill') html = skillModal();
     else if (kind === 'skilltree') html = skillTreeModal(cfg && cfg.kind);
+    else if (kind === 'satchelfood') {
+      const pick = (cfg && cfg.pick) === 'drink' ? 'drink' : 'food';
+      const inv = S().inv || {};
+      const list = Object.keys(inv).filter(id => ITEMS[id] && inv[id] > 0 &&
+        (pick === 'food' ? (ITEMS[id].cat === 'food' && (ITEMS[id].food || 0) > 0)
+                         : (ITEMS[id].cat === 'drink' || (ITEMS[id].water || 0) > 0)));
+      html = `<div class="modal-title">食之包 · 优先${pick === 'food' ? '吃' : '喝'}</div>
+        <div class="overlay-text">饱食 / 水分低于 50 时，食之包会自动用你选的这一件；<b>选中那件用完了会自动退回"挑最省的那份"</b>，不会卡住不吃。</div>
+        <div class="help-list">${list.length
+          ? list.map(id => `<button class="mini-btn" data-satchelpick="${pick}:${id}" style="margin:3px">${ITEMS[id].glyph} ${esc(ITEMS[id].name)}（${pick === 'food' ? '饱食+' + (ITEMS[id].food || 0) : '水分+' + (ITEMS[id].water || 0)}，有 ${inv[id]}）</button>`).join('')
+          : `<div class="hint">背包里没有可用的${pick === 'food' ? '食物' : '饮水'}。</div>`}</div>
+        <div class="modal-actions"><button id="modal-back">返 回</button><button id="modal-close">关 闭</button></div>`;
+    }
     else if (kind === 'batch') html = batchModal(cfg);
     else if (kind === 'batchn') html = batchnModal(cfg);
     else if (kind === 'comhelp') html = comHelpModal();
@@ -2686,6 +2716,22 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     m.querySelectorAll('[data-toolslot]').forEach(b => b.onclick = () => { const tk = (Game.S().toolkit || []); const id = tk[+b.dataset.toolslot]; if (id) { Game.unequipTool(id); showModal('equip'); } });
     m.querySelectorAll('[data-equiptool]').forEach(b => b.onclick = () => { const r = Game.equipTool(b.dataset.equiptool); if (!r.ok) addLog(r.reason, 'warn'); rerenderEquip(); });
     m.querySelectorAll('[data-emptyslot]').forEach(b => b.onclick = () => addLog('请从下方已拥有的神物中点击装备。', 'warn'));
+    // 食之包：挑自动吃喝优先用的那一件
+    m.querySelectorAll('[data-satchel]').forEach(b => b.onclick = () => {
+      const k = b.dataset.satchel;
+      if (k === 'clear') {
+        Game.setSatchelPref('food', ''); Game.setSatchelPref('drink', '');
+        addLog('食之包：改回"自动挑最省的那份"。', 'sys');
+        showModal('equip'); return;
+      }
+      showModal('satchelfood', { pick: k });
+    });
+    m.querySelectorAll('[data-satchelpick]').forEach(b => b.onclick = () => {
+      const [k, id] = String(b.dataset.satchelpick).split(':');
+      Game.setSatchelPref(k, id);
+      addLog(`食之包：优先${k === 'food' ? '吃' : '喝'}「${ITEMS[id].name}」。`, 'sys');
+      showModal('equip');
+    });
     m.querySelectorAll('[data-bk]').forEach(b => b.onclick = () => {
       const r = Game.backupSlot(+b.dataset.bk);
       if (r.ok) {
@@ -2948,7 +2994,10 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       showModal('settings');
     });
     const bn = $('#batch-n');
-    if (bn) { const bc = $('#batch-count'); const up = () => { if (bc) bc.textContent = bn.value; }; bn.addEventListener('input', up); bn.addEventListener('change', up); const bd = $('#batch-do'); if (bd) bd.onclick = () => { const r = RECIPES.find(x => x.id === modal.cfg.recipe); const res = Game.craftBatch(r, +bn.value); if (!res.ok) addLog(res.reason, 'warn'); closeModal(); rerenderCraft(); }; }
+    if (bn) { const bc = $('#batch-count'); const up = () => { if (bc) bc.textContent = bn.value; }; bn.addEventListener('input', up); bn.addEventListener('change', up); const bd = $('#batch-do'); if (bd) bd.onclick = () => { const r = RECIPES.find(x => x.id === modal.cfg.recipe); const res = Game.craftBatch(r, +bn.value);
+      // reason 为空 = 只是弹了"这批要花很久"的确认框，别当报错写日志（作者 2026-09-19）
+      if (!res.ok && res.reason) addLog(res.reason, 'warn');
+      closeModal(); rerenderCraft(); }; }
     // 数量快捷档（手机端不用精确拖滑块）：1 / 一半 / 全部
     m.querySelectorAll('[data-bset]').forEach(x => x.onclick = () => {
       const inp = $('#batchn-n'); if (!inp) return;
@@ -3594,7 +3643,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       if (e.target !== modalEl) return;
       const k = modal && modal.kind;
       // 面板类都支持"点外面关闭"（战斗、剧情选择、结局、命名输入、掷骰子这种不能误关的除外）
-      const PANEL_KINDS = ['inv','craft','equip','skill','skilltree','camp','laochao','town','black','atlTrade','repair','livestock','mission','info','farm','diary','collection','sleeppick','savemenu','backup','rescue','settings','mailbox','crafthelp','comhelp','codex','heirloom','naming','devpw','rune'];
+      const PANEL_KINDS = ['inv','craft','equip','skill','skilltree','satchelfood','camp','laochao','town','black','atlTrade','repair','livestock','mission','info','farm','diary','collection','sleeppick','savemenu','backup','rescue','settings','mailbox','crafthelp','comhelp','codex','heirloom','naming','devpw','rune'];
       if (PANEL_KINDS.includes(k)) closeModal();
     });
     // 移动端：不预加载全部大图，改为按需加载（切换场景时才读取对应图），降低内存与首屏压力

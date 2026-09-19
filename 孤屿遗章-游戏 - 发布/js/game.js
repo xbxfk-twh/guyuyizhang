@@ -303,13 +303,34 @@ function change() {
     const season = seasonInfo();
     const isNight = S.minute >= 22*60 || S.minute < 6*60;
     // 食之包：饱食/水分低于 50 自动进食饮水
+    // ⚠️ 作者 2026-09-19：自动吃的东西可以自己指定（玩家反馈"它总是吃超级大蛋，很心疼"）。
+    //    没指定偏好时，改成"挑够用的里面最省的那份"，不再无脑拿第一件（背包顺序里超级大蛋常排前面）。
+    const pickAuto = (kind) => {
+      const has = (k) => !!(ITEMS[k] && invCount(k) > 0);
+      const val = (k) => kind === 'food' ? (ITEMS[k].food || 0) : (ITEMS[k].water || 0);
+      const okFood = (k) => has(k) && ITEMS[k].cat === 'food' && val(k) > 0;
+      const okDrink = (k) => has(k) && (ITEMS[k].cat === 'drink' || val(k) > 0);
+      const pref = ((S.satchelPref || {})[kind]) || '';
+      if (pref && ((kind === 'food' && okFood(pref)) || (kind === 'drink' && okDrink(pref)))) return pref;
+      const all = Object.keys(S.inv);
+      // 吃：挑饱食最小的那份（浆果优先，别动超级大蛋）
+      if (kind === 'food') {
+        const foods = all.filter(okFood).sort((a, b) => val(a) - val(b));
+        return foods[0] || null;
+      }
+      // 喝：有正经饮品（水/蜂蜜水/药）先喝水分最小的；只剩带水分的食物时挑水分最多的
+      const drinks = all.filter(k => has(k) && ITEMS[k].cat === 'drink' && val(k) > 0).sort((a, b) => val(a) - val(b));
+      if (drinks.length) return drinks[0];
+      const juicy = all.filter(okDrink).sort((a, b) => val(b) - val(a));
+      return juicy[0] || null;
+    };
     if (hasRelic('satchel')) {
       if (S.stats.hunger < 50) {
-        const f = Object.keys(S.inv).find(k => ITEMS[k] && ITEMS[k].cat === 'food' && ITEMS[k].food > 0);
+        const f = pickAuto('food');
         if (f) { S.stats.hunger = Math.min(100, S.stats.hunger + (ITEMS[f].food||0)); removeItem(f, 1); log(`食之包自动喂了你：${ITEMS[f].name}。（饱食+${ITEMS[f].food||0}）`, 'good'); }
       }
       if (S.stats.thirst < 50) {
-        const d = Object.keys(S.inv).find(k => ITEMS[k] && (ITEMS[k].cat === 'drink' || ITEMS[k].water > 0));
+        const d = pickAuto('drink');
         if (d) { S.stats.thirst = Math.min(100, S.stats.thirst + (ITEMS[d].water||0)); removeItem(d, 1); log(`食之包自动喂了你：${ITEMS[d].name}。（饮水+${ITEMS[d].water||0}）`, 'good'); }
       }
     }
@@ -691,7 +712,8 @@ function change() {
       const old = Math.min(5, (S.skill && S.skill[k]) || 0);
       if (!old) continue;
       let newTo = 0;
-      for (let i = 0; i < Math.min(old, SKILL_TRUNK_COST.length); i++) newTo += SKILL_TRUNK_COST[i];
+      // 折算要按"这个技能树当前的消耗"来算（采集 ×2、制造 ×3），别用基准表，否则老玩家吃亏
+      for (let i = 0; i < Math.min(old, SKILL_TRUNK_COST.length); i++) newTo += trunkCostOf(k, i);
       const back = Math.round(newTo * 2);
       S.exp = S.exp || {}; S.exp[k] = Math.round(((S.exp[k] || 0) + back) * 10) / 10;
       S.skill[k] = 0;
@@ -897,6 +919,7 @@ function change() {
       if (S.storeExt === undefined) S.storeExt = 0;
       if (S.gatherCount === undefined) S.gatherCount = 0;
       if (S.craftCount === undefined) S.craftCount = 0;
+      if (!S.satchelPref) S.satchelPref = { food:'', drink:'' };   // 食之包：自动吃/喝优先用哪一件
       // 一局只认一个结算结局（作者 2026-09-18 定的规矩）：老存档如果在旧版本里已经结算过某个结局，
       // 把那一份补记成"本存档的定局"，免得它读进来之后还能接着结算别的结局。
       if (!S.flags.settledEnding) {
@@ -963,7 +986,8 @@ function change() {
       pointUses:{}, killCount:{}, sold:{}, hpLostTotal:0,
       livestock:{ pen:[], coop:[], autoFeed:true }, traps:{ placed:0 },
       death:null, ending:null, combat:null, pistolCalibrated:false,
-      settings:{ roadAmbush:true },   // 赶路遇袭（危险度≥3 的区域会被狼/熊拦路）；玩家可在设置里关掉
+     settings:{ roadAmbush:true },   // 赶路遇袭（危险度≥3 的区域会被狼/熊拦路）；玩家可在设置里关掉
+     satchelPref:{ food:'', drink:'' },   // 食之包自动进食饮水优先用哪一件（空 = 自动挑最省的）
     };
     const idn = IDENTITIES[identity];
     for (const k in idn.items) addItem(k, idn.items[k], true);
@@ -2063,16 +2087,24 @@ function change() {
   function nodeLv(kind, id) { treeState(); return (S.tree[kind] && S.tree[kind][id]) || 0; }
   function trunkPicks(kind, optId) { treeState(); const a = S.skillPicks[kind] || []; return optId ? a.filter(x => x === optId).length : a.length; }
   function trunkLv(kind) { return S.skill[kind] || 0; }
-  function trunkCostNow(kind) { const lv = trunkLv(kind); return lv >= SKILL_TRUNK_MAX ? null : SKILL_TRUNK_COST[lv]; }
+  function trunkCostNow(kind) { const lv = trunkLv(kind); return lv >= SKILL_TRUNK_MAX ? null : trunkCostOf(kind, lv); }
   function treeDef(kind) { return SKILL_TREES[kind]; }
   function nodeDef(kind, id) { const t = treeDef(kind); return t ? (t.nodes || []).find(n => n.id === id) : null; }
-  function nodeSpent(n, lv) { let s2 = 0; for (let i = 0; i < lv; i++) s2 += (n.cost[i] || 0); return s2; }
+  function nodeSpent(kind, n, lv) { return nodeSpentOf(kind, n, lv); }
   // —— 数值钩子：采集 ——
   // ⚠️ 主干每级的加成在 2026-09-19 统一从 10% 削到 7%（作者要求，采集/制造都削）：
   //    主干 7 级满时是 +49%（原来是 +70%），专项节点数值没动。
   const TRUNK_STEP = 0.07;
-  // 经验到手量（作者 2026-09-19 调整）：采集每次 ×2、制造每件 ×3、Boss 从 +10 提到 +15
-  const EXP_GATHER = 2, EXP_CRAFT = 3;
+  // 经验到手量：每次采集/每件制造都是 +1（**不要**改这里，作者 2026-09-19 澄清过口径），
+  // 只有首领从 +10 提到 +15（见战斗结算里的 xg）。
+  const EXP_GATHER = 1, EXP_CRAFT = 1;
+  // 升级消耗的倍率（作者 2026-09-19 真正要的是这个）：采集树 ×2、制造树 ×3、战斗树不变。
+  // data.js 里存的仍是基准数字，这里统一乘；显示 / 扣除 / 遗忘返还全走下面这几个函数，不会两处对不上。
+  const SKILL_COST_MUL = { gather: 2, craft: 3, combat: 1 };
+  function costMul(kind) { return SKILL_COST_MUL[kind] || 1; }
+  function trunkCostOf(kind, lv) { return Math.round((SKILL_TRUNK_COST[lv] || 0) * costMul(kind)); }
+  function nodeCostOf(kind, n, lv) { return Math.round((((n && n.cost) || [])[lv] || 0) * costMul(kind)); }
+  function nodeSpentOf(kind, n, lv) { let s2 = 0; for (let i = 0; i < lv; i++) s2 += nodeCostOf(kind, n, i); return s2; }
   function gxYieldMul() { return 1 + TRUNK_STEP * trunkPicks('gather','yield') + (nodeLv('gather','g_fine') ? 0.20 : 0) - (nodeLv('gather','g_rough') ? 0.10 : 0); }
   function gxTimeMul() { return Math.max(0.40, 1 - TRUNK_STEP * trunkPicks('gather','speed')); }
   function gxEnergyMul() {
@@ -2131,7 +2163,7 @@ function change() {
     if (!opt) return { ok:false, reason:'没有这个成长选项' };
     const lv = trunkLv(kind);
     if (lv >= SKILL_TRUNK_MAX) return { ok:false, reason:'主干已满级' };
-    const cost = SKILL_TRUNK_COST[lv];
+    const cost = trunkCostOf(kind, lv);
     if ((S.exp[kind] || 0) < cost) return { ok:false, reason:`${t.expName}不足（需 ${cost}）` };
     S.exp[kind] = Math.round(((S.exp[kind] || 0) - cost) * 10) / 10;
     S.skill[kind] = lv + 1;
@@ -2152,7 +2184,7 @@ function change() {
     if (trunkLv(kind) < (n.need || 0)) return { ok:false, reason:`需要${t.name}主干 ${n.need} 级（现在 ${trunkLv(kind)} 级）` };
     if (n.needNode && nodeLv(kind, n.needNode) <= 0) return { ok:false, reason:`需要先学会「${(nodeDef(kind, n.needNode) || {}).name || n.needNode}」` };
     if (n.mutex && nodeLv(kind, n.mutex) > 0) return { ok:false, reason:`与「${(nodeDef(kind, n.mutex) || {}).name}」互斥` };
-    const cost = n.cost[lv];
+    const cost = nodeCostOf(kind, n, lv);
     if ((S.exp[kind] || 0) < cost) return { ok:false, reason:`${t.expName}不足（需 ${cost}，现有 ${have}）` };
     return { ok:true, cost };
   }
@@ -2175,7 +2207,7 @@ function change() {
   function nodeForgetGain(kind, id) {
     const n = nodeDef(kind, id); const lv = nodeLv(kind, id);
     if (!n || lv <= 0) return 0;
-    return Math.floor(nodeSpent(n, lv) / 2);     // 返还 1/2 经验
+    return Math.floor(nodeSpent(kind, n, lv) / 2);     // 返还 1/2 经验
   }
   function skillNodeForget(kind, id) {
     const t = treeDef(kind); const n = nodeDef(kind, id);
@@ -2202,7 +2234,7 @@ function change() {
     if (blockers.length) {
       return { ok:false, reason:`主干 ${lv} 级正撑着「${blockers.map(n => n.name).join('、')}」，先把它们忘掉再退主干` };
     }
-    const cost = SKILL_TRUNK_COST[lv - 1] || 0;
+    const cost = trunkCostOf(kind, lv - 1);
     const optId = (S.skillPicks[kind] || [])[lv - 1];
     const opt = (t.trunk || []).find(o => o.id === optId) || {};
     return { ok:true, lv, optId, optName: opt.name || optId || '主干', cost, gain: Math.floor(cost / 2) };
@@ -2227,7 +2259,7 @@ function change() {
         const lv = nodeLv(kind, n.id);
         const chk = nodeCheck(kind, n.id);
         return {
-          id:n.id, name:n.name, icon:n.icon, lv, max:n.max, desc:n.desc, cost:(lv < n.max ? n.cost[lv] : null), side:(n.side || 'r'),
+          id:n.id, name:n.name, icon:n.icon, lv, max:n.max, desc:n.desc, cost:(lv < n.max ? nodeCostOf(kind, n, lv) : null), side:(n.side || 'r'),
           need:n.need || 0, needNode:n.needNode || null, mutex:n.mutex || null,
           mutexName: n.mutex ? ((nodeDef(kind, n.mutex) || {}).name || '') : '',
           needName: n.needNode ? ((nodeDef(kind, n.needNode) || {}).name || '') : '',
@@ -3106,6 +3138,24 @@ function change() {
   }
   function craftBatch(r, n) {
     if (!r) return { ok:false, reason:'没有这个配方' };
+    // 作者 2026-09-19：有玩家"连着做太久，饿死在工坊里"，所以批量超过 5 小时要先弹窗提醒
+    //   （时间在走 = 饱食/水分在掉，别让人埋头做一天）
+    {
+      const perOne = Math.max(3, Math.round(r.time * (1 - metaBonus().craft) * cxTimeMul() * (S.identity === 'smith' ? 0.8 : 1)));
+      const totalMin = perOne * Math.max(1, n);
+      if (!r.hang && totalMin > 300 && !craftBatchConfirmed) {
+        const hrs = (totalMin / 60).toFixed(1);
+        showOverlay({
+          title: '⚠ 这批要花很久',
+          text: `连续制作 ${n} 件「${r.name}」大约要花 <b>${hrs} 小时</b>——这段时间饱食和水分会一直掉，饿着肚子硬做会出事（已经有人这么做把自己做没了）。\n\n要不要先吃点东西、或者少做一些？`,
+          choices: [
+            { label:`仍然开工（${hrs} 小时）`, hint:'我知道风险', ok: () => { craftBatchConfirmed = true; try { craftBatch(r, n); } finally { craftBatchConfirmed = false; } } },
+            { label:'再想想', hint:'先去吃东西 / 少做一点', ok: () => { log('你把材料先放下，打算准备准备再做。', 'sys'); } },
+          ],
+        });
+        return { ok:false, reason:'' };   // 交给弹窗处理（空 reason = 界面不要当报错写日志）
+      }
+    }
     // ⚠️ 晾晒类配方（晾肉架）**不能走下面的批量流程**：一副架子一次只挂一批，
     //    而且下面那段是"扣材料 → 立刻 addItem 产出成品" —— 以前长按晾肉干就能
     //    **当场拿到肉干**，20 小时的晾晒被整个绕过去（玩家反馈"晾肉架不能一次晾很多块吧"）。
@@ -4136,6 +4186,7 @@ function change() {
     return { ok:true, cost, level: lvl + 1 };
   }
   let _lastSettle = null;
+  let craftBatchConfirmed = false;   // 批量制作"超过 5 小时"的二次确认：确认过这一次就不再拦
   function metaLast() { return _lastSettle; }
   function reviveToday() {
     if (S.difficulty === 'legend') { log('传奇难度无法复活。', 'warn'); return; }
@@ -4246,20 +4297,24 @@ function change() {
 
   // ---------- 深海售卖机（遗失的交易机）：每天随机上架一件神物 ----------
   const RELIC_VENDOR_PRICE = 1200;
+  // 作者 2026-09-19：以前这台机器**每天必上架**一件神物，等于稳定白拿；现在改成每天 30% 概率有货
+  const VENDOR_RELIC_CHANCE = 0.30;
   function atlVendor() {
     if (!S.atlantis) S.atlantis = { unlocked:0, visited:0, camp:{ furniture:{}, buildings:{} }, quest:0 };
     const v = S.atlantis.vendor;
     if (v && v.rolled && v.day === S.day) return v;          // 同一天不重刷
     // 亚特兰蒂斯之种不进这台机器（走剧情/奇遇路线，属于特殊神物）
     const pool = Object.keys(RELICS).filter(id => id !== 'atlantisSeed' && !(S.relics || []).includes(id));
-    const id = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
-    S.atlantis.vendor = { day: S.day, id, sold: false, rolled: true };
+    const hasStock = pool.length > 0 && chance(VENDOR_RELIC_CHANCE);
+    const id = hasStock ? pool[Math.floor(Math.random() * pool.length)] : null;
+    S.atlantis.vendor = { day: S.day, id, sold: false, rolled: true, noStock: !hasStock && pool.length > 0 };
     return S.atlantis.vendor;
   }
   function atlVendorInfo() {
     const v = atlVendor();
     const it = v.id ? RELICS[v.id] : null;
-    return { id: v.id, name: it ? it.name : '', desc: it ? it.desc : '', glyph: it ? it.glyph : '', sold: !!v.sold, price: RELIC_VENDOR_PRICE, day: v.day };
+    return { id: v.id, name: it ? it.name : '', desc: it ? it.desc : '', glyph: it ? it.glyph : '',
+             sold: !!v.sold, price: RELIC_VENDOR_PRICE, day: v.day, noStock: !!v.noStock, chance: VENDOR_RELIC_CHANCE };
   }
   function buyRelicFromVendor() {
     if (S.scene !== 'atlantis') return { ok:false, reason:'这台售卖机只在亚克兰蒂斯运转。' };
@@ -4375,6 +4430,7 @@ function change() {
     if (!S.log) S.log = [];
     if (S.coopExt === undefined) S.coopExt = 0;
     if (S.storeExt === undefined) S.storeExt = 0;
+    if (!S.satchelPref) S.satchelPref = { food:'', drink:'' };
     migrateSkills();
     for (const id in ITEMS) if (DURA[id] !== undefined) durList(id);
     // 同上：老备份槽里已经结算过某个结局 → 补记成定局，别让"一局一个结局"被读档绕过
@@ -4414,6 +4470,15 @@ function change() {
     skillTreeInfo, skillUpTrunk, skillNodeLearn, skillNodeForget, nodeLv, trunkPicks, trunkLv, nodeCheck, nodeIsLeaf, nodeForgetGain, craftIn,
     trunkForgetInfo, skillTrunkForget,          // 主干遗忘（只能从末端退，返还一半）
     skinCost, skinOwned, unlockSkin,            // 皮肤包解锁（深海琥珀 / 彩绘卡面 各 50 魂点）
+    satchelPref: () => (S && S.satchelPref) || { food:'', drink:'' },
+    setSatchelPref: (kind, id) => {
+      if (kind !== 'food' && kind !== 'drink') return { ok:false, reason:'只有食物 / 饮水两类' };
+      S.satchelPref = S.satchelPref || { food:'', drink:'' };
+      S.satchelPref[kind] = id || '';
+      save(); change();
+      return { ok:true, id: S.satchelPref[kind] };
+    },
+    vendorRelicChance: () => VENDOR_RELIC_CHANCE,
     scanLocalSaves, restoreLocalSave, rescueInfo,   // 存档救援：扫描本机痕迹 / 恢复某一份
     confirmSettleEnding,   // 结算前二次确认（一局只能结算一个结局，所以要单独再问一次）
     skillCritRate: cxCrit, gatherYieldMul: gxYieldMul, gatherTimeMul: gxTimeMul, gatherEnergyMul: gxEnergyMul,

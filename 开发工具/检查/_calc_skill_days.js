@@ -15,7 +15,10 @@ new Function('window', 'document', 'console', 'box',
 )({}, {}, console, box);
 const { SKILL_TREES, SKILL_TRUNK_COST, SKILL_TRUNK_MAX, SCENES, ENEMIES, Game } = box;
 
-const trunkTotal = SKILL_TRUNK_COST.reduce((a, b) => a + b, 0);
+// 升级消耗倍率（作者 2026-09-19 口径纠正）：采集树 ×2、制造树 ×3、战斗树不变 —— 从 game.js 里读，别写死
+const mMul = GAME.match(/const SKILL_COST_MUL = \{ gather: (\d+), craft: (\d+), combat: (\d+) \};/);
+const COST_MUL = mMul ? { gather: +mMul[1], craft: +mMul[2], combat: +mMul[3] } : { gather:1, craft:1, combat:1 };
+const trunkBase = SKILL_TRUNK_COST.reduce((a, b) => a + b, 0);
 
 // 每棵树"能拿到的最多专项经验"：枚举满足 互斥 / 前置 的子集，取总花费最大的一组
 function nodeMax(tree) {
@@ -40,7 +43,8 @@ const out = {};
 for (const kind of ['gather', 'craft', 'combat']) {
   const t = SKILL_TREES[kind];
   const nm = nodeMax(t);
-  out[kind] = { name: t.name, trunk: trunkTotal, nodes: nm.cost, full: trunkTotal + nm.cost, ids: nm.ids };
+  const mul = COST_MUL[kind] || 1;
+  out[kind] = { name: t.name, mul, trunk: trunkBase * mul, nodes: nm.cost * mul, full: (trunkBase + nm.cost) * mul, ids: nm.ids };
 }
 
 // —— 每天大概能拿多少经验（按"正常游玩"的动作频次估）——
@@ -65,10 +69,11 @@ const perDayExp = (k, t) => k === 'gather' ? t.gather * EXP_GATHER
   : (t.small * 1 + t.normal * 2 + t.elite * 3 + t.boss * EXP_BOSS);
 
 console.log('===== 升满需要多少经验（真实数据）=====');
-console.log('主干 ' + SKILL_TRUNK_MAX + ' 级合计 ' + trunkTotal + ' 点（' + SKILL_TRUNK_COST.join(' / ') + '）');
+console.log(`升级消耗倍率：采集 ×${COST_MUL.gather} / 制造 ×${COST_MUL.craft} / 战斗 ×${COST_MUL.combat}`);
+console.log('主干 ' + SKILL_TRUNK_MAX + ' 级基准合计 ' + trunkBase + ' 点（' + SKILL_TRUNK_COST.join(' / ') + '）');
 for (const k of ['gather', 'craft', 'combat']) {
   const o = out[k];
-  console.log(`${o.name}：主干满 ${o.trunk} · 专项最多再 ${o.nodes} · 全满 ${o.full}（专项组合：${o.ids.join(' + ') || '无'}）`);
+  console.log(`${o.name}（×${o.mul}）：主干满 ${o.trunk} · 专项最多再 ${o.nodes} · 全满 ${o.full}（专项组合：${o.ids.join(' + ') || '无'}）`);
 }
 
 console.log('\n===== 每天到手经验 & 升满天数的估算 =====');

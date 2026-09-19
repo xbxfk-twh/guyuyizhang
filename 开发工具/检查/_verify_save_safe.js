@@ -80,14 +80,17 @@ ck('新字段补齐了（缺了会在运行期崩）',
 // ---------------------------------------------------------------- 2. 旧技能等级折算
 sec('2. 旧版技能等级折算成经验（不白升）');
 let want = 0;
+// 升级消耗倍率（采集 ×2、制造 ×3、战斗 ×1）：从 game.js 里读，别写死
+const _mMul = GAME.match(/const SKILL_COST_MUL = \{ gather: (\d+), craft: (\d+), combat: (\d+) \};/);
+const COST_MUL = _mMul ? { gather: +_mMul[1], craft: +_mMul[2], combat: +_mMul[3] } : { gather:1, craft:1, combat:1 };
 for (const k of ['gather', 'craft', 'combat']) {
   const lv = OLD_SAVE.skill[k];
   let sum = 0;
   for (let i = 0; i < Math.min(lv, SKILL_TRUNK_COST.length); i++) sum += SKILL_TRUNK_COST[i];
-  want += Math.round(sum * 2);
+  want += Math.round(sum * (COST_MUL[k] || 1) * 2);
 }
 const gotExp = Math.round((S1.exp.gather + S1.exp.craft + S1.exp.combat) * 10) / 10;
-ck('三级旧等级都折成了经验（2 倍主干成本）', gotExp === want, `${gotExp} / 期望 ${want}`);
+ck('三级旧等级都折成了经验（2 倍主干成本 × 各树的消耗倍率）', gotExp === want, `${gotExp} / 期望 ${want}`);
 ck('旧等级字段清零、技能树建好', S1.skill.gather === 0 && S1.skill.craft === 0 && S1.skill.combat === 0 && !!S1.tree.gather);
 
 // ---------------------------------------------------------------- 3. 读档后能正常保存（版本号守卫不能误伤）

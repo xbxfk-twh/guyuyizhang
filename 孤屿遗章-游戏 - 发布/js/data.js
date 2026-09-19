@@ -887,11 +887,12 @@ const RANDOM_EVENTS = [
       { label:'调头逃跑', time:30 },
       { label:'迎战', fight:'pirateBoss' },
   ]},
-  { id:'re_shrine', scene:'cave', w:4, once:1, text:'洞壁暗处，一扇被藤蔓掩埋的石龛微微发光，里面供着三件神物。', choices:[
+  // ⚠️ 送神物的奇遇：作者 2026-09-19 要求"获得概率减半" → 出现权重砍半（4→2、5→2.5）
+  { id:'re_shrine', scene:'cave', w:2, once:1, text:'洞壁暗处，一扇被藤蔓掩埋的石龛微微发光，里面供着三件神物。', choices:[
       { label:'取走神物', relic:1 },
       { label:'不敢妄动', spirit:2 },
   ]},
-  { id:'re_peddler', scene:'shore', w:5, once:1, cond:{ zone:'saltTown' }, text:'一个裹着破斗篷的神秘人拦住你："三十枚远古金币，换一件神物，换不换？"', choices:[
+  { id:'re_peddler', scene:'shore', w:2.5, once:1, cond:{ zone:'saltTown' }, text:'一个裹着破斗篷的神秘人拦住你："三十枚远古金币，换一件神物，换不换？"', choices:[
       { label:'成交', need:{ coin:30 }, relic:1 },
       { label:'摇头离开', noop:1 },
   ]},

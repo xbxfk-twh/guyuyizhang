@@ -1590,9 +1590,9 @@ section('7b. 制造等级（玩家反馈：技能升到 4 级却说经验不够�
   // 以前 expLevel 只看"剩余经验"，花经验升级技能会让等级反而下降
   G.newGame('fisher', 'normal');
   const Sk = G.S();
-  Sk.exp.craft = 200; Sk.skill.craft = 0;
-  for (let i = 0; i < 4; i++) G.skillUpTrunk('craft', 'speed');   // 新曲线：12+28+50+80 = 170
-  ck('把经验花在技能上不会让"制造等级"倒退', Sk.skill.craft === 4 && Sk.exp.craft === 30 && G.expLevel('craft') >= 2, '技能 ' + Sk.skill.craft + ' 级，剩余经验 ' + Sk.exp.craft + '，等级 ' + G.expLevel('craft'));
+  Sk.exp.craft = 600; Sk.skill.craft = 0;
+  for (let i = 0; i < 4; i++) G.skillUpTrunk('craft', 'speed');   // 制造树 ×3：(12+28+50+80)×3 = 510
+  ck('把经验花在技能上不会让"制造等级"倒退', Sk.skill.craft === 4 && Sk.exp.craft === 90 && G.expLevel('craft') >= 2, '技能 ' + Sk.skill.craft + ' 级，剩余经验 ' + Sk.exp.craft + '，等级 ' + G.expLevel('craft'));
   Sk.furniture.wb1 = true;
   G.addItem('plank', 20, true); G.addItem('ironpart', 10, true);
   G.buildFurniture('wb2');
@@ -1822,12 +1822,22 @@ section('7e. 不死丹改动 / 深海售卖机卖神物');
   ck('硬点也不会多出第 4 颗', G.invCount('lotusPill') === 3);
   ck('批量制作同样被限死', G.craftBatch(rl, 1).ok === false && G.craftMax(rl) === 0);
   ck('制造面板会显示本局已炼几颗', /本局已炼 \$\{S\(\)\.lotusMade \|\| 0\}\/3/.test(UI));
+  // 作者 2026-09-19：制造面板的工位分类改成左侧竖栏（玩家建议"挪到旁边更简洁"），窄屏退回横排
+  ck('★ 制造面板：工位分类在左侧竖栏（窄屏自动退回横排）',
+     /<div class="craft-body"><div class="craft-rail">/.test(UI) && /data-station="\$\{sid\}"/.test(UI) &&
+     /\.craft-rail \{ display: flex; flex-direction: column;/.test(fs.readFileSync(ROOT + '/css/style.css', 'utf8')) &&
+     /@media \(max-width: 620px\)[\s\S]{0,200}\.craft-rail \{ flex-direction: row;/.test(fs.readFileSync(ROOT + '/css/style.css', 'utf8')));
+  ck('★ 磨刀石三处都写明"只作用于主手武器"',
+     /磨的是<b>主手武器<\/b>/.test(UI) && /只作用于当前主手武器/.test(UI) && /下面三项都只作用于你装备的主手武器/.test(UI));
 
   // 深海售卖机（遗失的交易机）：每天随机上架一件神物
+  // 作者 2026-09-19：从"每天必上架"削成每天 30% 概率，所以测试要锁随机数才能稳定拿到货
   const Sv = enterAtlantis();
   Sv.day = 30; Sv.relics = [];
   Sv.atlantis = Sv.atlantis || {};
   delete Sv.atlantis.vendor;
+  const rndV = Math.random;
+  Math.random = () => 0.10;                 // < 0.30 → 今天有货
   const v1 = G.atlVendorInfo();
   ck('售卖机上架一件神物（1200 贝壳币）', !!v1.id && v1.price === 1200, v1.name + ' / ' + v1.price);
   ck('同一天不会刷新', G.atlVendorInfo().id === v1.id);
@@ -1838,10 +1848,43 @@ section('7e. 不死丹改动 / 深海售卖机卖神物');
   Sv.day = 31;
   const v2 = G.atlVendorInfo();
   ck('第二天刷新出另一件（不会卖已拥有的）', !!v2.id && v2.id !== v1.id && !Sv.relics.includes(v2.id), v2.name);
+  // 30% 概率：随机数 >= 0.30 的那天应该"没货"，而不是硬塞一件
+  Sv.day = 33; Math.random = () => 0.90;
+  const v3 = G.atlVendorInfo();
+  ck('★ 每天只有 30% 概率有货（随机数 0.9 那天就是空的）', !v3.id && v3.noStock === true, JSON.stringify(v3));
+  Math.random = rndV;
   Sv.day = 32;
   G.removeItem('beibi', G.invCount('beibi'));
+  Math.random = () => 0.10;
   ck('贝壳币不足时买不了', G.buyRelicFromVendor().ok === false);
-  ck('交易机面板里有神物上架栏', /data-arelic/.test(UI) && /每天随机上架一件/.test(UI));
+  Math.random = rndV;
+  ck('交易机面板里有神物上架栏（概率从接口读，写死会跟代码脱节）',
+     /data-arelic/.test(UI) && /每天 \$\{Math\.round\(Game\.vendorRelicChance\(\) \* 100\)\}% 概率上架一件/.test(UI) &&
+     G.vendorRelicChance() === 0.30);
+  // 送神物的奇遇：出现权重砍半（洞穴神龛 4→2、神秘货郎 5→2.5）
+  ck('★ 送神物的奇遇权重减半（神龛 w=2 / 货郎 w=2.5）',
+     RANDOM_EVENTS.find(a => a.id === 're_shrine').w === 2 && RANDOM_EVENTS.find(a => a.id === 're_peddler').w === 2.5,
+     '神龛 w=' + RANDOM_EVENTS.find(a => a.id === 're_shrine').w + '，货郎 w=' + RANDOM_EVENTS.find(a => a.id === 're_peddler').w);
+  // 食之包：自动吃喝不再无脑拿超级大蛋，且可以指定优先吃哪一件（作者 2026-09-19）
+  {
+    G.newGame('fisher', 'normal');
+    const sS = G.S(); sS.tut = null;
+    sS.relics = ['satchel']; sS.relicEquip = ['satchel', null, null]; sS.relicSlots = 1;
+    sS.inv = {}; G.addItem('superEgg', 3, true); G.addItem('berry', 5, true); G.addItem('water', 5, true);
+    sS.stats.hunger = 40; sS.stats.thirst = 40;
+    G.timePass(60);
+    ck('★ 没设偏好时食之包不吃超级大蛋（先吃最省的那份）',
+       G.invCount('superEgg') === 3 && G.invCount('berry') === 4, '超级大蛋 ' + G.invCount('superEgg') + ' / 浆果 ' + G.invCount('berry'));
+    ck('★ 口渴时先喝正经饮品（淡水，不去啃食物）', G.invCount('water') === 4, '淡水 ' + G.invCount('water'));
+    G.setSatchelPref('food', 'superEgg');
+    sS.stats.hunger = 40;
+    G.timePass(60);
+    ck('★ 指定"优先吃超级大蛋"之后就会吃它', G.invCount('superEgg') === 2, '超级大蛋 ' + G.invCount('superEgg'));
+    G.setSatchelPref('food', '');
+    ck('偏好存进存档（读回来还在）', (() => { G.setSatchelPref('drink', 'water'); G.save(); G.load(); return G.satchelPref().drink === 'water'; })());
+    ck('装备面板里有食之包的"优先吃/喝"入口',
+       /data-satchel="food"/.test(UI) && /data-satchel="drink"/.test(UI) && /satchelfood/.test(UI));
+  }
 
   // 已有但没装备的神物不该再刷一份
   G.newGame('fisher', 'normal');
@@ -3639,10 +3682,10 @@ section('9. 技能树（B1：框架 + 主干三选一 + 遗忘 + 采集/制造�
   // ---- 主干：扣经验 + 记录选择 + 效果叠加 ----
   {
     G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null;
-    s.exp.gather = 90;      // 刚好够升 3 级（12+28+50），第 4 级就升不动了
+    s.exp.gather = 180;     // 采集树 ×2：刚好够升 3 级（24+56+100），第 4 级就升不动了
     ck('新局主干从 0 级、没有任何选择', s.skill.gather === 0 && G.trunkPicks('gather') === 0);
     const r1 = G.skillUpTrunk('gather', 'yield'), r2 = G.skillUpTrunk('gather', 'yield'), r3 = G.skillUpTrunk('gather', 'stam');
-    ck('升三级按 12+28+50 扣经验', r1.ok && r2.ok && r3.ok && s.exp.gather === 0, '剩 ' + s.exp.gather);
+    ck('升三级按 (12+28+50)×2 = 180 扣经验', r1.ok && r2.ok && r3.ok && s.exp.gather === 0, '剩 ' + s.exp.gather);
     ck('同一个方向可以重复选（产出 7% ×2 = +14%）', Math.round(G.gatherYieldMul() * 100) / 100 === 1.14, G.gatherYieldMul());
     ck('选的不是同一个方向就各自生效（体力 -7%）', Math.round(G.gatherEnergyMul() * 100) / 100 === 0.93, G.gatherEnergyMul());
     ck('经验不够时升不动', G.skillUpTrunk('gather', 'yield').ok === false && s.skill.gather === 3);
@@ -3658,15 +3701,16 @@ section('9. 技能树（B1：框架 + 主干三选一 + 遗忘 + 采集/制造�
     ck('★ 互斥：学了伐木专精就学不了自然感知', G.nodeCheck('gather', 'g_nature').ok === false && /互斥/.test(G.nodeCheck('gather', 'g_nature').reason));
     ck('★ 只能遗忘"最末端"：没有下游时伐木专精可以忘', G.nodeIsLeaf('gather', 'g_wood') === true);
     // 临时挂一条下游链，验证"有下游就忘不了"
-    SKILL_TREES.gather.nodes.push({ id:'g_tmp', name:'临时下游', need:2, needNode:'g_wood', max:1, cost:[40], desc:['测试'] });
+    SKILL_TREES.gather.nodes.push({ id:'g_tmp', name:'临时下游', need:2, needNode:'g_wood', max:1, cost:[20], desc:['测试'] });
     G.skillNodeLearn('gather', 'g_tmp');
     ck('★ 有下游时不是末端、忘不了', G.nodeIsLeaf('gather', 'g_wood') === false && G.skillNodeForget('gather', 'g_wood').ok === false);
     const e0 = s.exp.gather;
     const f1 = G.skillNodeForget('gather', 'g_tmp');
+    // 采集树 ×2：这条临时支线 cost 20 → 实际花 40 → 返还一半 20
     ck('★ 遗忘末端返还一半经验（40 → +20）', f1.ok && f1.gain === 20 && Math.round(s.exp.gather - e0) === 20, '经验 ' + e0 + ' → ' + s.exp.gather);
     ck('★ 忘掉下游后，上游恢复成末端', G.nodeIsLeaf('gather', 'g_wood') === true);
     const f2 = G.skillNodeForget('gather', 'g_wood');
-    ck('★ 再忘上游：返还 30/2 = 15，且互斥解除', f2.gain === 15 && G.nodeCheck('gather', 'g_nature').ok === true);
+    ck('★ 再忘上游：伐木专精 30×2=60，返还一半 30，且互斥解除', f2.gain === 30 && G.nodeCheck('gather', 'g_nature').ok === true);
     ck('主干不能遗忘（不是节点）', G.skillTreeInfo().gather.lv === 2 && !G.skillTreeInfo().gather.nodes.some(n => n.id.endsWith('_trunk')));
     SKILL_TREES.gather.nodes.pop();
   }
@@ -3727,8 +3771,9 @@ section('9. 技能树（B1：框架 + 主干三选一 + 遗忘 + 采集/制造�
        G.trunkLv('gather') === 2 && G.S().skillPicks.gather.join(',') === 'yield,speed',
        'Lv' + G.trunkLv('gather') + ' picks=' + G.S().skillPicks.gather.join(','));
     const ti = G.trunkForgetInfo('gather');
+    // 采集树 ×2：第 2 级基准 28 → 实际花 56 → 返还一半 28
     ck('★ 主干只能从最末端退：给出的是最后那级（迅捷）和一半经验',
-       ti.ok && ti.lv === 2 && ti.optName === '迅捷' && ti.gain === Math.floor(SKILL_TRUNK_COST[1] / 2),
+       ti.ok && ti.lv === 2 && ti.optName === '迅捷' && ti.gain === Math.floor(SKILL_TRUNK_COST[1] * 2 / 2),
        JSON.stringify(ti));
     const rf = G.skillTrunkForget('gather');
     ck('★ 退主干成功：等级 -1、那次的选项也撤掉、经验返还一半',
@@ -4080,6 +4125,25 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
        JSON.stringify(s.toolDurs.axeStone));
     ck('批量制作也走新公式（不再残留旧的"每级 -8% 耗时"）',
        /let t = Math\.round\(r\.time \* \(1 - metaBonus\(\)\.craft\) \* cxTimeMul\(\)\);/.test(_GAME_SRC) && !/function craftLv\(\)/.test(_GAME_SRC));
+    // 作者 2026-09-19：有玩家连着做太久饿死在工坊里 → 批量超过 5 小时要先弹窗提醒
+    {
+      G.newGame('fisher', 'normal');
+      const rLong = RECIPES.filter(x => !x.hang).sort((a, b) => b.time - a.time)[0];
+      let ov = null;
+      G.bind({ onOverlay: (c) => { ov = c; } });
+      const res = G.craftBatch(rLong, 2);      // 单件就 ≥300 分钟的配方 ×2
+      ck('★ 批量超过 5 小时先弹确认框（不闷头做一天）',
+         res.ok === false && res.reason === '' && !!ov && /小时/.test(ov.text || '') && (ov.choices || []).length === 2,
+         rLong.name + ' ' + rLong.time + ' 分 ×2 → ' + (ov && ov.title));
+      ck('确认框里写明"饱食/水分一直在掉"的风险', /饱食和水分会一直掉/.test((ov && ov.text) || ''));
+      G.bind({ onOverlay: () => {} });
+      // 单件不超过 5 小时就别打扰
+      G.newGame('fisher', 'normal');
+      let ov2 = null; G.bind({ onOverlay: (c) => { ov2 = c; } });
+      G.craftBatch(RECIPES.find(x => x.id === 'r_axestone'), 1);   // 20 分钟
+      ck('不超过 5 小时的批量不会被拦', !ov2 || !/小时/.test(ov2.text || ''), ov2 && ov2.title);
+      G.bind({ onOverlay: () => {} });
+    }
     // 作者 2026-09-19：经验到手量上调（采集 ×2、制造 ×3、首领 +15）+ 制造与批量必须完全兼容
     {
       G.newGame('fisher', 'normal');
@@ -4097,7 +4161,7 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
       G.craftBatch(rAx2, 3);
       const three = sY.exp.craft - e1;                     // 批量 3 件
       const woodAfter = G.invCount('wood'), flintAfter = G.invCount('flint');
-      ck('★ 制造经验：每件 +3（单件 = 3）', Math.round(one) === 3, '单件 +' + one);
+      ck('★ 制造经验：每件 +1（口径纠正后回到原样）', Math.round(one) === 1, '单件 +' + one);
       ck('★ 批量与单个完全兼容：批量 3 件经验 = 3 × 单件', Math.round(three) === Math.round(one) * 3, '批量 +' + three + ' / 单件 +' + one);
       ck('★ 批量扣的材料也 = 3 × 单件（石斧 木1+燧石1 → 各扣 3）',
          woodAfter === woodBefore - 3 && flintAfter === flintBefore - 3,
@@ -4117,7 +4181,16 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
       }
       sG.scene = gsc; sG.zone = gzone;
       G.doPoint(gp);
-      ck('★ 采集经验：每个点位 +2', Math.round(sG.exp.gather - g0) === 2, '一次采集 +' + (sG.exp.gather - g0) + '（' + gp.name + '）');
+      ck('★ 采集经验：每个点位 +1（口径纠正后回到原样）', Math.round(sG.exp.gather - g0) === 1, '一次采集 +' + (sG.exp.gather - g0) + '（' + gp.name + '）');
+      // 真正调的是"升级消耗"：采集树 ×2、制造树 ×3、战斗树不变
+      ck('★ 升级消耗倍率：采集树 ×2、制造树 ×3、战斗树 ×1',
+         (() => { const i = G.skillTreeInfo();
+           const g1 = i.gather.cost, c1 = i.craft.cost, k1 = i.combat.cost;      // 都是 0→1 级那一档
+           return g1 === 24 && c1 === 36 && k1 === 12; })(),
+         (() => { const i = G.skillTreeInfo(); return '采集 ' + i.gather.cost + ' / 制造 ' + i.craft.cost + ' / 战斗 ' + i.combat.cost; })());
+      ck('★ 专项花费也跟着乘（采集伐木专精 30→60、制造修补匠 30→90）',
+         G.skillTreeInfo().gather.nodes.find(n => n.id === 'g_wood').cost === 60 &&
+         G.skillTreeInfo().craft.nodes.find(n => n.id === 'c_patch').cost === 90);
       // Boss 经验 +15
       G.newGame('fisher', 'normal');
       const sB = G.S(); sB.tut = null; sB.stats.hp = 999999; sB.stats.stamina = 9999;

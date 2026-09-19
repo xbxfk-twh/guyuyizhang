@@ -120,6 +120,39 @@ const MEASURE = `(rows => {
   await openSettings();
   await checkRows('窄屏');
 
+  console.log('E) 制造面板：工位分类在左侧竖栏（作者 2026-09-19 美化）');
+  await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+  const craft = await ev(`(async () => {
+    const w = ms => new Promise(r => setTimeout(r, ms));
+    const close = document.querySelector('#modal .modal-x, #modal #modal-close'); if (close) { close.click(); await w(400); }
+    // 先进一局（制造面板只在游戏里）
+    const clk = s => { const e = document.querySelector(s); if (e) e.click(); };
+    if (document.querySelector('#btn-new')) {
+      clk('#btn-new'); await w(500);
+      clk('.identity'); await w(500); clk('.identity'); await w(500); clk('.identity'); await w(1600);
+      for (let i = 0; i < 8; i++) { const b = document.querySelector('#modal .modal-actions button, #modal #modal-close'); if (!b) break; b.click(); await w(250); }
+    }
+    const go = document.querySelector('#nav [data-nav="craft"]') || [...document.querySelectorAll('#scene-actions button')].find(b => /制造/.test(b.textContent));
+    if (go) { go.click(); await w(800); }
+    const rail = document.querySelector('#modal .craft-rail');
+    const list = document.querySelector('#modal .craft-body > .recipe-list');
+    if (!rail || !list) return { err: '没有竖栏结构' };
+    const rr = rail.getBoundingClientRect(), lr = list.getBoundingClientRect();
+    const tabs = [...rail.querySelectorAll('.tab')];
+    const tops = [...new Set(tabs.map(t => Math.round(t.getBoundingClientRect().top)))];
+    const modal = document.querySelector('#modal .modal-content').getBoundingClientRect();
+    return { tabs: tabs.length, railW: Math.round(rr.width), railLeft: Math.round(rr.left), listLeft: Math.round(lr.left),
+      listW: Math.round(lr.width), railLines: tops.length, overflow: list.scrollWidth > list.clientWidth + 2,
+      inModal: rr.left >= modal.left - 1 && lr.right <= modal.right + 1 };
+  })()`);
+  console.log('   ' + JSON.stringify(craft));
+  ck('工位分类是竖栏、配方列表在它右边',
+     !craft.err && craft.tabs >= 8 && craft.railLeft < craft.listLeft && craft.railW < craft.listW,
+     craft.err || `竖栏宽 ${craft.railW} / 列表宽 ${craft.listW}`);
+  ck('竖栏是竖向排列（每个工位一行）、整体不溢出弹窗',
+     !craft.err && craft.railLines === craft.tabs && craft.overflow === false && craft.inModal === true,
+     craft.err || `行数 ${craft.railLines}/${craft.tabs} 溢出=${craft.overflow} 在框内=${craft.inModal}`);
+
   console.log('\n================ 汇总 ================');
   console.log('通过 ' + ok + ' 项，失败 ' + bad.length + ' 项');
   if (bad.length) { console.log('失败项：'); bad.forEach(b => console.log(' - ' + b)); }
