@@ -9,7 +9,7 @@ const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const ROOT = path.join(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const PORT = 9403;
 const PROFILE = path.join(require('os').tmpdir(), 'guyu_camp_' + process.pid);
-const OUT = path.join(__dirname, '_camp_out');
+const OUT = path.join(__dirname, '_out', 'camp');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const getJSON = url => new Promise((resolve, reject) => {
   http.get(url, res => { let b = ''; res.on('data', c => (b += c)); res.on('end', () => { try { resolve(JSON.parse(b)); } catch (e) { reject(e); } }); }).on('error', reject);

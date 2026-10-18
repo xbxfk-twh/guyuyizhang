@@ -1,20 +1,80 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="boot-pending">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="screen-orientation" content="landscape">
-  <script>window.BUILD_VER = 'v1.08-20260919-232620';</script>
+  <script>window.BUILD_VER = 'v1.13-20261018-004416';</script>
+  <script>
+    // 在游戏脚本之前运行；即使脚本加载/解析失败，也留下可见的诊断入口。
+    (function () {
+      var ready = false, failure = '';
+      function show(message) {
+        failure = message || failure;
+        var box = document.getElementById('boot-status');
+        if (box) box.textContent = failure + '。请保存下方诊断信息后重试；不要清理应用数据。';
+        var actions = document.getElementById('boot-actions');
+        if (actions) actions.hidden = false;
+      }
+      window.__guyuBoot = {
+        ready: function () { ready = true; document.documentElement.classList.remove('boot-pending'); },
+        diagnostic: function () {
+          var output = document.getElementById('boot-diagnostic');
+          if (!output) return;
+          output.hidden = false;
+          output.value = '版本：' + window.BUILD_VER + '\n错误：' + failure + '\n环境：' + navigator.userAgent;
+          output.focus(); output.select();
+        },
+        backup: function () {
+          var output = document.getElementById('boot-diagnostic');
+          if (!output) return;
+          var data = {};
+          try {
+            for (var i = 0; i < localStorage.length; i++) {
+              var key = localStorage.key(i);
+              if (/^(guyuyizhang_|guyu_)/.test(key)) data[key] = localStorage.getItem(key);
+            }
+            output.value = JSON.stringify({type:'guyu-emergency-backup', data:data});
+          } catch (e) { output.value = '存储暂时无法读取：' + e.message; }
+          output.hidden = false; output.focus(); output.select();
+        }
+      };
+      window.addEventListener('error', function (event) {
+        if (ready) return;
+        var target = event.target;
+        if (target && target.tagName === 'SCRIPT') show('游戏脚本加载失败：' + (target.getAttribute('src') || '内联脚本'));
+        else if (event.message) show(event.message + '（行 ' + (event.lineno || '?') + '）');
+      }, true);
+      window.addEventListener('DOMContentLoaded', function () { if (failure && !ready) show(failure); });
+      setTimeout(function () { if (!ready) show(failure || '游戏启动超时，可能是资源加载或运行环境异常'); }, 15000);
+    })();
+  </script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <title>孤屿遗章 · 黑白沉浸式文字生存</title>
-  <link rel="stylesheet" href="css/style.css?v=v1.08-20260919-232620">
+  <link rel="stylesheet" href="css/style.css?v=v1.13-20261018-004416">
+  <link rel="stylesheet" href="css/panels.css?v=v1.13-20261018-004416">
+  <link rel="stylesheet" href="css/ui-polish.css?v=v1.13-20261018-004416">
 </head>
 <body>
-  <div id="app"></div>
-  <script src="js/data.js?v=v1.08-20260919-232620"></script>
-  <script src="js/game.js?v=v1.08-20260919-232620"></script>
-  <script src="js/audio.js?v=v1.08-20260919-232620"></script>
-  <script src="js/ui.js?v=v1.08-20260919-232620"></script>
+  <div id="app">
+    <div style="padding:24px;max-width:680px;margin:auto;font:16px/1.6 sans-serif">
+      <h1>孤屿遗章</h1><p id="boot-status" role="status">正在准备游戏……</p>
+      <div id="boot-actions" hidden>
+        <button onclick="location.reload()">重新尝试</button>
+        <button onclick="window.__guyuBoot.diagnostic()">查看诊断信息</button>
+        <button onclick="window.__guyuBoot.backup()">抢救本地原始备份</button>
+        <p>诊断信息可提供给作者。原始备份请单独保存，它不是游戏内的存档码，需要作者协助恢复。</p>
+      </div>
+      <textarea id="boot-diagnostic" hidden readonly style="width:100%;height:160px" aria-label="可复制的诊断或备份内容"></textarea>
+      <noscript>请启用 JavaScript 后重新打开游戏。</noscript>
+    </div>
+  </div>
+  <script src="js/i18n.js?v=v1.13-20261018-004416"></script>
+  <script src="js/data.js?v=v1.13-20261018-004416"></script>
+  <script src="js/game.js?v=v1.13-20261018-004416"></script>
+  <script src="js/audio.js?v=v1.13-20261018-004416"></script>
+  <script src="js/battle-effects.js?v=v1.13-20261018-004416"></script>
+  <script src="js/ui.js?v=v1.13-20261018-004416"></script>
 </body>
 </html>

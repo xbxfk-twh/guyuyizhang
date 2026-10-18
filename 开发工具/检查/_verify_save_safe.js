@@ -191,7 +191,13 @@ Game.save();
 const after = JSON.parse(store['guyuyizhang_save']);
 const keepKeys = ['identity','difficulty','day','minute','tick','weather','stats','inv','capacity','relics',
                   'relicEquip','equipment','buildings','furniture','scene','flags','seen','killCount','slot','savedAt'];
-const diff = keepKeys.filter(k => JSON.stringify(after[k]) !== JSON.stringify(OLD_SAVE[k]));
+const comparable = JSON.parse(JSON.stringify(after)); delete comparable.stats.health;
+ck('旧终级仓库迁移到新终级且只迁移一次',after.buildings.storage===3 && after.storageChainVersion===2);
+comparable.buildings.storage=OLD_SAVE.buildings.storage;
+ck('旧档未建地窖新增建筑等级，不改变原建筑',after.buildings.cellar===-1);
+delete comparable.buildings.cellar;
+ck('旧档健康值补为100', after.stats.health === 100);
+const diff = keepKeys.filter(k => JSON.stringify(comparable[k]) !== JSON.stringify(OLD_SAVE[k]));
 ck('进度相关字段逐项一致', diff.length === 0, diff.length ? '被改动：' + diff.join(',') : keepKeys.length + ' 项全部一致');
 ck('新增字段只在需要时补，不动老数据', after.settledEnding === undefined || after.settledEnding === null,
    'settledEnding=' + after.settledEnding);
@@ -200,4 +206,6 @@ console.log('\n================ 汇总 ================');
 console.log('通过 ' + ok + ' 项，失败 ' + bad.length + ' 项');
 if (bad.length) { console.log('失败项：'); bad.forEach(b => console.log(' - ' + b)); }
 console.log('RESULT:' + (bad.length ? 'FAIL' : 'PASS'));
+process.exitCode = bad.length ? 1 : 0;
+
 process.exitCode = bad.length ? 1 : 0;

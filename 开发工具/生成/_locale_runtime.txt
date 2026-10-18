@@ -1,0 +1,39 @@
+/* Offline display localization. Game identifiers, saved strings and wallet fields remain unchanged. */
+const Locale = (()=>{
+  const KEY='guyuyizhang_language', supported=['en','zh'];
+  const tapHost=()=>window.GUYU_CHANNEL==='taptap'||!!window.tap||/(^|\.)taptap\.(com|cn)$/.test(location.hostname)||new URLSearchParams(location.search).get('channel')==='taptap';
+  let preference=null;try{preference=localStorage.getItem(KEY);}catch(e){}
+  let language=supported.includes(preference)?preference:(tapHost()?'zh':'en');
+  const originals=new WeakMap(), attrs=new WeakMap();
+  const escaped=Object.keys(DICTIONARY).filter(Boolean).sort((a,b)=>b.length-a.length).map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+  const pattern=new RegExp(escaped.join('|'),'g');
+  function text(value){if(language==='zh'||!/[\u3400-\u9fff]/.test(value))return value;return String(value).replace(pattern,k=>' '+DICTIONARY[k]+' ').replace(/\bDay\s*(\d+)\s*days\b/g,'Day $1').replace(/ +/g,' ').replace(/ ([,.;:!?])/g,'$1').trim();}
+  function visit(root){
+    if(!root||root.nodeType!==1)return;
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[];let node;
+    while(node=walker.nextNode())nodes.push(node);
+    for(const n of nodes){if(n.parentElement?.closest('script,style,textarea,input,.tt,[data-no-translate]'))continue;
+      const previous=originals.get(n),raw=previous&&n.nodeValue===previous.output?previous.raw:n.nodeValue;
+      const output=text(raw);originals.set(n,{raw,output});if(n.nodeValue!==output)n.nodeValue=output;
+    }
+    for(const el of [root,...root.querySelectorAll('[title],[aria-label],[placeholder],[alt]')]){
+      if(el.closest('[data-no-translate]'))continue;
+      let record=attrs.get(el)||{};
+      for(const key of ['title','aria-label','placeholder','alt']){if(!el.hasAttribute(key))continue;const value=el.getAttribute(key),p=record[key],raw=p&&value===p.output?p.raw:value,output=text(raw);record[key]={raw,output};if(value!==output)el.setAttribute(key,output);}
+      attrs.set(el,record);
+    }
+  }
+  function apply(){
+    observer?.disconnect();document.documentElement.lang=language==='en'?'en':'zh-CN';document.documentElement.dataset.language=language;
+    document.title=language==='en'?'Isle of Lost Chapters — Survival Adventure':'孤屿遗章 · 黑白沉浸式文字生存';
+    visit(document.body);document.querySelectorAll('[data-language]').forEach(e=>e.value=language);
+    observer?.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['title','aria-label','placeholder','alt']});
+  }
+  function set(value){if(!supported.includes(value))return false;language=value;preference=value;try{localStorage.setItem(KEY,value);}catch(e){}apply();return true;}
+  function control(){return `<label class="language-control"><span>Language</span><select data-language aria-label="Language"><option value="en" ${language==='en'?'selected':''}>English</option><option value="zh" ${language==='zh'?'selected':''}>中文</option></select></label>`;}
+  let observer=null,queued=false;
+  function start(){if(!supported.includes(preference))language=tapHost()?'zh':'en';observer=new MutationObserver(()=>{if(queued)return;queued=true;queueMicrotask(()=>{queued=false;apply();});});document.addEventListener('change',e=>{if(e.target.matches('[data-language]'))set(e.target.value);});apply();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+  return {text,set,apply,control,current:()=>language};
+})();
+window.Locale=Locale;

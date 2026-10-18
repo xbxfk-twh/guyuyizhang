@@ -1,10 +1,11 @@
 ﻿# 生成软著申请材料（源代码文档 + 软件说明书）
-# 用法：python 开发工具\生成\_gen_copyright_docs.py [版本号]
-#   默认版本 V1.11（和之前那版材料一致；想改成当前发布版就传 V1.0.8）
+# 用法：python 开发工具\生成\_gen_copyright_docs.py [版本号] [发布包 zip]
+#   指定发布包时从包内读取源码，避免把工作区未发布的改动写入登记材料。
 # 产物：软著申请\源代码文档.docx（前 30 页 + 后 30 页，每页 50 行）、软著申请\软件说明书.docx
 import os
 import sys
 import datetime
+import zipfile
 
 from docx import Document
 from docx.shared import Pt, Cm
@@ -14,9 +15,14 @@ from docx.oxml.ns import qn
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 GAME = os.path.join(ROOT, '孤屿遗章-游戏 - 发布')
 OUT = os.path.join(ROOT, '软著申请')
-VER = (sys.argv[1] if len(sys.argv) > 1 else 'V1.11').strip()
+VER = (sys.argv[1] if len(sys.argv) > 1 else 'V1.10').strip()
+DOC_SUFFIX = '_' + VER.lower()
+ARCHIVE = (sys.argv[2] if len(sys.argv) > 2 else '').strip()
 NAME = '孤屿遗章 游戏软件'
 TODAY = datetime.date.today().strftime('%Y年%m月%d日')
+OWNER = os.environ.get('COPYRIGHT_OWNER', '________________（请填写）')
+COMPLETED = os.environ.get('COPYRIGHT_COMPLETED', '________________（请按所登记版本的实际完成日期填写）')
+PUBLISHED = os.environ.get('COPYRIGHT_PUBLISHED', '________________（已发表则填实际首次公开日期；未发表则注明未发表）')
 
 FILES = ['index.html', 'css/style.css', 'js/data.js', 'js/game.js', 'js/ui.js', 'js/audio.js']
 LINES_PER_PAGE = 50
@@ -45,15 +51,26 @@ def wrap_line(line, limit=WRAP_COL):
 
 def read_code():
     out = []
-    for rel in FILES:
-        path = os.path.join(GAME, rel.replace('/', os.sep))
-        out.append('/* ============ %s ============ */' % rel)
-        with open(path, 'r', encoding='utf-8', errors='replace') as f:
-            for line in f.read().split('\n'):
+    archive = zipfile.ZipFile(ARCHIVE) if ARCHIVE else None
+    try:
+        for rel in FILES:
+            out.append('/* ============ %s ============ */' % rel)
+            if archive:
+                matches = [name for name in archive.namelist() if name.endswith('/' + rel)]
+                if len(matches) != 1:
+                    raise ValueError('发布包中未唯一匹配 %s：%s' % (rel, matches))
+                source = archive.read(matches[0]).decode('utf-8-sig', errors='replace')
+            else:
+                path = os.path.join(GAME, rel.replace('/', os.sep))
+                with open(path, 'r', encoding='utf-8', errors='replace') as f:
+                    source = f.read()
+            for line in source.split('\n'):
                 line = line.rstrip('\r').replace('\t', '    ')
-                # ⚠️ 超长行要在文档里**折成多行**：像 ui.js 里那种几百个字段挤在一行的对象，
-                #    Word 里会横向折行、把这一页撑爆（实测整份文档会被排成 75 页而不是 60 页）。
+                # 超长行按显示宽度折行，避免排版后超过 60 页。
                 out.extend(wrap_line(line))
+    finally:
+        if archive:
+            archive.close()
     return out
 
 
@@ -111,7 +128,7 @@ def build_source_doc():
     for i in range(0, len(back), per):
         add_page(doc, NAME, back[i:i + per], page)
         page += 1
-    path = os.path.join(OUT, '源代码文档.docx')
+    path = os.path.join(OUT, '源代码文档%s.docx' % DOC_SUFFIX)
     doc.save(path)
     print('源代码文档：%d 行 → %d 页（前 %d + 后 %d），%s' % (len(code), page - 1, PAGES_EACH_SIDE, PAGES_EACH_SIDE, path))
 
@@ -144,9 +161,9 @@ def build_manual():
     body('软件名称：孤屿遗章 游戏软件')
     body('软件简称：孤屿遗章')
     body('版本号：%s' % VER)
-    body('著作权人：________________（请填写）')
-    body('开发完成日期：%s' % TODAY)
-    body('首次发表日期：________________（请填写：上架 TapTap 的那天）')
+    body('著作权人：%s' % OWNER)
+    body('开发完成日期：%s' % COMPLETED)
+    body('首次发表日期：%s' % PUBLISHED)
     body('')
     h('一、软件概述')
     body('《孤屿遗章》是一款中文网页文字生存游戏。玩家扮演海难后漂流到孤岛上的幸存者，'
@@ -155,7 +172,7 @@ def build_manual():
          '游戏为单机运行，不需要服务器；画面为黑白版画风格（其中隐藏角色「灵灰」为彩色）。')
     h('二、开发与运行环境')
     body('开发语言与框架：HTML5 + CSS3 + 原生 JavaScript（不使用第三方框架，无后端服务）。')
-    body('开发工具：Visual Studio Code、Node.js（构建与自动化测试脚本）、Python（资源与打包脚本）。')
+    body('开发工具：代码编辑器、Node.js（自动化测试脚本）、Python（资源与打包脚本）。')
     body('运行环境：任意支持 HTML5 的浏览器（Chrome / Edge / Safari / Firefox 等）；'
          '支持 Windows / macOS / Linux 桌面浏览器与 Android / iOS 移动端浏览器，'
          '也支持以 H5 小游戏形式在 TapTap 平台内运行。')
@@ -206,7 +223,7 @@ def build_manual():
     body('· 游戏进度保存在本地，清理浏览器数据会清除进度，建议定期使用「导出存档码」备份；'
          '在 TapTap 平台运行时，可在设置中开启云存档。')
     body('· 长时间制造、睡觉、建造会持续消耗饱食与水分，操作前请先吃饱喝足。')
-    path = os.path.join(OUT, '软件说明书.docx')
+    path = os.path.join(OUT, '软件说明书%s.docx' % DOC_SUFFIX)
     doc.save(path)
     print('软件说明书：%s' % path)
 
@@ -214,7 +231,7 @@ def build_manual():
 def check_copyright_docs():
     """按软著登记的硬性要求自检：A4、页眉（软件名+版本+页码）、每页 50 行、共 60 页。"""
     print('\n===== 软著材料格式自检 =====')
-    d = Document(os.path.join(OUT, '源代码文档.docx'))
+    d = Document(os.path.join(OUT, '源代码文档%s.docx' % DOC_SUFFIX))
     sec = d.sections[0]
     print('纸张：%.1f x %.1f cm  %s' % (sec.page_width.cm, sec.page_height.cm,
           'OK（A4）' if abs(sec.page_width.cm - 21.0) < 0.2 and abs(sec.page_height.cm - 29.7) < 0.2 else 'X 不是 A4'))
@@ -237,7 +254,7 @@ def check_copyright_docs():
           'OK（软件名 + 版本号 + 页码）' if not bad_head else 'X 有 %d 页页眉不对' % len(bad_head)))
     print('每页行数：%d 行/页  %s' % (LINES_PER_PAGE, 'OK（每页 50 行）' if not bad_lines else 'X 有 %d 页行数不对：%s' % (len(bad_lines), [x['no'] for x in bad_lines][:5])))
     print('页码连续：%s' % ('OK' if [x['no'] for x in pages] == list(range(1, len(pages) + 1)) else 'X 页码不连续'))
-    m = Document(os.path.join(OUT, '软件说明书.docx'))
+    m = Document(os.path.join(OUT, '软件说明书%s.docx' % DOC_SUFFIX))
     ms = m.sections[0]
     txt = '\n'.join(p.text for p in m.paragraphs)
     need = ['软件名称', '版本号', '运行环境', '主要功能', '操作说明', '开发']

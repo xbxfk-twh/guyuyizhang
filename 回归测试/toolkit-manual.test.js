@@ -1,0 +1,14 @@
+// Manual tool slots must survive load, gathering and broken-tool replacement.
+const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
+let source=['data.js','game.js'].map(f=>fs.readFileSync(path.join(__dirname,'../孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
+source=source.replace('healthValue, pendingLootInfo','arriveAt, fitsInBag, gainItem, healthValue, pendingLootInfo');
+function fresh(){const store={},math=Object.create(Math);math.random=()=>.99;const control={fail:false,autoNotify:true,overlays:[]};
+ const e=new Function('localStorage','window','document','console','Math','setTimeout','clearTimeout',source+'\nreturn {G:Game,ITEMS,RECIPES,DURA,ATLANTIS_FURNITURE};')({getItem:k=>store[k]??null,setItem:(k,v)=>{if(control.fail){control.fail=false;throw Error('quota');}store[k]=String(v);},removeItem:k=>delete store[k]}, {},{cookie:''},{log(){},warn(){}},math,()=>1,()=>{});
+ e.G.bind({onChange(){},onLog(){},onFight(){},onOverlay(cfg){control.overlays.push(cfg);if(control.autoNotify)cfg.onShown?.();},onEnding(){},onSaveFail(){}});e.G.newGame('fisher','normal');e.G.S().tut=null;return {...e,control};}
+let passed=0,failed=0;function check(n,f){try{f();passed++;console.log('OK '+n);}catch(e){failed++;console.error('FAIL '+n+'\n'+e.stack);}}
+
+
+check('手动卸下三个工具后保存重载保持空位，物品与耐久不变',()=>{const {G:g}=fresh();g.S().capacity=999;g.S().toolkit=[null,null,null];for(const id of ['axeStone','pickStone','knifeStone']){g.addItem(id,1,true);g.equipTool(id);}const before=Object.fromEntries(g.S().toolkit.map(id=>[id,[g.invCount(id),g.durOf(id)]]));for(const id of Object.keys(before))assert.equal(g.unequipTool(id).ok,true);g.save();g.load();assert.deepEqual(g.S().toolkit,[null,null,null]);for(const id in before)assert.deepEqual([g.invCount(id),g.durOf(id)],before[id]);});
+check('采集不会把手动卸下的工具装回来，主动换装会释放手动空位',()=>{const {G:g}=fresh();g.S().capacity=999;g.addItem('axeStone',1,true);g.equipTool('axeStone');g.unequipTool('axeStone');g.S().scene='forest';const p=g.pointsOf().find(p=>p.type==='gather'&&p.need?.tool==='axe');assert.ok(p);g.doPoint(p);assert.equal(g.S().toolkit.includes('axeStone'),false);g.addItem('axeIron',1,true);assert.equal(g.equipTool('axeIron').ok,true);g.save();g.load();assert.equal(g.S().toolkit.includes('axeIron'),true);});
+check('其他工具损坏自动补位不会搬回手动卸下的工具',()=>{const {G:g}=fresh();g.S().capacity=999;g.S().inv={axeStone:1,pickStone:1,pickIron:1};g.S().toolkit=['axeStone','pickStone',null];g.unequipTool('axeStone');g.S().inv.pickStone=0;g.equipBackpack(null);assert.equal(g.S().toolkit[0],null);assert.equal(g.S().toolkit.includes('axeStone'),false);assert.equal(g.S().toolkit.includes('pickIron'),true);});
+console.log(`通过 ${passed} 项，失败 ${failed} 项\nRESULT:${failed?'FAIL':'PASS'}`);process.exitCode=failed?1:0;

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>孤岛新稿 · 热点标注预览</title>
+<style>
+  *{box-sizing:border-box}body{margin:0;background:#18201f;color:#f7f3e9;font-family:"Microsoft YaHei",sans-serif}
+  main{position:relative;width:min(100vw,1672px);margin:auto;aspect-ratio:1672/941;overflow:hidden}
+  img,svg{position:absolute;inset:0;width:100%;height:100%}img{object-fit:contain}
+  .shade{fill:rgba(13,24,22,.72);stroke:rgba(248,239,205,.78);stroke-width:1.5}
+  .leader{stroke:#f7e5a5;stroke-width:2;stroke-linecap:round;paint-order:stroke}
+  .dot-outer{fill:rgba(5,25,22,.75);stroke:#ffe3a0;stroke-width:3}.dot-inner{fill:#ffe0a0}
+  .label{fill:#fff8e7;font-size:23px;font-weight:700;letter-spacing:1px;paint-order:stroke;stroke:rgba(0,0,0,.35);stroke-width:1}
+  .subtitle{font-size:17px;font-weight:400;fill:#e2dbc8}
+  .title{fill:#fff8e7;font-size:27px;font-weight:700;letter-spacing:3px}
+</style>
+<main>
+  <img src="孤岛主背景_全彩全地点_v2.png" alt="孤岛全彩背景新稿">
+  <svg viewBox="0 0 1672 941" role="img" aria-label="孤岛新稿的十二个地图热点标注">
+    <rect class="shade" x="25" y="18" width="370" height="76" rx="12"/>
+    <text class="title" x="47" y="52">孤岛 · 热点标注预览</text>
+    <text class="subtitle" x="48" y="79">自由构图坐标草案 · 非游戏实装</text>
+    <g id="markers"></g>
+  </svg>
+</main>
+<script>
+// 点位参照新画面重新拟定；与游戏现有 MAP_ARROWS 无关。
+const spots=[
+  ['山顶',930,47,1005,103],
+  ['山洞',325,510,392,540],
+  ['树林',610,310,533,274],
+  ['竹林',751,470,654,451],
+  ['采石场',1196,333,1255,309],
+  ['荒漠',1432,509,1505,530],
+  ['草地',1190,488,1243,473],
+  ['河畔',960,515,905,487],
+  ['营地',1110,585,1020,600],
+  ['耕地',1225,620,1260,650],
+  ['海域',1385,750,1453,772],
+  ['对岸',1515,365,1580,343]
+];
+const ns='http://www.w3.org/2000/svg', layer=document.querySelector('#markers');
+for(const [name,x,y,lx,ly] of spots){
+  const width=name.length*25+30, height=42;
+  const g=document.createElementNS(ns,'g');
+  const line=document.createElementNS(ns,'line');line.setAttribute('class','leader');
+  for(const [k,v] of Object.entries({x1:x,y1:y,x2:lx+width/2,y2:ly+height/2}))line.setAttribute(k,v);
+  const rect=document.createElementNS(ns,'rect');rect.setAttribute('class','shade');
+  for(const [k,v] of Object.entries({x:lx,y:ly,width,height,rx:9}))rect.setAttribute(k,v);
+  const t=document.createElementNS(ns,'text');t.setAttribute('class','label');t.setAttribute('x',lx+15);t.setAttribute('y',ly+29);t.textContent=name;
+  const outer=document.createElementNS(ns,'circle');outer.setAttribute('class','dot-outer');outer.setAttribute('cx',x);outer.setAttribute('cy',y);outer.setAttribute('r',13);
+  const inner=document.createElementNS(ns,'circle');inner.setAttribute('class','dot-inner');inner.setAttribute('cx',x);inner.setAttribute('cy',y);inner.setAttribute('r',4);
+  g.append(line,rect,t,outer,inner);layer.append(g);
+}
+</script>
+</html>

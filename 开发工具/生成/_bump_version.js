@@ -1,10 +1,15 @@
-/* 升版本号：改 index.html 的 BUILD_VER 与 5 个 ?v= 缓存参数，同时同步打包脚本里的 VER。
-   用法：node 开发工具\生成\_bump_version.js v1.07
+/* 升版本号：改 index.html 的 BUILD_VER 与其后所有 ?v= 缓存参数（当前 9 个：
+   data/game/audio/ads/battle-effects/ui + style/panels/ui-polish 三张 css）；打包自动读取此版本。
+   用法：node 开发工具\生成\_bump_version.js v1.10
 */
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
-const ver = process.argv[2] || 'v1.07';
+const ver = process.argv[2];
+if (!/^v\d+\.\d+[a-z]?$/.test(ver || '')) {
+  console.error('请明确提供版本号，例如：node 开发工具/生成/_bump_version.js v1.09');
+  process.exit(1);
+}
 const now = new Date();
 const p2 = (n) => String(n).padStart(2, '0');
 const stamp = ver + '-' + now.getFullYear() + p2(now.getMonth() + 1) + p2(now.getDate()) + '-' + p2(now.getHours()) + p2(now.getMinutes()) + p2(now.getSeconds());
@@ -19,9 +24,4 @@ s = s.split(old).join(stamp);
 fs.writeFileSync(idx, s);
 console.log('index.html：' + old + ' → ' + stamp + '（替换 ' + n + ' 处）');
 
-const pack = path.join(ROOT, '开发工具', '打包', '_pack.py');
-let t = fs.readFileSync(pack, 'utf8');
-const before = (t.match(/VER = '([^']+)'/) || [])[1];
-t = t.replace(/VER = '[^']+'/, "VER = '" + ver + "'");
-fs.writeFileSync(pack, t);
-console.log('_pack.py：VER ' + before + ' → ' + ver);
+console.log('打包工具将自动读取新版本。');

@@ -1,0 +1,490 @@
+/* 管理面板：制造、背包、装备。唯一布局定义，基础控件在 style.css。 */
+#modal.open { padding: 44px max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+.modal-content.work-modal {
+  position: relative;
+  width: min(1100px, calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 24px));
+  max-width: 1100px;
+  height: calc(100vh - 62px);
+  height: calc(100dvh - 62px);
+  max-height: min(720px, 100%);
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  box-sizing: border-box;
+}
+.modal-content.work-modal .modal-x {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  float: none;
+  border: 0;
+  border-left: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1;
+  z-index: 12;
+}
+.work-modal .work-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 52px 0 14px;
+  border-bottom: 3px solid var(--ink);
+  background: var(--paper);
+  box-sizing: border-box;
+}
+.work-modal .work-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  line-height: 46px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.work-modal .work-title .title-note {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--gray);
+}
+/* 面板右上角的一句操作提示（例：长按「制作」可批量）。放在 × 左边，不占配方卡片的位置 */
+.work-modal .work-note {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: var(--gray);
+  white-space: nowrap;
+}
+@media (max-width: 560px) { .work-modal .work-note { display: none; } }   /* 窄屏没地方，藏掉 */
+/* 批量入口按"指针类型"分工（作者 2026-09-22 定案）：
+   触屏 → 长按「制作」就能批量，独立按钮纯占位置，藏掉，只留标题行那句提示；
+   鼠标 → 长按左键 460ms 很难做，所以把「批量」按钮保留出来，提示反而多余。 */
+@media (pointer: coarse) {
+  .recipe-actions [data-craftbatch] { display: none; }
+}
+@media (pointer: fine) {
+  .work-modal .work-note { display: none; }
+}
+.work-modal .work-title .help-btn,
+.work-modal .work-head .head-btn {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0 0 0 8px;
+  padding: 0 12px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 13px;
+  vertical-align: middle;
+}
+.work-modal .work-title .help-btn:hover,
+.work-modal .work-head .head-btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+.work-modal .work-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 10px 14px 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.work-modal .work-side {
+  flex: 0 0 118px;
+  width: 118px;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px 4px 2px 0;
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+}
+.work-modal .work-side .tab {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+.work-modal .work-side .tab:hover:not(.locked) {
+  background: var(--ink);
+  color: var(--paper);
+}
+.work-modal .work-side .tab.active {
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
+}
+.work-modal .work-side .tab.locked {
+  opacity: 0.54;
+}
+.work-modal .work-groups {
+  flex: 0 0 86px;
+  width: 86px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-y: auto;
+  padding: 2px 4px;
+  border-left: 1px solid #b7b1a3;
+  border-right: 1px solid #b7b1a3;
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+}
+.work-modal .work-groups-title {
+  color: #59544b;
+  font-size: 11px;
+  text-align: center;
+  padding: 2px;
+}
+.work-modal .work-group {
+  flex: 0 0 auto;
+  min-height: 38px;
+  width: 100%;
+  padding: 5px 3px;
+  border: 1px solid #958e80;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+.work-modal .work-group.active,
+.work-modal .work-group:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+.work-modal .work-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.work-modal .work-content > .panel-hint {
+  flex: 0 0 auto;
+  margin: 0;
+}
+.work-modal .work-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 6px 0 0;
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+}
+.work-modal .work-scroll::-webkit-scrollbar,
+.work-modal .work-side::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.work-modal .work-scroll::-webkit-scrollbar-thumb,
+.work-modal .work-side::-webkit-scrollbar-thumb {
+  background: var(--ink);
+  border: 2px solid var(--paper);
+}
+.work-modal .work-scroll::-webkit-scrollbar-track,
+.work-modal .work-side::-webkit-scrollbar-track {
+  background: transparent;
+}
+.work-modal .work-scroll :focus-visible,
+.work-modal .work-side :focus-visible,
+.work-modal .modal-x:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.work-modal .work-scroll .resource-tip {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  border: 1px dashed var(--ink);
+  font-size: 12px;
+  color: #44412f;
+}
+/* 内容必须自然撑高，内部不再滚动 */
+.work-modal .work-scroll > *,
+.work-modal .work-scroll .recipe-list,
+.work-modal .work-scroll .help-list,
+.work-modal .work-scroll .help-item,
+.work-modal .work-scroll .skill-grid,
+.work-modal .work-scroll .relic-slots,
+.work-modal .work-scroll .relic-slot,
+.work-modal .work-scroll .attr-wrap,
+.work-modal .work-scroll .inv-grid {
+  max-height: none;
+  overflow: visible;
+  flex-shrink: 0;
+}
+.work-modal .help-item b,
+.work-modal .skill-grid > *,
+.work-modal .sub-title,
+.work-modal .work-content h3,
+.work-modal .work-content h4 {
+  margin: 6px 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+}
+.work-modal .help-item span {
+  display: block;
+  word-break: break-word;
+}
+.work-modal .skill-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.work-modal .recipe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.work-modal .recipe {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) 100px;
+  grid-template-areas: "info actions" "lock lock";
+  gap: 6px 12px;
+  align-items: start;
+  border: 1.5px solid var(--ink);
+  padding: 10px 12px;
+  background: var(--paper);
+  box-sizing: border-box;
+}
+.work-modal .recipe-info {
+  grid-area: info;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.work-modal .recipe-info .recipe-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.work-modal .recipe-info .recipe-mats {
+  font-size: 12.5px;
+  color: #44412f;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.work-modal .recipe-actions {
+  grid-area: actions;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 100px;
+  width: 100px;
+}
+.work-modal .recipe-actions .mini-btn {
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 8px;
+  font-size: 13px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  box-sizing: border-box;
+}
+.work-modal .recipe-actions .mini-btn:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--paper);
+}
+.work-modal .recipe-lock {
+  grid-area: lock;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--gray);
+}
+.work-modal .owned {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 4px;
+  border: 1px solid var(--ink);
+  font-size: 11px;
+  white-space: nowrap;
+}
+@media (max-width: 700px), (max-height: 520px) {
+  /* 作者 2026-09-22（第三批 3.1）：手机端弹窗**左右各留一点空隙**。
+     以前是 `100vw - 8px`，等于贴着屏幕两边、连边框都压在边沿上，看着很挤。
+     2026-09-24 作者又要求"手机版宽度显示都变窄一点点"：左右留白 16px → **24px**（总扣 48px），
+     背包 / 装备 / 制造栏这些 work-modal 一起收窄，正文行更短、更好读。 */
+  .modal-content.work-modal {
+    width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 48px);
+    max-width: none;
+    height: calc(100vh - 56px);
+    height: calc(100dvh - 56px);
+    max-height: 100%;
+    border-width: 2px;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+  }
+  .work-modal .work-head {
+    min-height: 48px;
+    padding: 0 48px 0 8px;
+  }
+  .work-modal .work-title {
+    font-size: 15px;
+    letter-spacing: 0.16em;
+    line-height: 44px;
+  }
+  .work-modal .work-body {
+    gap: 6px;
+    padding: 6px 8px 10px;
+  }
+  /* 制造/背包/装备左侧分类栏：手机端再收窄一点（96 → 78px），把空间让给配方正文。
+     触控区仍 ≥44px 高，不影响点按精度。 */
+  .work-modal .work-side {
+    flex: 0 0 78px;
+    width: 78px;
+  }
+  .work-modal .work-side .tab {
+    min-height: 44px;
+    padding: 6px 4px;
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+  }
+  .work-modal .work-groups {
+    flex-basis: 62px;
+    width: 62px;
+    gap: 4px;
+    padding-inline: 2px;
+  }
+  .work-modal .work-group { min-height: 40px; font-size: 10.5px; }
+  .work-modal .recipe {
+    grid-template-columns: minmax(200px, 1fr) 100px;
+    gap: 4px 8px;
+    padding: 8px 10px;
+  }
+  .work-modal .skill-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 430px) {
+  .work-modal .recipe {
+    grid-template-columns: minmax(0, 1fr) 100px;
+  }
+  .work-modal .recipe-actions {
+    width: 100px;
+    min-width: 100px;
+  }
+}
+.work-modal .inv-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
+.work-modal .inv-item { min-width: 0; min-height: 82px; padding: 9px 5px; }
+.work-modal .inv-name { overflow-wrap: anywhere; }
+.work-modal .work-scroll .modal-title { font-size: 15px; letter-spacing: .08em; margin: 12px 0 8px; }
+.work-modal .recipe-row { flex-wrap: wrap; }
+.work-modal .recipe-row .rcost { flex-basis: 200px; }
+
+/* ---------- 触屏可点尺寸（作者 2026-09-24："手机端ui着重改善"）----------
+   用开发工具/检查/_audit_mobile.js 逐面板实测，发现一批按钮在手机上只有 24~28px 高：
+     · 营地建造的「建造 / 扩建 / ?」
+     · 老潮货摊的「卖出」
+     · 牧场的「放进鸡舍 / 扩建」
+     · 设置里的「音乐 / 音效 / 日志显示」开关
+     · 攻略的章节折叠按钮
+   鼠标点没问题，手指按不准。这里给手机端弹窗里的按钮一个 44px 下限
+   （Apple / Google 的最小可点尺寸）。
+   ⚠️ 断点跟上面那块移动端布局**保持一致**（`max-width:700px, max-height:520px`），
+      不用 `pointer: coarse`：一来项目里已有布局就按宽高切，混用两套容易在临界尺寸上打架；
+      二来窗口尺寸是确定能测到的，指针类型在 WebView 里偶尔会报得很怪。
+   桌面（宽高都够）完全不受影响。 */
+@media (max-width: 700px), (max-height: 520px) {
+  #modal button,
+  #modal .tab,
+  #modal .mini-btn,
+  #modal .action-btn { min-height: 44px; }
+  #modal .helpbtn,
+  #modal .modal-x,
+  #modal .guide-toggle { min-width: 44px; }
+  /* 设置里「窄 / 中 / 宽」这种单字按钮高度够了但只有 28px 宽，手指一样不好按 */
+  #modal .set-inline .mini-btn { min-width: 44px; }
+  /* 按钮被撑高之后，动作列稍松一点，免得两行按钮糊在一起 */
+  .work-modal .recipe-actions { gap: 6px; }
+}
+
+#modal.open ~ #anim-speed { visibility: hidden; }
+/* 五个装备槽并排，给背包中的装备留下更多可见空间。 */
+.work-modal .equip-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.work-modal .equip-slots .help-item { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; min-width: 0; }
+.work-modal .equip-slots .help-item b { margin: 0; }
+.work-modal .equip-slots .mini-btn { align-self: flex-start; min-height: 44px; }
+
+/* 五个装备位连成一列，名称旁直接卸下，腾出右侧卡面空间。 */
+.equip-summary { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(100px,1fr); gap:12px; align-items:stretch; }
+#modal .work-modal .equip-slots { grid-template-columns:minmax(0,1fr); gap:4px; margin:0; }
+#modal .equip-slots .equip-slot-row { display:grid; grid-template-columns:40px minmax(0,1fr); align-items:center; padding:5px 8px; gap:5px; min-height:38px; box-sizing:border-box; }
+#modal .equip-slots .equip-slot-row>b { font-size:12px; font-weight:400; color:var(--ui-muted); }
+#modal .equip-slots .equip-val { display:flex; align-items:center; gap:5px; }
+#modal .equip-slots .equip-txt { flex:0 1 auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:13px; }
+#modal .equip-slots .equip-dur { flex:none; font-size:11px; color:var(--ui-muted); }
+#modal .equip-slots .mini-btn { flex:none; align-self:center; min-width:34px; min-height:28px; height:28px; padding:2px 5px; font-size:11px; }
+#modal .equip-bag-title { margin:10px 0 8px; font-size:15px; padding:0 0 5px; }
+@media(max-height:500px), (max-width:700px) {
+ .equip-summary { grid-template-columns:minmax(0,2fr) minmax(90px,1fr); gap:8px; }
+ #modal .equip-slots .equip-slot-row { min-height:32px; padding:2px 5px; grid-template-columns:30px minmax(0,1fr); gap:4px; }
+ #modal .equip-slots .equip-val { gap:4px; }
+ #modal .equip-slots .equip-val .item-icon { width:24px; height:24px; }
+}
+
+.equip-card-space { position:relative; overflow:hidden; border:1px solid var(--ui-rule); background:radial-gradient(ellipse at bottom,rgba(131,109,66,.14),transparent 75%); }
+.equip-portrait { position:absolute; inset:5px; margin:0; display:flex; flex-direction:column; align-items:center; }
+.equip-portrait img { display:block; width:100%; height:calc(100% - 20px); object-fit:contain; object-position:center bottom; }
+.equip-portrait figcaption { height:20px; line-height:20px; font-size:12px; color:var(--ui-muted); }
+
+/* Challenge difficulties and nightmare workshop. */
+.identity.difficulty-legend b {color:#9a751c;}
+.identity.difficulty-nightmare {border-color:#713131;background:linear-gradient(120deg,rgba(117,30,30,.08),rgba(65,9,17,.22));}
+.identity.difficulty-nightmare b {color:#8b202a;}
+.identity:disabled {opacity:.62;cursor:default;}
+.soul-separator {display:flex;gap:16px;align-items:center;min-height:160px;}
+.soul-separator>img {width:clamp(90px,25vw,180px);height:150px;object-fit:contain;}
+.soul-separator .modal-actions {display:flex;flex-wrap:wrap;gap:8px;}
+.room-furn-image {width:100%;height:100%;object-fit:contain;}
+.nightmare-fight {box-shadow:inset 0 0 60px rgba(84,9,18,.25);border-color:#792633;}
+.nightmare-fight .enemy-img {filter:drop-shadow(0 0 10px rgba(112,13,23,.5));object-fit:cover;object-position:50% 24%;}
+.nightmare-fight .enemy-name {color:#851e2c;}
+.nightmare-mode #top-day {color:var(--night-red);font-weight:bold;}
+.legend-mode #top-day {color:#d3b15e;font-weight:bold;}
+.nightmare-mode #topbar {border-bottom-color:var(--night-red);}
+.nightmare-fight .modal-title {color:var(--night-red,#851e2c);}
+.nightmare-fight {box-shadow:inset 0 0 60px rgba(84,9,18,.25),0 0 calc(5px + var(--night-depth)*2px) rgba(112,13,23,.3);}

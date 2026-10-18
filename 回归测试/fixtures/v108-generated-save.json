@@ -1,0 +1,163 @@
+{
+  "v": 1,
+  "identity": "fisher",
+  "difficulty": "normal",
+  "day": 42,
+  "minute": 480,
+  "tick": 0,
+  "weather": "sun",
+  "weatherRolled": true,
+  "stats": {
+    "hp": 100,
+    "stamina": 150,
+    "hunger": 100,
+    "thirst": 100,
+    "spirit": 100
+  },
+  "statuses": {
+    "bleed": 0,
+    "poison": 0,
+    "cold": false,
+    "fear": 0
+  },
+  "inv": {
+    "rod": 1,
+    "wood": 120,
+    "branch": 6,
+    "thatch": 8,
+    "flint": 2,
+    "stone": 3,
+    "water": 4,
+    "fish": 2,
+    "cactusfruit": 6
+  },
+  "capacity": 20,
+  "foodExp": {
+    "fish": 2880,
+    "cactusfruit": 8640
+  },
+  "relics": [],
+  "relicSlots": 0,
+  "relicEquip": [
+    null,
+    null,
+    null
+  ],
+  "dur": {
+    "rod": 40
+  },
+  "toolDurs": {
+    "rod": [
+      40
+    ]
+  },
+  "tut": 1,
+  "equipIdx": {
+    "weapon": 0,
+    "weapon2": 0,
+    "armor": 0,
+    "cloth": 0,
+    "accessory": 0
+  },
+  "weaponNames": {},
+  "equipment": {
+    "weapon": null,
+    "weapon2": null,
+    "armor": null,
+    "cloth": null,
+    "accessory": null
+  },
+  "buildings": {
+    "house": 0,
+    "fire": 0,
+    "storage": 2,
+    "wall": 0,
+    "watch": 0,
+    "dock": 0,
+    "farm": 0
+  },
+  "furniture": {},
+  "crops": [],
+  "farmExt": 0,
+  "coopExt": 0,
+  "tree": {
+    "gather": {},
+    "craft": {},
+    "combat": {}
+  },
+  "skillPicks": {
+    "gather": [],
+    "craft": [],
+    "combat": []
+  },
+  "scene": "camp",
+  "zone": null,
+  "weatherWarned": null,
+  "skill": {
+    "craft": 0,
+    "gather": 3,
+    "combat": 0
+  },
+  "toolkit": [
+    null,
+    null,
+    null
+  ],
+  "laochao": {
+    "nextVisit": 5,
+    "arrived": false,
+    "arrivedDay": 0,
+    "done": {},
+    "accepted": {}
+  },
+  "fame": 0,
+  "exp": {
+    "gather": 0,
+    "craft": 0,
+    "combat": 0
+  },
+  "flags": {},
+  "diary": [
+    {
+      "day": 1,
+      "line": "海难之后，我在这片沙滩上醒来。天是灰的，海也是。"
+    }
+  ],
+  "log": [
+    {
+      "t": "第1天 08:00",
+      "text": "教程：先在这里生起篝火、搭好帐篷，再出去看看。",
+      "cls": "sys"
+    },
+    {
+      "t": "第1天 08:00",
+      "text": "第 1 天。你从沙滩上醒来，海浪把船的残骸和你一起冲上了岸。",
+      "cls": "sys"
+    }
+  ],
+  "seen": {},
+  "pointUses": {},
+  "killCount": {},
+  "sold": {},
+  "hpLostTotal": 0,
+  "livestock": {
+    "pen": [],
+    "coop": [],
+    "autoFeed": true
+  },
+  "traps": {
+    "placed": 0
+  },
+  "death": null,
+  "ending": null,
+  "combat": null,
+  "pistolCalibrated": false,
+  "settings": {
+    "roadAmbush": true
+  },
+  "satchelPref": {
+    "food": "",
+    "drink": ""
+  },
+  "_rev": 2
+}

@@ -6,8 +6,8 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 
-const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const ROOT = 'C:\\Users\\34297\\Desktop\\孤屿遗章\\孤屿遗章-游戏 - 发布';
+const CHROME = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const ROOT = process.env.GUYU_GAME_ROOT || path.join(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const PORT = 9387;
 const PROFILE = path.join(require('os').tmpdir(), 'guyu_sc_' + process.pid);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -118,4 +118,5 @@ const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —
   console.log('通过 ' + ok + ' 项，失败 ' + bad.length + ' 项');
   if (bad.length) { console.log('失败项：'); bad.forEach(b => console.log(' - ' + b)); }
   console.log('RESULT:' + (bad.length ? 'FAIL' : 'PASS'));
+  process.exitCode = bad.length ? 1 : 0;
 })().catch(e => { console.error('ERR', e.message); process.exit(1); });

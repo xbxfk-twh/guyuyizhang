@@ -81,10 +81,11 @@ const MEASURE = `(rows => {
   await openSettings();
   await checkRows('桌面');
   const desk = await ev(`({ askin: document.querySelectorAll('#modal [data-askin]').length,
+    freeMap: !!document.querySelector('#modal [data-set="skin:seasons"]'),
     hasObj: !!document.querySelector('#modal [data-set="obj:off"]'), hasObjOn: !!document.querySelector('#modal [data-set="obj:on"]'),
     cloudLine: (() => { const it = [...document.querySelectorAll('#modal .help-item')].find(x => /云存档/.test(x.textContent)); return it ? it.textContent.replace(/\\s+/g,' ').trim().slice(0, 80) : null; })() })`);
   console.log('   ' + JSON.stringify(desk));
-  ck('皮肤包里两个要花魂点解锁的皮肤都是"🔒 … 50 魂点"按钮', desk.askin === 2, '锁定按钮 ' + desk.askin + ' 个');
+  ck('全彩地图包免费切换，其余三款付费皮肤仍显示解锁按钮', desk.freeMap && desk.askin === 3, '免费地图包=' + desk.freeMap + '，锁定按钮 ' + desk.askin + ' 个');
   ck('有「关闭当前目标」开关', desk.hasObj && desk.hasObjOn);
   ck('云存档只剩一句状态 + 最近时间（+一行小字版本）',
      /未启用|已同步|已就绪/.test(desk.cloudLine || '') && /版本 v?1\./.test(desk.cloudLine || '') &&

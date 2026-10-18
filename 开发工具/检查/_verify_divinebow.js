@@ -1,4 +1,4 @@
-﻿/* 神弓（限定）全量验证：唯一性 / 暴击 / 耐久 / 不可修 / 邮箱存取 / 存档往返 */
+/* 神弓（限定）全量验证：多把存取 / 暴击 / 耐久 / 不可修 / 邮箱存取 / 存档往返 */
 const fs = require('fs');
 const path = require('path');
 const ROOT = 'C:\\Users\\34297\\Desktop\\孤屿遗章\\孤屿遗章-游戏 - 发布';
@@ -59,13 +59,13 @@ if (ON_SALE) {
 }
 
 if (ON_SALE) {
-sec('B. 全账号唯一');
+sec('B. 可重复持有');
 {
   clearMail(); fresh(); giveMats();
   ck('身上没有时可以做', Game.canCraft(REC).ok, Game.canCraft(REC).reason || 'ok');
   Game.addItem(BOW, 1, true);
   const chk = Game.canCraft(REC);
-  ck('★ 身上有一把 → 不允许再做', !chk.ok, chk.reason);
+  ck('身上有弓仍允许制作', chk.ok, chk.reason);
   Game.removeItem(BOW, 1);
   ck('丢掉后又可以做', Game.canCraft(REC).ok);
   // 存进邮箱
@@ -74,18 +74,18 @@ sec('B. 全账号唯一');
   ck('★ 能存进邮箱', st.ok, JSON.stringify(st));
   ck('★ 存进去后当前局就失去了这把弓（不是复制）', Game.invCount(BOW) === 0, 'inv=' + Game.invCount(BOW));
   const chk2 = Game.canCraft(REC);
-  ck('★ 邮箱里有一把 → 同样不允许再做', !chk2.ok, chk2.reason);
+  ck('邮箱有弓仍允许制作', chk2.ok, chk2.reason);
 }
 
-sec('C. 邮箱只存一把');
+sec('C. 邮箱允许存多把');
 {
   clearMail(); fresh(); giveMats();
   Game.addItem(BOW, 1, true);
   ck('第一次存成功', Game.storeDivineBow().ok);
   Game.addItem(BOW, 1, true);
   const r2 = Game.storeDivineBow();
-  ck('★ 第二次存被拦下（邮箱只存一把）', !r2.ok, r2.reason);
-  ck('第二把还在身上（没被吞）', Game.invCount(BOW) === 1, 'inv=' + Game.invCount(BOW));
+  ck('第二次存成功', r2.ok, r2.reason);
+  ck('两把均进邮箱，背包已扣除', Game.invCount(BOW) === 0, 'inv=' + Game.invCount(BOW));
 }
 }   // ← 活动结束后（配方下架）就跳过 B/C 这两段制作相关检查；D 段开始只验"已做出的弓照常可用"
 
@@ -107,7 +107,7 @@ sec('D. 领取（跨局）');
   ck('★ 领到手里了', Game.invCount(BOW) === 1, 'inv=' + Game.invCount(BOW));
   ck('★ 耐久跟着走（还是 37）', Game.durOf(BOW) === 37, 'dur=' + Game.durOf(BOW));
   ck('领完后邮箱空了', !Game.hasMailboxDivineBow());
-  if (REC) ck('但身上有弓，仍然不允许再做（唯一性看两处都没有）', !Game.canCraft(REC).ok, Game.canCraft(REC).reason);
+  if (REC) ck('持有神弓仍允许制作', Game.canCraft(REC).ok, Game.canCraft(REC).reason);
 }
 
 sec('E. 每场战斗第一次命中必定会心（玩家自己开的第一枪）');
@@ -171,7 +171,7 @@ sec('F. 没打中不算（留到下一次命中）');
   Math.random = r0;
 }
 
-sec('G. 耐久 120：坏了不消失、回营地能用磨刀石修');
+sec('G. 耐久 120：坏了不消失，但不能修复');
 {
   clearMail(); fresh(); giveMats();
   const s = Game.S();
@@ -188,19 +188,19 @@ sec('G. 耐久 120：坏了不消失、回营地能用磨刀石修');
   ck('★ 耐久归零只自动卸下，神弓还留在背包里',
      Game.invCount(BOW) === 1 && Game.durOf(BOW) === 0 && !Game.S().equipment.weapon,
      '背包 ' + Game.invCount(BOW) + ' 件 / 耐久 ' + Game.durOf(BOW) + ' / 主手 ' + Game.S().equipment.weapon);
-  // 磨刀石修补：材料 秘银锭×1（没材料修不了 → 有材料修满）
+  // 神弓耗尽后保留作收藏，任何材料都不能修复。
   const s2 = Game.S();
   s2.furniture.grindstone = true;
   s2.combat = null; s2.toolDurs[BOW] = [0]; s2.dur[BOW] = 0;   // 战斗不打了，专心测修补
   s2.equipment.weapon = BOW; s2.equipIdx.weapon = 0;
-  delete s2.inv.mithrilingot;            // giveMats() 顺手把神弓配方材料（含秘银锭）也发了，这里要清掉才叫"没材料"
+  delete s2.inv.mithrilingot;
   const rm = Game.repairMatOf(BOW);
-  ck('修补材料 = 秘银锭×1', rm[0] === 'mithrilingot' && rm[1] === 1, JSON.stringify(rm));
+  ck('神弓没有修补材料', rm === null, JSON.stringify(rm));
   Game.repairWeapon();
-  ck('没材料时修不了（只写日志，不会白扣）', Game.durOf(BOW) === 0, 'dur=' + Game.durOf(BOW));
+  ck('没材料时修不了', Game.durOf(BOW) === 0, 'dur=' + Game.durOf(BOW));
   Game.addItem('mithrilingot', 1, true);
   Game.repairWeapon();
-  ck('★ 有秘银锭就能修满，并扣掉 1 个', Game.durOf(BOW) === 120 && Game.invCount('mithrilingot') === 0,
+  ck('★ 有秘银锭也不能修复，材料不会被扣', Game.durOf(BOW) === 0 && Game.invCount('mithrilingot') === 1,
      'dur=' + Game.durOf(BOW) + ' 秘银锭=' + Game.invCount('mithrilingot'));
 }
 

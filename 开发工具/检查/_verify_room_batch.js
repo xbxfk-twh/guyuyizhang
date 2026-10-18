@@ -1,0 +1,100 @@
+/* Camp room is a full scene, reached through the house-door hotspot. */
+const {spawn}=require('child_process'),fs=require('fs'),path=require('path'),http=require('http'),os=require('os'),assert=require('assert');
+const ROOT=path.resolve(__dirname,'../../孤屿遗章-游戏 - 发布');
+const CHROME=process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const port=9531, profile=path.join(os.tmpdir(),'guyu_room_'+process.pid);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('data',x=>s+=x);res.on('end',()=>{try{resolve(JSON.parse(s));}catch(e){reject(e);}});}).on('error',reject));
+(async()=>{
+  const ch=spawn(CHROME,['--headless=new','--disable-gpu','--no-first-run','--allow-file-access-from-files','--remote-debugging-port='+port,'--user-data-dir='+profile,'about:blank'],{stdio:'ignore',windowsHide:true});
+  try {
+    let tab;
+    for(let i=0;i<80&&!tab;i++){await sleep(250);try{tab=(await json(`http://127.0.0.1:${port}/json/list`)).find(x=>x.type==='page');}catch(_){}}
+    assert.ok(tab,'Chrome did not start');
+    const ws=new WebSocket(tab.webSocketDebuggerUrl);
+    await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
+    let next=0; const waiters=new Map();
+    ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&waiters.has(m.id)){waiters.get(m.id)(m);waiters.delete(m.id);}};
+    const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++next;waiters.set(id,m=>m.error?reject(Error(JSON.stringify(m.error))):resolve(m.result));ws.send(JSON.stringify({id,method,params}));});
+    const ev=async expression=>{const x=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(x.exceptionDetails)throw Error(JSON.stringify(x.exceptionDetails));return x.result?.value;};
+    await send('Emulation.setDeviceMetricsOverride',{width:844,height:390,deviceScaleFactor:1,mobile:true});
+    await send('Page.navigate',{url:'file:///'+encodeURI(ROOT.replace(/\\/g,'/')+'/index.html')}); await sleep(1200);
+    await ev(`localStorage.setItem('guyuyizhang_skin', JSON.stringify(['seasons']))`);
+    await send('Page.reload',{}); await sleep(1200);
+    const result=await ev(`(async()=>{
+      Game.newGame('fisher','normal');
+      const s=Game.S(); s.tut=null; s.furniture.wb1=true; s.furniture.bed1=true; s.furniture.rainfilter=true;
+      UI.begin(); await new Promise(r=>setTimeout(r,300));
+      document.querySelector('#modal')?.classList.remove('open'); UI.render();
+      const entry=[...document.querySelectorAll('.hotspot')].find(x=>x.textContent.includes('进屋'));
+      const doorRect=entry?.getBoundingClientRect().toJSON();
+      entry?.click(); await new Promise(r=>setTimeout(r,350));
+      const firstArt=document.querySelector('.room-scene-art');
+      const firstBed=[...document.querySelectorAll('.room-sprite')].find(x=>x.title.includes('床'));
+      UI.render(); UI.render();
+      const steady=firstArt===document.querySelector('.room-scene-art')&&firstBed===[...document.querySelectorAll('.room-sprite')].find(x=>x.title.includes('床'));
+      const room=document.querySelector('.room-stage'); const sprites=[...document.querySelectorAll('.room-sprite')];
+      const positions=Object.fromEntries(sprites.map(x=>[x.title,{left:parseFloat(x.style.left),top:parseFloat(x.style.top)}]));
+      const first={entry:!!entry,doorRect,room:!!room,steady,count:sprites.length,namesVisible:sprites.some(x=>x.textContent.trim()),labels:sprites.map(x=>x.title),positions,floor:document.querySelector('.room-scene-art')?.getAttribute('src'),modalOpen:document.querySelector('#modal')?.classList.contains('open'),colored:document.body.classList.contains('room-fullcolor'),overflowX:document.documentElement.scrollWidth>innerWidth,overflowY:document.documentElement.scrollHeight>innerHeight,stage:room?.getBoundingClientRect().toJSON()};
+      document.querySelector('#room-exit')?.click(); s.buildings.house=2; UI.render();
+      [...document.querySelectorAll('.hotspot')].find(x=>x.textContent.includes('进屋'))?.click();
+      const wood=document.querySelector('.room-scene-art')?.getAttribute('src');
+      document.querySelector('#room-exit')?.click(); s.buildings.house=3; UI.render();
+      [...document.querySelectorAll('.hotspot')].find(x=>x.textContent.includes('进屋'))?.click();
+      const stone=document.querySelector('.room-scene-art')?.getAttribute('src');
+      return {...first,wood,stone};
+    })()`);
+    assert.ok(result.entry&&result.room&&result.count>=3,'house-door hotspot enters a populated scene');
+    assert.ok(result.steady,'room background and furniture nodes survive repeated UI renders without flashing');
+    assert.ok(!result.namesVisible&&result.labels.some(x=>x.includes('床')),'sprites are unlabeled visually but accessible');
+    assert.ok(result.positions['简易工具台']?.left<35&&result.positions['草床']?.left>70&&result.positions['滤雨器']?.top>result.positions['草床']?.top+25,'workbench, bed and water occupy distinct functional areas');
+    assert.ok(!result.modalOpen&&!result.overflowX&&!result.overflowY,'room fits landscape viewport without modal or page scrolling');
+    assert.ok(result.colored,'full-color map skin also colors room');
+    assert.ok(result.floor?.includes('room-tent.webp')&&result.wood?.includes('room-wood.webp')&&result.stone?.includes('room-stone.webp'),'house levels select room floors');
+    await sleep(3000);
+    const png=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+    const out=path.resolve(__dirname,'../../回归测试/_out');fs.mkdirSync(out,{recursive:true});fs.writeFileSync(path.join(out,'room-mobile.png'),Buffer.from(png.data,'base64'));
+    const dense=await ev(`(()=>{const s=Game.S();for(const f of FURNITURE)if(!f.farmOnly&&f.id!=='beehive')s.furniture[f.id]=true;UI.render();return {count:document.querySelectorAll('.room-sprite').length,labels:[...document.querySelectorAll('.room-sprite')].map(x=>x.title)}})()`);
+    await sleep(300);
+    const overhead=await ev(`(async()=>{const cells=[...document.querySelectorAll('.room-furn-icon.second')];const paths=['furniture-overhead.png','furniture-overhead-2.png'];const loaded=await Promise.all(paths.map(name=>new Promise(resolve=>{const img=new Image();img.onload=()=>resolve(img.naturalWidth>0);img.onerror=()=>resolve(false);img.src='assets/img/map-pack/interior/'+name;})));const stage=document.querySelector('.room-stage').getBoundingClientRect();const center={left:stage.left+stage.width*.30,right:stage.left+stage.width*.70,top:stage.top+stage.height*.35,bottom:stage.top+stage.height*.65};const sprites=[...document.querySelectorAll('.room-sprite')];const centerClear=sprites.every(x=>{const r=x.getBoundingClientRect();return r.right<=center.left||r.left>=center.right||r.bottom<=center.top||r.top>=center.bottom});const centerHit=sprites.every(x=>{const r=x.getBoundingClientRect();return document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)?.closest('.room-sprite')===x});return {second:cells.length,positions:cells.map(x=>parseFloat(getComputedStyle(x).backgroundPositionY)),loaded,centerClear,centerHit};})()`);
+    assert.ok(overhead.loaded.every(Boolean)&&overhead.second>0&&overhead.positions.every(y=>y>=0&&y<=100),'both overhead atlases load and second-atlas sprites stay inside their four rows');
+    assert.ok(overhead.centerClear&&overhead.centerHit,'densely furnished mobile room keeps central walking space and every furniture center tappable');
+    const packed=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+    fs.writeFileSync(path.join(out,'room-dense-mobile.png'),Buffer.from(packed.data,'base64'));
+    assert.ok(dense.count>10,'larger furnished homes render multiple distinct sprites');
+    assert.ok(!dense.labels.some(x=>x.includes('信号旗')||x.includes('路标')),'signal flag and signpost remain outdoors');
+    const mobileSprite=await ev(`document.querySelector('.room-sprite')?.getBoundingClientRect().width || 0`);
+    await send('Emulation.setDeviceMetricsOverride',{width:1920,height:900,deviceScaleFactor:1,mobile:false});
+    await ev(`UI.render()`); await sleep(350);
+    const desktopRoom=await ev(`(()=>({sprite:document.querySelector('.room-sprite')?.getBoundingClientRect().width||0,overflowX:document.documentElement.scrollWidth>innerWidth,overflowY:document.documentElement.scrollHeight>innerHeight}))()`);
+    assert.ok(desktopRoom.sprite>mobileSprite*1.5&&!desktopRoom.overflowX&&!desktopRoom.overflowY,'desktop room scales furniture without page overflow');
+    const desktopPng=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+    fs.writeFileSync(path.join(out,'room-dense-desktop.png'),Buffer.from(desktopPng.data,'base64'));
+    await send('Emulation.setDeviceMetricsOverride',{width:844,height:390,deviceScaleFactor:1,mobile:true});
+    await ev(`UI.render()`);
+    await ev(`document.querySelector('#room-exit')?.click()`);
+    const doorCenters=[],doorHits=[];
+    for (let level=0;level<4;level++) {
+      await ev(`(()=>{Game.S().buildings.house=${level};UI.render()})()`); await sleep(350);
+      doorCenters.push(await ev(`(()=>{const e=[...document.querySelectorAll('.hotspot')].find(x=>x.textContent.includes('进屋'));return e ? parseFloat(e.style.left) : -1})()`));
+      doorHits.push(await ev(`(()=>{const e=[...document.querySelectorAll('.hotspot')].find(x=>x.textContent.includes('进屋')&&x.getBoundingClientRect().width>0);const r=e?.getBoundingClientRect();return !!(r&&document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)?.closest('.hotspot')===e)})()`));
+      const camp=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+      fs.writeFileSync(path.join(out,'camp-door-'+level+'.png'),Buffer.from(camp.data,'base64'));
+    }
+    assert.deepEqual(doorCenters,[36,30,36,36],'hotspots preserve all four house-door anchors; cropped entries may use the visible shortcut');
+    assert.ok(doorHits.every(Boolean),'each door hotspot is reachable by an actual touch');
+    await ev(`document.querySelector('#nav [data-nav="inv"]').click()`); await sleep(300);
+    const icons=await ev(`document.querySelectorAll('.color-inventory-icon').length`);
+    assert.ok(icons>0,'full-color atlas icons appear in backpack');
+    const bag=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+    fs.writeFileSync(path.join(out,'items-mobile.png'),Buffer.from(bag.data,'base64'));
+    const dex=await ev(`(()=>{document.querySelector('#modal-close')?.click();document.querySelector('#nav [data-nav="save"]')?.click();document.querySelector('[data-savemenu="col"]')?.click();document.querySelector('[data-ctab="items"]')?.click();const card=document.querySelector('[data-iteminfo="wood"]');card?.click();const text=document.querySelector('#modal')?.textContent||'';const shown=!!card&&text.includes('堆叠上限')&&text.includes('基础价值');document.querySelector('[data-item-back]')?.click();return {shown,back:!!document.querySelector('[data-ctab="items"]')}})()`);
+    assert.ok(dex.shown&&dex.back,'item atlas cards open numeric details and return to atlas');
+    const machine=await ev(`(()=>{document.querySelector('#modal-close')?.click();const s=Game.S();s.scene='atlantis';s.inv.beibi=100;s.capacity=999;for(let day=1;day<20;day++){s.day=day;if(Game.lotteryState().active)break;}s.zone=Game.lotteryState().zone;UI.render();const spot=[...document.querySelectorAll('.hotspot')].find(x=>x.textContent.includes('遗海交换机'));spot?.click();return {spot:!!spot,modal:!!document.querySelector('[data-lottery-pick]'),preview:(document.querySelector('#lottery-preview')?.textContent||'').includes('本次充能'),batch:document.querySelectorAll('.lottery-split>section').length===2&&!!document.querySelector('[data-lottery-draw="1"]')&&!!document.querySelector('[data-lottery-draw="10"]')&&!document.querySelector('#lottery-times')}})()`);
+    assert.ok(machine.spot&&machine.modal&&machine.preview&&machine.batch,'daily underwater machine hotspot opens separate charging, single draw and ten draws');
+    const newPanels=await ev(`(()=>{document.querySelector('#modal-close')?.click();const s=Game.S();s.zone='shipwreck';UI.render();[...document.querySelectorAll('.hotspot')].find(x=>x.textContent.includes('神秘人鱼'))?.click();const fish=(document.querySelector('#modal')?.textContent||'').includes('海底储物箱扩容 · +20格');document.querySelector('#modal-close')?.click();s.zone='habitat';Game.atlantisCamp().furniture.repairBench=true;UI.render();[...document.querySelectorAll('.hotspot')].find(x=>x.textContent.includes('修补台'))?.click();const repair=document.querySelector('#modal')?.textContent||'';return {fish,repair:repair.includes('修补高级潜水服')&&repair.includes('每次只修一件')}})()`);
+    assert.ok(newPanels.fish&&newPanels.repair,'fishman storage expansion and per-item dive repair are visible in game');
+    ws.close();console.log(JSON.stringify(result));console.log('RESULT:PASS');
+  } finally {ch.kill();}
+})().catch(e=>{console.error(e);console.log('RESULT:FAIL');process.exitCode=1;});
+

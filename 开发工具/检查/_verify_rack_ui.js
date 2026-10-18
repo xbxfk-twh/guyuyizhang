@@ -6,7 +6,7 @@ const http = require('http');
 
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const ROOT = 'C:\\Users\\34297\\Desktop\\孤屿遗章\\孤屿遗章-游戏 - 发布';
-const OUT = path.join(__dirname, '_rack_shots');
+const OUT = path.join(__dirname, '_out', 'rack');
 const PORT = 9419;
 const PROFILE = path.join(require('os').tmpdir(), 'guyu_rack2_' + process.pid);
 const sleep = ms => new Promise(r => setTimeout(r, ms));

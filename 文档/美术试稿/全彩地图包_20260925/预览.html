@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>全彩地图包预览</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#18211f;color:#f4f0e7;font-family:"Microsoft YaHei",sans-serif}
+header{max-width:1500px;margin:auto;padding:26px 24px 8px}h1{margin:0 0 8px;font-size:26px}header p{color:#c6c4b8;line-height:1.7;margin:0}
+main{max-width:1500px;margin:auto;padding:8px 24px 36px}h2{font-size:20px;margin:26px 0 12px;color:#e7d7a6}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+article{overflow:hidden;background:#232d2a;border:1px solid #47534c;border-radius:10px}article img{width:100%;aspect-ratio:1672/941;object-fit:cover;display:block}article footer{padding:9px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}a,summary{color:#e3d199;cursor:pointer;text-decoration:none}a:hover,summary:hover{text-decoration:underline}details{padding:0 12px 10px}details img{margin-top:8px;border-radius:6px}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:580px){header{padding:18px 14px 8px}main{padding:8px 14px 28px}.grid{grid-template-columns:1fr}h1{font-size:22px}}
+</style>
+<header><h1>全彩地图包</h1><p>包含四季孤岛全景、12 张孤岛地点图与 10 张亚特兰蒂斯区域图。场景彩绘沿用原图构图与地点热点；原始墨白画面仍可在游戏内关闭地图包查看。</p></header>
+<main id="gallery"></main>
+<script>
+const root='../../../孤屿遗章-游戏 - 发布/assets/img/';
+const groups=[
+  {title:'四季孤岛全景',base:'seasons/',items:[['春','spring-color.png','spring-mono.png'],['夏','summer-color.png','summer-mono.png'],['秋','autumn-color.png','autumn-mono.png'],['冬','winter-color.png','winter-mono.png']]},
+  {title:'孤岛地点',base:'map-pack/island/',items:[['营地','camp.jpg','camp.png'],['耕地','farm.jpg','farm.png'],['河畔','river.jpg','river.png'],['树林','forest.jpg','forest.png'],['竹林','bamboo.jpg','bamboo.png'],['采石场','quarry.jpg','quarry.png'],['草地','grassland.jpg','grassland.png'],['荒漠','desert.jpg','desert.png'],['山洞','cave.jpg','cave.png'],['山顶','peak.jpg','peak.png'],['海域','sea.jpg','sea.png'],['对岸','shore.jpg','shore.png']]},
+  {title:'亚特兰蒂斯',base:'map-pack/atlantis/',items:[['失落文明总览','map.jpg','atlantis_map.png'],['礁石栖息地','habitat.jpg','atlantis/habitat.png'],['沉没之城','city.jpg','atlantis/city.png'],['珊瑚生长带','coral.jpg','atlantis/coral.png'],['海沟','trench.jpg','atlantis/trench.png'],['深水圣殿','sanctum.jpg','atlantis/sanctum.png'],['沉船墓地','shipwreck.jpg','atlantis/shipwreck.png'],['珊瑚森林','coralForest.jpg','atlantis/coralForest.png'],['珍珠洞窟','pearlCave.jpg','atlantis/pearlCave.png'],['深渊裂谷','abyss.jpg','atlantis/abyss.png']]}
+];
+const gallery=document.querySelector('#gallery');
+for(const group of groups){
+  const section=document.createElement('section');const heading=document.createElement('h2');heading.textContent=group.title;section.append(heading);
+  const grid=document.createElement('div');grid.className='grid';
+  for(const [name,color,mono] of group.items){
+    const card=document.createElement('article');
+    const img=document.createElement('img');img.loading='lazy';img.src=root+group.base+color;img.alt=name+'彩绘';
+    const footer=document.createElement('footer');const label=document.createElement('b');label.textContent=name+' · 彩绘';
+    const original=document.createElement('a');original.href=root+mono;original.target='_blank';original.rel='noopener';original.textContent='原图';
+    footer.append(label,original);card.append(img,footer);grid.append(card);
+  }
+  section.append(grid);gallery.append(section);
+}
+</script>
+</html>

@@ -15,8 +15,9 @@ const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
 const GAME = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
 const CHECKS = fs.readFileSync(path.join(__dirname, 'checks.js'), 'utf8');
 try {
-  new Function('localStorage', 'window', 'document', 'fs', 'ROOT', 'DATA', 'GAME', 'console',
-    DATA + '\n' + GAME + '\n' + CHECKS)(fakeLS, {}, {}, fs, ROOT, DATA, GAME, console);
+  const failures = new Function('localStorage', 'window', 'document', 'fs', 'ROOT', 'DATA', 'GAME', 'console',
+    DATA + '\n' + GAME + '\n' + CHECKS + '\nreturn FAIL;')(fakeLS, {}, {}, fs, ROOT, DATA, GAME, console);
+  if (failures) process.exitCode = 1;
 } catch (e) {
   console.log('\n!! 运行异常: ' + e.message);
   console.log((e.stack || '').split('\n').slice(0, 6).join('\n'));

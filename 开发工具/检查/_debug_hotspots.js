@@ -118,7 +118,7 @@ async function main() {
   await sleep(400);
   await ev(`(async () => { const wait = ms => new Promise(r => setTimeout(r, ms)); const S = Game.S(); S.scene = 'shore'; S.zone = 'ruins'; UI.render(); await wait(700); return 1; })()`);
   const shot = await send('Page.captureScreenshot', { format: 'png' });
-  const outDir = path.join(__dirname, '_hotspot_out');
+  const outDir = path.join(__dirname, '_out', 'hotspot');
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(path.join(outDir, 'ruins_phone.png'), Buffer.from(shot.data, 'base64'));
   console.log('shot ' + path.join(outDir, 'ruins_phone.png'));

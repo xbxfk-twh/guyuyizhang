@@ -1,8 +1,8 @@
-/* 交付前全面核对：把本轮（v1.06）收到的所有反馈问题逐项自动验证。
+﻿/* 交付前全面核对：把本轮（v1.06）收到的所有反馈问题逐项自动验证。
    用法：node _verify_all.js           （只读游戏，不改任何文件） */
 const fs = require('fs');
 const path = require('path');
-const ROOT = 'C:\\Users\\34297\\Desktop\\孤屿遗章\\孤屿遗章-游戏 - 发布';
+const ROOT = path.join(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
 const GAME = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
 const UI = fs.readFileSync(path.join(ROOT, 'js', 'ui.js'), 'utf8');
@@ -68,13 +68,19 @@ try {
 } catch (e) { ck('牛角护符文件存在', false); }
 
 // ---------------------------------------------------------------- 2. 皮肤切换
-sec('2. 皮肤包（本轮反馈：切换皮肤要换图标那套）');
-ck('两套皮肤（墨白 / 深海琥珀）', /const SKINS = \[/.test(UI) && /id: 'ink'/.test(UI) && /id: 'accent'/.test(UI));
+sec('2. 皮肤包（皮肤可多选 · 图标按皮肤切换）');
+ck('皮肤包列表（墨白基准 + 匠心彩绘 / 全彩地图包 / 深海琥珀 / 彩绘卡面）',
+   /const SKINS = \[/.test(UI) && /id: 'ink'/.test(UI) && /id: 'accent'/.test(UI) && /id: 'armory'/.test(UI) && /id: 'seasons'/.test(UI) && /id: 'card'/.test(UI));
+// ⚠️ 2026-09-23 契约变更：皮肤从单选改多选，判断由 `skin === 'accent'` 改成 `skinOn('accent')`。
+//    判据没放宽 —— 仍然是"彩色目录只给 ALWAYS_COLOR 与 ACCENT 里点名的那几个"。
 ck('图标路径按皮肤切换，缺彩色自动回退；限定物常驻彩色',
-   /const dir = \(ALWAYS_COLOR\[id\] \|\| \(skin === 'accent' && ACCENT\[id\]\)\) \? 'items-accent' : 'items';/.test(UI) &&
-   /const ALWAYS_COLOR = \{ divineBow:1 \};/.test(UI));
+   /const dir = \(ALWAYS_COLOR\[id\] \|\| \(skinOn\('accent'\) && ACCENT\[id\]\)\) \? 'items-accent' : 'items';/.test(UI) &&
+   /const ALWAYS_COLOR = \{ divineBow:1, divineArmor:1, divinePack:1, divineSuperPack:1 \};/.test(UI));
+ck('皮肤可多选：状态是集合，不再是单个 skin 变量',
+   /let skinSet = \(\(\) => \{/.test(UI) && /function skinOn\(id\) \{ return skinSet\.has\(id\); \}/.test(UI) && !/skin === '/.test(UI));
 ck('切皮肤立刻重绘（否则图标路径不更新）', /if \(document\.getElementById\('top-day'\)\) render\(\);/.test(UI));
-ck('皮肤持久化', /guyuyizhang_skin/.test(UI));
+ck('皮肤持久化（本机 · 跨存档 · 存 JSON 数组且兼容老的裸字符串）',
+   /guyuyizhang_skin/.test(UI) && /JSON\.stringify\(\[\.\.\.skinSet\]\)/.test(UI) && /arr = Array\.isArray\(j\) \? j : \[j\]/.test(UI));
 ck('六个颜色变量都在皮肤里', /body\.skin-accent \{/.test(CSS) && /--paper:/.test(CSS) && /--ink:/.test(CSS) && /--line:/.test(CSS));
 ck('图标底不被压暗（黑墨图标在深色皮肤不会隐形）', /--tile:/.test(CSS) && /body\.skin-accent \.inv-item:hover \{ background: var\(--tile\)/.test(CSS));
 
@@ -99,8 +105,12 @@ ck('敌人血条没被误改（仍是纸白/首领红）', /\.hp-fill \{ height:
 
 // ---------------------------------------------------------------- 5. 工具栏图标
 sec('5. 工具栏图标（本轮反馈：装备工具栏看不到工具图标）');
-ck('工具栏槽位改用 itemIcon（原来是字形）', /data-toolslot="\$\{i\}">\$\{itemIcon\(tid\)\}/.test(UI));
-ck('神物栏仍是字形（神物没有图标，属正常）', /data-unequip="\$\{v\}">\$\{RELICS\[v\]\.glyph\}/.test(UI));
+ck('工具栏槽位改用 itemIcon（原来是字形）', UI.includes('data-eqpick="tool">${id?itemIcon(id)'));
+// ⚠️ 2026-09-24 契约变更：作者要求"装备的主手副手和神物栏也应该能看见装备图标"。
+//    以前这条断言的是"神物栏仍是字形（神物没有图标，属正常）"—— 已经过时：
+//    5 件神物在 assets/img/items/ 里本来就有图标，现在改成 itemIcon(v) 复用它们。
+ck('神物栏显示神物图标（不再只画一个字形）', UI.includes('id?itemIcon(id):\'<span class="item-icon">＋</span>\'') && UI.includes('loadout-relics'));
+ck('装备槽也显示了图标（主手/副手/护甲/衣物/饰品）', /class="equip-val">\$\{id\?itemIcon\(id\)/.test(UI));
 
 // ---------------------------------------------------------------- 6. 热点与地图
 sec('6. 热点与地图（本轮反馈：热点位置固定、竹林热点右移）');
@@ -172,12 +182,13 @@ ck('日志标出所用武器', /const wTag = usedW \? `〔\$\{wNameOf\(usedW\)\}
   gr('ironGreatSword', 'knifeStone'); const b = Game.combatSpeed();
   ck('实测：主副手互换攻速完全相同', a === b, a + ' / ' + b);
   gr('knifeStone', null); const c = Game.combatSpeed();
-  ck('实测：单持攻速不变（石匕首 15）', c === 15, 'spd=' + c);
+  ck('实测：单持攻速不变（石质匕首 13，作者 2026-09-25 统一匕首攻速）', c === 13, 'spd=' + c);
   gr('ironGreatSword', null); const d = Game.combatSpeed();
   ck('实测：单持铁大剑攻速 6', d === 6, 'spd=' + d);
   gr('ironDagger', null); const e1 = Game.combatSpeed();
   gr('ironDagger', 'knifeStone'); const e2 = Game.combatSpeed();
-  ck('实测：双匕首仍享受 ×2', e2 > e1 * 1.7, e1 + ' → ' + e2);
+  // 数值平衡 P0-2：双匕首攻速加成从 ×2.0 收到 ×1.4（不再一统天下）
+  ck('实测：双匕首享受 ×1.4（不再是 ×2）', e2 > e1 * 1.3 && e2 < e1 * 1.5, e1 + ' → ' + e2);
 }
 
 // ---------------------------------------------------------------- 8. 双手武器规则
@@ -201,17 +212,18 @@ ck('盾牌也一并拦下', /腾不出手拿盾/.test(GAME));
 
 // ---------------------------------------------------------------- 9. 手枪
 sec('9. 手枪（本轮反馈：副手 90% 漏洞 + 校准名不副实）');
-ck('命中按"真正开火的武器"算（副手不再绕过）', /function rangedKind\(w\)/.test(GAME) && /function rangedAcc\(kind\)/.test(GAME) && /if \(anyRanged\) acc = rangedAcc\(rangedKind\(rangedWeapon\(\)\)\);/.test(GAME));
+ck('命中按"真正开火的武器"算（副手不再绕过）', /function rangedKind\(w\)/.test(GAME) && /function rangedAcc\(kind\)/.test(GAME) && /if \(ranged\) return [^\n]*rangedAcc\(rangedKind\(rangedWeapon\(\)\)\)/.test(GAME));
 ck('旧的"只看主手是手枪"写法已不在', !/ITEMS\[S\.equipment\.weapon\]\.id === 'pistol'\) acc = 0\.6/.test(GAME));
 ck('校准：基础 60% / 校准后 70% + 存档字段', /pistolCalib\(\) \? 0\.7 : 0\.6/.test(GAME) && /pistolCalibrated/.test(GAME) && /S\.pistolCalibrated === undefined\) S\.pistolCalibrated = false/.test(GAME));
 ck('校准费 源矿×2', /校准源能手枪需要 源矿×2/.test(GAME) && /源矿×2/.test(UI));
 ck('主手副手都能校准', /需要先把「源能手枪」装备到主手或副手/.test(GAME));
-ck('弹药不能装到手上', /if \(it\.ammo\) \{ log\(/.test(GAME) && /!ITEMS\[id\]\.ammo\)/.test(UI));
+ck('弹药不能装到手上', /if \(it\.ammo\) \{ log\(/.test(GAME) && /!it\.ammo/.test(UI));
 {
   const shot = (main, off, calibrated, rv) => {
     Game.newGame('fisher', 'normal');
     const s = Game.S(); s.inv = {};
-    ['pistol','bullet','ironSword','bow','arrow'].forEach(id => Game.addItem(id, 50, true));
+    s.capacity = 999;
+          ['pistol','bullet','ironSword','bow','arrow'].forEach(id => Game.addItem(id, 50, true));
     s.equipment.weapon = main; s.equipment.weapon2 = off;
     s.equipIdx = { weapon:0, weapon2:0, armor:0, cloth:0, accessory:0 };
     s.pistolCalibrated = !!calibrated; s.stats.hp = 999999; s.stats.stamina = 99999;
@@ -220,13 +232,13 @@ ck('弹药不能装到手上', /if \(it\.ammo\) \{ log\(/.test(GAME) && /!ITEMS\
     const C = Game.S().combat;
     if (!C) { Math.random = r0; return 'no-combat'; }
     C.enemies.forEach(e => { e.ehp = 999999; e.emax = 999999; });
-    C.bowShots = 0;
+    C.bowShots = 0; C.dist = 0;
     const before = C.log.length;
     Game.S().stats.hp = 999999;
     Game.fightAction('ranged');
     const C2 = Game.S().combat;
     let res = 'no-log';
-    if (C2) { const nw = C2.log.slice(before).join(' '); res = /造成/.test(nw) ? 'hit' : (/落空|擦着/.test(nw) ? 'miss' : '?'); }
+    if (C2) { const nw = C2.log.slice(before).join(' '); res = /你(?:开枪射击|拉弓射箭).*造成/.test(nw) ? 'hit' : (/落空|擦着/.test(nw) ? 'miss' : '?'); }
     Math.random = r0; return res;
   };
   ck('实测：副手手枪 0.65 落空（吃 60% 惩罚，不再 ~90%）', shot('ironSword','pistol',false,0.65) === 'miss');
@@ -240,10 +252,10 @@ sec('10. 横扫（本轮新增：双手重武器，CD 20 单位时间，对全�
 // 作者 2026-09-17 改口径：横扫 CD 基准 20 个时间单位，随等级降到 18/16/14（不是出手次数）
 ck('CD 基准 20（随等级 20/18/16/14）、有 UI 按钮',
    /const SWEEP_CD_BASE = 20;/.test(GAME) && /return Math\.max\(2, SWEEP_CD_BASE - 2 \* sweepNodeLv\(\)\);/.test(GAME) &&
-   /function sweepInfo\(\)/.test(GAME) && /data-fact="sweep"/.test(UI));
+   /function sweepInfo\(\)/.test(GAME) && UI.includes("acts.push(['sweep','横扫 · 全体',sw])"));
 ck('横扫自己在冷却里不重复扣',
    /if \(act !== 'sweep' && C\.sweepCd > 0\) \{/.test(GAME) &&
-   /C\.sweepCd = Math\.max\(0, C\.sweepCd - 100 \/ Math\.max\(1, combatSpeed\(\)\)\);/.test(GAME));
+   /C\.sweepCd = Math\.max\(0, C\.sweepCd - 100 \/ Math\.max\(1, combatSpeed\(false\)\)\);/.test(GAME));
 {
   // 双手专属：只拿单手武器时不可用，换双手重武器才可用
   Game.newGame('fisher', 'normal');
@@ -337,7 +349,7 @@ ck('狼王之爪 34/11/3（旧 26/8/2）', /狼王之爪'[\s\S]{0,90}ehp:34[\s\S
   }
   ck('实测：第 3 / 6 / 9 次行动各召唤一只', at.join(',') === '3,6,9', '实际 ' + at.join(','));
   const mn = Game.S().combat ? Game.S().combat.enemies.find(e => e.id === 'wolfMinion') : null;
-  ck('实测：小怪防御是它自己的 3（没被首领顶掉）', !mn || mn.def === 3, mn ? 'def=' + mn.def : '未召到');
+  ck('实测：小怪防御是它自己的 3（没被首领顶掉，猛击期间为0）', !mn || (mn.baseDef === 3 && mn.def === (mn.heavy ? 0 : 3)), mn ? 'def=' + mn.def : '未召到');
 }
 
 // ---------------------------------------------------------------- 13. 金矿平衡
@@ -376,6 +388,7 @@ console.log('\n================ 汇总 ================');
 console.log('通过 ' + ok + ' 项，失败 ' + bad.length + ' 项');
 if (bad.length) { console.log('失败项：'); bad.forEach(b => console.log(' - ' + b)); }
 console.log(bad.length ? 'RESULT:FAIL' : 'RESULT:PASS');
+process.exitCode = bad.length ? 1 : 0;
 /* ⚠️⚠️ 历史脚本（2026-09 早期）—— 已被 回归测试\audit.js 取代，**别拿它的 FAIL 当 bug**。
    里面好几条要求后来被作者推翻了（例："不要自动居中"→ 后来改成"进图一定要自动居中"；
    "横扫 CD 20 次出手"→ 后来改成时间制 20 秒；地图尺寸也改成"宽度=屏幕宽度"）。

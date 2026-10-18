@@ -1,0 +1,127 @@
+{
+  "tool": "image_gen.imagegen",
+  "date": "2026-10-05",
+  "instructionSummary": "从原敌人图中保留完整主体和黑白版画细节，去除原背景、场景、地面及边框，输出真正的透明PNG；保留主体白色高光。",
+  "assets": [
+    {
+      "original": "assets/img/boss_pirate.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-c93e18a9-46ed-443f-b294-05303465cffb.png",
+      "game": "assets/img/battle-cutouts/boss_pirate.png"
+    },
+    {
+      "original": "assets/img/boss_spider.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-1aaab2ee-24b7-4c7d-90ac-32b2199b526f.png",
+      "game": "assets/img/battle-cutouts/boss_spider.png"
+    },
+    {
+      "original": "assets/img/boss_sunken.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-9b68523a-e637-4d7d-bb3d-b748d5614bb3.png",
+      "game": "assets/img/battle-cutouts/boss_sunken.png"
+    },
+    {
+      "original": "assets/img/boss_wolf.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-691eed8b-974e-443c-93ca-f28c405397e3.png",
+      "game": "assets/img/battle-cutouts/boss_wolf.png"
+    },
+    {
+      "original": "assets/img/enemies/bats.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-b2dfe545-02b7-4ca4-80e7-384bd43e6927.png",
+      "game": "assets/img/battle-cutouts/bats.png"
+    },
+    {
+      "original": "assets/img/enemies/boar.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-11297ac0-c4cc-4a67-8164-02b3f3a7698c.png",
+      "game": "assets/img/battle-cutouts/boar.png"
+    },
+    {
+      "original": "assets/img/enemies/boneguard.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-24f09051-5385-4ff1-91c5-32f4faa0f137.png",
+      "game": "assets/img/battle-cutouts/boneguard.png"
+    },
+    {
+      "original": "assets/img/enemies/cavebear.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-a4632eac-909b-40f7-b5d6-8fdb7accc337.png",
+      "game": "assets/img/battle-cutouts/cavebear.png"
+    },
+    {
+      "original": "assets/img/enemies/deepGuard.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-94480871-1710-40d2-b267-956e32f91500.png",
+      "game": "assets/img/battle-cutouts/deepGuard.png"
+    },
+    {
+      "original": "assets/img/enemies/eagle.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-35ad436d-e31c-44b6-81d8-7f0f5c9cc14d.png",
+      "game": "assets/img/battle-cutouts/eagle.png"
+    },
+    {
+      "original": "assets/img/enemies/goat.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-12fcc26e-f619-4d3c-a01f-cc4a74658ebd.png",
+      "game": "assets/img/battle-cutouts/goat.png"
+    },
+    {
+      "original": "assets/img/enemies/guard.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-043199d2-f772-4159-a0b2-ffc88120714c.png",
+      "game": "assets/img/battle-cutouts/guard.png"
+    },
+    {
+      "original": "assets/img/enemies/leopard.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-1efa7902-49d3-4842-845c-55965d8ea825.png",
+      "game": "assets/img/battle-cutouts/leopard.png"
+    },
+    {
+      "original": "assets/img/enemies/mechGuard.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-a33251dc-04c0-4e57-ba5e-1b9bc4906897.png",
+      "game": "assets/img/battle-cutouts/mechGuard.png"
+    },
+    {
+      "original": "assets/img/enemies/ox.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-6adea07b-409e-4506-9edd-2735adbe16fe.png",
+      "game": "assets/img/battle-cutouts/ox.png"
+    },
+    {
+      "original": "assets/img/enemies/pirate.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-1dd73eb4-f261-4103-8622-765c87c019b7.png",
+      "game": "assets/img/battle-cutouts/pirate.png"
+    },
+    {
+      "original": "assets/img/enemies/rabbit.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-972dee6e-a553-457e-8f8b-7e88ef2d2231.png",
+      "game": "assets/img/battle-cutouts/rabbit.png"
+    },
+    {
+      "original": "assets/img/enemies/scorpion.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-66d8e29f-ce80-41f9-9857-0d245def9d81.png",
+      "game": "assets/img/battle-cutouts/scorpion.png"
+    },
+    {
+      "original": "assets/img/enemies/shark.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-ee491239-3e85-4f00-9345-008bee1d3ab9.png",
+      "game": "assets/img/battle-cutouts/shark.png"
+    },
+    {
+      "original": "assets/img/enemies/slateguard.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-509251fa-b935-4d0a-985d-4e61243b97f4.png",
+      "game": "assets/img/battle-cutouts/slateguard.png"
+    },
+    {
+      "original": "assets/img/enemies/snake.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-2de3201d-f2c7-4c1a-b6d5-3db0f7d65746.png",
+      "game": "assets/img/battle-cutouts/snake.png"
+    },
+    {
+      "original": "assets/img/enemies/spider.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-633d00d7-2047-410e-b4f5-4c8cf8cddc62.png",
+      "game": "assets/img/battle-cutouts/spider.png"
+    },
+    {
+      "original": "assets/img/enemies/tentacle.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-a04f1f93-6df8-47bc-9f57-69dc33bfbdfa.png",
+      "game": "assets/img/battle-cutouts/tentacle.png"
+    },
+    {
+      "original": "assets/img/enemies/wolf.png",
+      "generated": "C:\\Users\\34297\\.codex\\generated_images\\01a0bf29-51ea-7173-abc5-6862cb131340\\exec-4beaf663-c889-41f2-ad1e-aa4684a4027f.png",
+      "game": "assets/img/battle-cutouts/wolf.png"
+    }
+  ]
+}

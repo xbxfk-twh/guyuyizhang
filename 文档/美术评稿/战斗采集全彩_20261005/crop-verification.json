@@ -1,0 +1,887 @@
+[
+  {
+    "key": "enemies-a",
+    "name": "bats",
+    "size": [
+      314,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      19,
+      314,
+      289
+    ],
+    "opaque_fraction": 0.428
+  },
+  {
+    "key": "enemies-a",
+    "name": "boar",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      1,
+      313,
+      314
+    ],
+    "opaque_fraction": 0.473
+  },
+  {
+    "key": "enemies-a",
+    "name": "boneguard",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      310,
+      312
+    ],
+    "opaque_fraction": 0.439
+  },
+  {
+    "key": "enemies-a",
+    "name": "boss_pirate",
+    "size": [
+      314,
+      314
+    ],
+    "alpha_bbox": [
+      15,
+      0,
+      313,
+      314
+    ],
+    "opaque_fraction": 0.495
+  },
+  {
+    "key": "enemies-a",
+    "name": "boss_spider",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      17,
+      314,
+      313
+    ],
+    "opaque_fraction": 0.261
+  },
+  {
+    "key": "enemies-a",
+    "name": "boss_sunken",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      313
+    ],
+    "opaque_fraction": 0.509
+  },
+  {
+    "key": "enemies-a",
+    "name": "boss_wolf",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      6,
+      313,
+      313
+    ],
+    "opaque_fraction": 0.47
+  },
+  {
+    "key": "enemies-a",
+    "name": "cavebear",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      300,
+      313
+    ],
+    "opaque_fraction": 0.523
+  },
+  {
+    "key": "enemies-a",
+    "name": "deepGuard",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      314,
+      313
+    ],
+    "opaque_fraction": 0.399
+  },
+  {
+    "key": "enemies-a",
+    "name": "eagle",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      313
+    ],
+    "opaque_fraction": 0.564
+  },
+  {
+    "key": "enemies-a",
+    "name": "goat",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      313
+    ],
+    "opaque_fraction": 0.41
+  },
+  {
+    "key": "enemies-a",
+    "name": "guard",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      299,
+      313
+    ],
+    "opaque_fraction": 0.562
+  },
+  {
+    "key": "enemies-a",
+    "name": "leopard",
+    "size": [
+      314,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      314,
+      298
+    ],
+    "opaque_fraction": 0.508
+  },
+  {
+    "key": "enemies-a",
+    "name": "mechGuard",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      300
+    ],
+    "opaque_fraction": 0.547
+  },
+  {
+    "key": "enemies-a",
+    "name": "ox",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      314
+    ],
+    "opaque_fraction": 0.517
+  },
+  {
+    "key": "enemies-a",
+    "name": "pirate",
+    "size": [
+      314,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      300,
+      301
+    ],
+    "opaque_fraction": 0.51
+  },
+  {
+    "key": "enemies-b",
+    "name": "rabbit",
+    "size": [
+      314,
+      314
+    ],
+    "alpha_bbox": [
+      17,
+      16,
+      314,
+      314
+    ],
+    "opaque_fraction": 0.411
+  },
+  {
+    "key": "enemies-b",
+    "name": "scorpion",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      314
+    ],
+    "opaque_fraction": 0.407
+  },
+  {
+    "key": "enemies-b",
+    "name": "shark",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      6,
+      313,
+      314
+    ],
+    "opaque_fraction": 0.489
+  },
+  {
+    "key": "enemies-b",
+    "name": "slateguard",
+    "size": [
+      314,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      314,
+      314
+    ],
+    "opaque_fraction": 0.556
+  },
+  {
+    "key": "enemies-b",
+    "name": "snake",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      314,
+      313
+    ],
+    "opaque_fraction": 0.52
+  },
+  {
+    "key": "enemies-b",
+    "name": "spider",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      313
+    ],
+    "opaque_fraction": 0.391
+  },
+  {
+    "key": "enemies-b",
+    "name": "tentacle",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      313
+    ],
+    "opaque_fraction": 0.577
+  },
+  {
+    "key": "enemies-b",
+    "name": "wolf",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      314,
+      313
+    ],
+    "opaque_fraction": 0.536
+  },
+  {
+    "key": "enemies-b",
+    "name": "nightmare1",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      312,
+      313
+    ],
+    "opaque_fraction": 0.353
+  },
+  {
+    "key": "enemies-b",
+    "name": "nightmare2",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      2,
+      0,
+      313,
+      313
+    ],
+    "opaque_fraction": 0.189
+  },
+  {
+    "key": "enemies-b",
+    "name": "nightmare3",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      313
+    ],
+    "opaque_fraction": 0.351
+  },
+  {
+    "key": "enemies-b",
+    "name": "nightmare4",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      311,
+      313
+    ],
+    "opaque_fraction": 0.252
+  },
+  {
+    "key": "enemies-b",
+    "name": "nightmare5",
+    "size": [
+      314,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      314,
+      314
+    ],
+    "opaque_fraction": 0.421
+  },
+  {
+    "key": "enemies-b",
+    "name": "nightmare6",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      299,
+      314
+    ],
+    "opaque_fraction": 0.344
+  },
+  {
+    "key": "enemies-b",
+    "name": "nightmare7",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      5,
+      0,
+      310,
+      314
+    ],
+    "opaque_fraction": 0.438
+  },
+  {
+    "key": "actions-color",
+    "name": "atlantis_gate",
+    "size": [
+      314,
+      314
+    ],
+    "alpha_bbox": [
+      15,
+      14,
+      314,
+      314
+    ],
+    "opaque_fraction": 0.625
+  },
+  {
+    "key": "actions-color",
+    "name": "axe_icon",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      27,
+      313,
+      314
+    ],
+    "opaque_fraction": 0.248
+  },
+  {
+    "key": "actions-color",
+    "name": "berry_pick",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      1,
+      21,
+      313,
+      314
+    ],
+    "opaque_fraction": 0.312
+  },
+  {
+    "key": "actions-color",
+    "name": "dive",
+    "size": [
+      314,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      31,
+      296,
+      314
+    ],
+    "opaque_fraction": 0.297
+  },
+  {
+    "key": "actions-color",
+    "name": "fish",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      19,
+      0,
+      314,
+      313
+    ],
+    "opaque_fraction": 0.237
+  },
+  {
+    "key": "actions-color",
+    "name": "gather",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      313
+    ],
+    "opaque_fraction": 0.414
+  },
+  {
+    "key": "actions-color",
+    "name": "hammer_icon",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      16,
+      292,
+      311
+    ],
+    "opaque_fraction": 0.182
+  },
+  {
+    "key": "actions-color",
+    "name": "pick",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      1,
+      0,
+      300,
+      307
+    ],
+    "opaque_fraction": 0.264
+  },
+  {
+    "key": "actions-color",
+    "name": "pot",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      19,
+      0,
+      314,
+      313
+    ],
+    "opaque_fraction": 0.376
+  },
+  {
+    "key": "actions-color",
+    "name": "rest",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      313
+    ],
+    "opaque_fraction": 0.421
+  },
+  {
+    "key": "actions-color",
+    "name": "sleep_nap",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      1,
+      312,
+      304
+    ],
+    "opaque_fraction": 0.415
+  },
+  {
+    "key": "actions-color",
+    "name": "sleep_night",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      32,
+      5,
+      298,
+      292
+    ],
+    "opaque_fraction": 0.41
+  },
+  {
+    "key": "actions-color",
+    "name": "sword",
+    "size": [
+      314,
+      314
+    ],
+    "alpha_bbox": [
+      27,
+      0,
+      306,
+      278
+    ],
+    "opaque_fraction": 0.14
+  },
+  {
+    "key": "actions-color",
+    "name": "water_ladle",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      314
+    ],
+    "opaque_fraction": 0.178
+  },
+  {
+    "key": "actions-ink",
+    "name": "atlantis_gate",
+    "size": [
+      314,
+      314
+    ],
+    "alpha_bbox": [
+      29,
+      26,
+      308,
+      314
+    ],
+    "opaque_fraction": 0.516
+  },
+  {
+    "key": "actions-ink",
+    "name": "axe_icon",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      47,
+      37,
+      313,
+      314
+    ],
+    "opaque_fraction": 0.241
+  },
+  {
+    "key": "actions-ink",
+    "name": "berry_pick",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      0,
+      53,
+      306,
+      314
+    ],
+    "opaque_fraction": 0.317
+  },
+  {
+    "key": "actions-ink",
+    "name": "dive",
+    "size": [
+      314,
+      314
+    ],
+    "alpha_bbox": [
+      24,
+      39,
+      298,
+      314
+    ],
+    "opaque_fraction": 0.302
+  },
+  {
+    "key": "actions-ink",
+    "name": "fish",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      24,
+      0,
+      314,
+      313
+    ],
+    "opaque_fraction": 0.219
+  },
+  {
+    "key": "actions-ink",
+    "name": "gather",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      313
+    ],
+    "opaque_fraction": 0.369
+  },
+  {
+    "key": "actions-ink",
+    "name": "hammer_icon",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      313,
+      311
+    ],
+    "opaque_fraction": 0.168
+  },
+  {
+    "key": "actions-ink",
+    "name": "pick",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      0,
+      296,
+      313
+    ],
+    "opaque_fraction": 0.276
+  },
+  {
+    "key": "actions-ink",
+    "name": "pot",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      41,
+      0,
+      302,
+      313
+    ],
+    "opaque_fraction": 0.342
+  },
+  {
+    "key": "actions-ink",
+    "name": "rest",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      6,
+      0,
+      313,
+      313
+    ],
+    "opaque_fraction": 0.433
+  },
+  {
+    "key": "actions-ink",
+    "name": "sleep_nap",
+    "size": [
+      313,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      17,
+      313,
+      308
+    ],
+    "opaque_fraction": 0.427
+  },
+  {
+    "key": "actions-ink",
+    "name": "sleep_night",
+    "size": [
+      314,
+      313
+    ],
+    "alpha_bbox": [
+      0,
+      3,
+      300,
+      313
+    ],
+    "opaque_fraction": 0.48
+  },
+  {
+    "key": "actions-ink",
+    "name": "sword",
+    "size": [
+      314,
+      314
+    ],
+    "alpha_bbox": [
+      35,
+      0,
+      306,
+      284
+    ],
+    "opaque_fraction": 0.125
+  },
+  {
+    "key": "actions-ink",
+    "name": "water_ladle",
+    "size": [
+      313,
+      314
+    ],
+    "alpha_bbox": [
+      25,
+      0,
+      299,
+      278
+    ],
+    "opaque_fraction": 0.171
+  }
+]

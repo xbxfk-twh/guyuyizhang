@@ -1,0 +1,8 @@
+{
+  "applicationId": "top.guyuyizhang.game",
+  "versionCode": 113001,
+  "minSdk": 26,
+  "targetSdk": 36,
+  "buildTools": "36.0.0",
+  "channel": "独立版"
+}

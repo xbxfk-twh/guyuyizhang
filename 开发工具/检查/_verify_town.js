@@ -5,7 +5,7 @@ const path = require('path');
 const http = require('http');
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const ROOT = 'C:\\Users\\34297\\Desktop\\孤屿遗章\\孤屿遗章-游戏 - 发布';
-const OUT = path.join(__dirname, '_town_shots');
+const OUT = path.join(__dirname, '_out', 'town');
 const PORT = 9451;
 const PROFILE = path.join(require('os').tmpdir(), 'guyu_ts_' + process.pid);
 const sleep = ms => new Promise(r => setTimeout(r, ms));

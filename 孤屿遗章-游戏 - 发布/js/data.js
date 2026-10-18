@@ -7,9 +7,17 @@
 // cat: mat原料 food食物 drink饮品 tool工具 weapon武器 armor防具 cloth衣物 med药品
 //      special特殊 seed种子 bp图纸 currency货币
 const ITEMS = {
+  divinePack:{name:'神之包',cat:'special',glyph:'包',stack:1,packCapacity:15,remoteWarehouse:1,price:0,desc:'装备后背包+15格，外出可存入所在区域的仓库。'},
+  divineSuperPack:{name:'神之超级大包',cat:'special',glyph:'包',stack:1,packCapacity:100,remoteWarehouse:1,price:0,desc:'装备后背包+100格，外出可存入所在区域的仓库。仅兑换码获取。'},
+  reedPack:{name:'苇编背包',cat:'special',glyph:'包',stack:1,packCapacity:8,desc:'可装备背包，额外8格。'},
+  leatherPack:{name:'皮革背包',cat:'special',glyph:'包',stack:1,packCapacity:16,desc:'可装备背包，额外16格。'},
+  expeditionPack:{name:'远行背包',cat:'special',glyph:'包',stack:1,packCapacity:28,desc:'可装备背包，额外28格。'},
+  nightmareSoul2:{name:'二阶噩梦魂魄',cat:'mat',glyph:'魂',stack:99,desc:'凝结的梦魇残魂，可在噩梦汲取仪中作出选择。'},
+  nightmareSoul3:{name:'三阶噩梦魂魄',cat:'mat',glyph:'魂',stack:99,desc:'深渊中的梦魇残魂，可在噩梦汲取仪中作出选择。'},
+  nightmareSoul:{name:'噩梦魂魄',cat:'mat',glyph:'魂',stack:99,desc:'一阶梦魇魂魄，可用解魂器分解，或在噩梦汲取仪中作出选择。'},
   // ---- 货币 ----
   beibi:  { name:'贝壳币', cat:'currency', glyph:'贝', desc:'海边捡来的贝壳，岛上的通用零钱。', stack:9999 },
-  coin:   { name:'金币',   cat:'currency', glyph:'币', desc:'沉船与遗迹里的古金币，1 枚可兑 30 贝壳。', stack:9999 },
+  coin:   { name:'金币',   cat:'currency', glyph:'币', desc:'沉船与遗迹里的古金币；老潮那儿 50 贝壳换 1 枚，1 枚也能换回 30 贝壳。', stack:9999 },
   // ---- T1 原料 ----
   wood:    { name:'木材', cat:'mat', glyph:'木', desc:'从树林砍来的原木，一切建造的基础。', stack:20, price:2 },
   branch:  { name:'树枝', cat:'mat', glyph:'枝', desc:'细小的干枝，火把与燃料。', stack:20, price:1 },
@@ -20,6 +28,9 @@ const ITEMS = {
   fiber:   { name:'竹纤维', cat:'mat', glyph:'纤', desc:'剖竹而得的纤维，可纺成布。', stack:30, price:2 },
   vine:    { name:'藤蔓', cat:'mat', glyph:'藤', desc:'柔韧的藤条，编织与捆绑。', stack:20, price:2 },
   clay:    { name:'黏土', cat:'mat', glyph:'泥', desc:'河畔的黏土，烧陶砌砖。', stack:20, price:3 },
+  // 作者 2026-09-25：冬天水不够喝 → 河畔新增「积雪」采集点，积雪在篝火上「烧雪水」就是淡水。
+  // 冬天河流取水会同时吃"季节 0.6 × 雪天 0.6"两重折扣（一次只剩 1 份），所以冬天必须有第二条水源。
+  snow:    { name:'积雪', cat:'mat', glyph:'雪', desc:'冬季河畔每天可采3次，不受雨雪天气减产；营地篝火用积雪×2、木材×1烧成淡水×1。', stack:20, price:1 },
   herb:    { name:'草药', cat:'mat', glyph:'药', desc:'常见的草药，制药原料。', stack:20, price:4 },
   // ---- T2 原料 ----
   ironore:   { name:'铁矿石', cat:'mat', glyph:'铁', desc:'含铁的矿石，炼铁原料。', stack:20, price:15 },
@@ -29,7 +40,7 @@ const ITEMS = {
   wool:      { name:'羊毛', cat:'mat', glyph:'毛', desc:'羊群身上剪下的羊毛。', stack:20, price:10 },
   resin:     { name:'树脂', cat:'mat', glyph:'脂', desc:'松树的树脂，防水与引火。', stack:20, price:8 },
   honey:     { name:'蜂蜜', cat:'food', glyph:'蜜', food:15, water:1, sta:7, spoil:240, desc:'蜂巢里的野蜂蜜，甜而珍贵。', stack:20, price:35 },
-  mushroom:  { name:'蘑菇', cat:'food', glyph:'菇', food:4, water:1, spoil:48, desc:'林间野菇，有轻微毒性，煮汤更安全。', stack:20, price:5 },
+  mushroom:  { name:'蘑菇', cat:'food', glyph:'菇', food:6, water:3, spoil:48, negChance:0.2, negPoison:1, poisonHours:6, desc:'雨天生长的林间野菇。生吃饱食+6、水分+3，但有20%概率中毒6小时；煮成汤就安全了。', stack:20, price:5 },
   bambooShoot:{ id:'bambooShoot', name:'竹笋', cat:'food', glyph:'笋', food:8, water:2, spoil:72, desc:'鲜嫩的竹笋，春日限定。', stack:20, price:10 },
   niter:     { name:'硝石', cat:'mat', glyph:'硝', desc:'洞窟里的硝石，火药原料。', stack:20, price:10 },
   sulfur:    { name:'硫磺', cat:'mat', glyph:'硫', desc:'荒漠的硫磺，火药原料。', stack:20, price:10 },
@@ -40,14 +51,14 @@ const ITEMS = {
   poisonCoat:{ name:'淬毒剂', cat:'special', glyph:'淬', coatPoison:1, desc:'蝎毒调入树脂熬成的毒膏。战斗中使用可淬在武器上，接下来 3 次命中让敌人中毒（每回合掉血）。', stack:10, price:60 },
   silk:      { name:'蛛丝', cat:'mat', glyph:'丝', desc:'坚韧的蛛丝，可纺可卖。', stack:20, price:15 },
   // ---- T3 原料 ----
-  goldore:   { name:'金矿石', cat:'mat', glyph:'金', desc:'闪着微光的金矿石。只能卖给铁匠换贝壳，不能打造任何东西。', stack:20, price:55 },
+  goldore:   { name:'金矿石', cat:'mat', glyph:'金', desc:'闪着微光的金矿石；可在熔炉炼成金锭。', stack:20, price:55 },
+  goldIngot: { name:'金锭', cat:'mat', glyph:'金', desc:'八份金矿石精炼成的沉甸甸金锭。鱼人愿意收下。', stack:20, price:440 },
   crystal:   { name:'水晶', cat:'mat', glyph:'晶', desc:'洞窟深处的水晶。', stack:20, price:120 },
   blackiron: { name:'玄铁矿', cat:'mat', glyph:'玄', desc:'山顶的黑色矿石，沉重而稀有。', stack:20, price:200 },
   mithril:   { name:'秘银矿', cat:'mat', glyph:'秘', desc:'雪线之下的银色矿石，极为稀有。', stack:20, price:250 },
   snowlotus: { name:'雪莲', cat:'mat', glyph:'莲', desc:'山顶雪线上的雪莲。', stack:20, price:250 },
   eaglefeather:{ id:'eaglefeather', name:'鹰羽', cat:'mat', glyph:'羽', desc:'鹰巢里的长羽。', stack:20, price:60 },
   pearl:     { name:'珍珠', cat:'special', glyph:'珠', desc:'蚌壳里的珍珠，商人抢着要。', stack:20, price:200 },
-  seasalt:   { name:'海盐', cat:'special', glyph:'盐', desc:'颗粒粗的晒制海盐（旧版遗留），杂货商按杂盐收。', stack:20, price:20 },
   fossil:    { name:'化石', cat:'mat', glyph:'化', desc:'荒漠里的骨化石，可能藏着龙骨。', stack:20, price:50 },
   shipwood:  { name:'船木', cat:'mat', glyph:'船', desc:'沉船上拆下的好木头。', stack:20, price:25 },
   sharkfin:  { name:'鲨鱼翅', cat:'special', glyph:'翅', desc:'鲨鱼的背鳍，远洋商人高价收。', stack:20, price:180 },
@@ -71,8 +82,8 @@ const ITEMS = {
   canvas: { name:'帆布', cat:'mat', glyph:'帆', desc:'涂了树脂的防水帆布。', stack:20, price:50 },
   claypot:{ id:'claypot', name:'陶锅', cat:'tool', glyph:'锅', desc:'烧制的陶锅，煮汤熬药。', stack:5, price:20 },
   leather:{ id:'leather', name:'皮革', cat:'mat', glyph:'革', desc:'鞣制好的皮革。', stack:20, price:30 },
-  basket: { name:'竹篓', cat:'tool', glyph:'篓', cap:10, desc:'编成的竹篓，背包装载+10。', stack:1, price:25 },
-  salt:   { name:'盐', cat:'special', glyph:'盐', desc:'珍贵的盐，腌肉调味。', stack:20, price:20 },
+  basket: { name:'竹篓', cat:'tool', glyph:'篓', cap:10, packCapacity:10, desc:'装备到背包槽后容量+10格。', stack:1, price:25 },
+  salt:   { name:'盐', cat:'special', glyph:'盐', desc:'晒制的海盐，可用于烹饪、腌肉和盐镇委托，杂货商也会收购。', stack:20, price:20 },
   gunpowder:{ id:'gunpowder', name:'火药', cat:'special', glyph:'火', desc:'自制的火药，防御与爆破。', stack:20, price:80 },
   // ---- 食物 ----
   berry:  { name:'浆果', cat:'food', glyph:'莓', food:8, water:2, spoil:48, desc:'酸甜的野果。', stack:20, price:2 },
@@ -86,14 +97,23 @@ const ITEMS = {
   vegFry:{ id:'vegFry', name:'爆炒野菜', cat:'food', glyph:'炒', food:20, water:2, heal:6, spirit:2, sta:5, spoil:24, desc:'大火快炒的野菜，油盐逼出香味，比汤更顶饱。', stack:20, price:18 },
   meatSoup:{ id:'meatSoup', name:'肉汤', cat:'food', glyph:'羹', food:40, water:12, heal:15, sta:8, spoil:24, desc:'浓香的肉汤，冬日最佳。', stack:20, price:20 },
   meatStew:{ id:'meatStew', name:'炖肉', cat:'food', glyph:'炖', food:45, water:6, heal:18, sta:10, spoil:24, desc:'小火慢炖的肉块，炖到脱骨，最解馋。', stack:20, price:32 },
+  // ---- 作者 2026-09-23 点名要的三道菜（萝卜炖肉 / 面包 / 蛋糕）----
+  // 都是"让种田有奔头"的料理：萝卜和小麦本来只能生啃/卖钱，现在有正经去处。
+  carrotStew:{ id:'carrotStew', name:'萝卜炖肉', cat:'food', glyph:'煲', food:52, water:10, heal:20, sta:10, spoil:24, desc:'萝卜吸饱了肉汁，比纯炖肉更养人。', stack:20, price:40 },
+  bread:     { id:'bread',     name:'面包',     cat:'food', glyph:'包', food:34, water:2, heal:6, sta:6, spoil:240, desc:'面粉烤出来的主食，能存很久，出门带它最省心。', stack:20, price:26 },
+  cake:      { id:'cake',      name:'蛋糕',     cat:'food', glyph:'糕', food:62, water:10, heal:15, spirit:12, sta:10, spoil:168, desc:'蛋、蜜、面粉一起烤的甜点——吃完心情都好了（精神 +12）。', stack:20, price:75 },
+  // 作者 2026-09-25："改成小麦做成面粉，面粉再做其他东西吧"
+  //   → 小麦不再是"直接扔进锅"，先磨成面粉（灶台），面包/蛋糕都用面粉。
+  //     换算：面粉×2 = 小麦×3（所以面包的小麦成本一分没变）。
+  flour:     { id:'flour',     name:'面粉',     cat:'mat', glyph:'粉', stack:20, price:6, desc:'小麦磨成的粉。面包、蛋糕都得先有它。' },
   honeyWater:{ id:'honeyWater', name:'蜂蜜水', cat:'drink', glyph:'蜜', food:10, water:15, heal:10, spirit:7, sta:7, spoil:24, desc:'甜润的蜂蜜水。', stack:20, price:20 },
-  smokedFish:{ id:'smokedFish', name:'熏鱼', cat:'food', glyph:'熏', food:25, water:2, heal:5, spoil:168, desc:'烟熏过的鱼，能存七天。', stack:20, price:15 },
+  smokedFish:{ id:'smokedFish', name:'熏鱼', cat:'food', glyph:'熏', food:25, water:2, heal:5, spoil:84, desc:'烟熏过的鱼，能存七天。', stack:20, price:15 },
   // ---- 牧场与蛋料理 ----
   hay:      { id:'hay', name:'干草', cat:'mat', glyph:'草', desc:'晒干的茅草，羊的口粮（每只羊每天 1 份）。', stack:50, price:3 },
-  egg:      { id:'egg', name:'鸡蛋', cat:'food', glyph:'蛋', food:8, water:2, spoil:168, desc:'母鸡下的蛋，能存一周；也能做成各种蛋料理。', stack:30, price:12 },
-  friedEgg: { id:'friedEgg', name:'煎蛋', cat:'food', glyph:'煎', food:15, spoil:72, desc:'一个煎蛋：饱食 +15，能存三天。', stack:20, price:15 },
-  bigOmelette:{ id:'bigOmelette', name:'大煎蛋', cat:'food', glyph:'卷', food:60, water:60, heal:10, spoil:240, desc:'五颗蛋摊成的一大张蛋卷：饱食+60、水分+60、生命+10，能存十天。', stack:20, price:60 },
-  superEgg: { id:'superEgg', name:'超级大蛋', cat:'food', glyph:'宴', food:100, water:100, sta:100, heal:30, spoil:2376, desc:'十二颗蛋堆成的蛋宴：饱食/水分/体力全满，还回 30 生命，能存 99 天。', stack:10, price:200 },
+  egg:      { id:'egg', name:'鸡蛋', cat:'food', glyph:'蛋', food:8, water:2, spoil:84, desc:'母鸡下的蛋，能存一周；也能做成各种蛋料理。', stack:30, price:12 },
+  friedEgg: { id:'friedEgg', name:'煎蛋', cat:'food', glyph:'煎', food:15, spoil:36, desc:'一个煎蛋：饱食 +15，能存三天。', stack:20, price:15 },
+  bigOmelette:{ id:'bigOmelette', name:'大煎蛋', cat:'food', glyph:'卷', food:60, water:60, heal:10, spoil:120, desc:'五颗蛋摊成的一大张蛋卷：饱食+60、水分+60、生命+10，能存十天。', stack:20, price:60 },
+  superEgg: { id:'superEgg', name:'超级大蛋', cat:'food', glyph:'宴', food:100, water:100, sta:100, heal:30, spoil:1188, desc:'十二颗蛋堆成的蛋宴：饱食/水分/体力全满，还回 30 生命，能存 99 天。', stack:10, price:200 },
   chick:    { id:'chick', name:'小鸡', cat:'special', glyph:'雏', desc:'外岛买来的小鸡。放进鸡舍，连喂 5 天小麦就长成母鸡。', stack:6, price:80 },
   smokedMeat:{ id:'smokedMeat', name:'熏肉', cat:'food', glyph:'腊', food:30, water:1, heal:8, spoil:168, desc:'烟熏过的肉。', stack:20, price:30 },
   saltedMeat:{ id:'saltedMeat', name:'腌肉', cat:'food', glyph:'腌', food:30, water:1, spoil:168, desc:'盐腌的肉，不易腐坏。', stack:20, price:25 },
@@ -101,18 +121,21 @@ const ITEMS = {
   mushroomSoup:{ id:'mushroomSoup', name:'蘑菇汤', cat:'food', glyph:'菇', food:20, water:10, heal:20, spoil:24, desc:'鲜美的蘑菇汤。', stack:20, price:12 },
   // ---- 工具（tool:{kind,tier}）----
   axeStone:{ id:'axeStone', name:'石斧', cat:'tool', glyph:'斧', tool:{kind:'axe',tier:1}, desc:'燧石斧，砍树的基本工具。', stack:1 },
-  axeIron: { name:'铁斧', cat:'tool', glyph:'斧', tool:{kind:'axe',tier:2}, desc:'铁斧，伐木效率翻倍。', stack:1 },
+  axeIron: { name:'铁斧', cat:'tool', glyph:'斧', tool:{kind:'axe',tier:2}, desc:'二级伐木工具；比石斧略增收获，可采需要铁斧的资源。', stack:1 },
   axeSteel:{ id:'axeSteel', name:'钢斧', cat:'tool', glyph:'斧', tool:{kind:'axe',tier:3}, desc:'钢斧，削木如泥。', stack:1 },
   pickStone:{ id:'pickStone', name:'石镐', cat:'tool', glyph:'镐', tool:{kind:'pick',tier:1}, desc:'石镐，能采浅层铁矿。', stack:1 },
   pickIron:{ id:'pickIron', name:'铁镐', cat:'tool', glyph:'镐', tool:{kind:'pick',tier:2}, desc:'铁镐，开采深层矿脉。', stack:1 },
   pickSteel:{ id:'pickSteel', name:'钢镐', cat:'tool', glyph:'镐', tool:{kind:'pick',tier:3}, desc:'钢镐，能凿开玄铁。', stack:1 },
   pickBlack:{ id:'pickBlack', name:'玄铁镐', cat:'tool', glyph:'镐', tool:{kind:'pick',tier:4}, desc:'玄铁镐，唯一能采秘银的工具。', stack:1 },
-  knifeStone:{ id:'knifeStone', name:'石质匕首', cat:'weapon', glyph:'匕', atk:5, spd:15, dual:1, tool:{kind:'knife',tier:1}, desc:'磨利的石匕首，剥皮剖竹、也能近身划拉。', stack:1 },
-  ironDagger:{ id:'ironDagger', name:'铁匕首', cat:'weapon', glyph:'匕', atk:8, spd:14, dual:1, tool:{kind:'knife',tier:2}, desc:'轻快的铁匕首，出手又快又狠。', stack:1 },
+  knifeStone:{ id:'knifeStone', name:'石质匕首', cat:'weapon', glyph:'匕', atk:5, spd:13, dual:1, tool:{kind:'knife',tier:1}, desc:'磨利的石匕首，剥皮剖竹、也能近身划拉。', stack:1 },
+  ironDagger:{ id:'ironDagger', name:'铁匕首', cat:'weapon', glyph:'匕', atk:7, spd:13, dual:1, tool:{kind:'knife',tier:2}, desc:'轻快的铁匕首，出手又快又狠。', stack:1 },
+  steelDagger:{ id:'steelDagger', name:'钢匕首', cat:'weapon', glyph:'匕', atk:9, spd:13, dual:1, tool:{kind:'knife',tier:3}, desc:'钢制短刃，适合双持；与另一把匕首搭配可触发嗜血狂刀。', stack:1 },
+  blackDagger:{ id:'blackDagger', name:'玄铁匕首', cat:'weapon', glyph:'匕', atk:11, spd:13, dual:1, tool:{kind:'knife',tier:4}, desc:'玄铁短刃，双匕首流派的进阶武器；可触发嗜血狂刀。', stack:1 },
   hoe:    { name:'锄头', cat:'tool', glyph:'锄', tool:{kind:'hoe',tier:1}, desc:'翻土的锄头（占工具栏）：在耕地可以「开垦新田」和给作物「松土」提前成熟。', stack:1 },
   rod:    { name:'鱼竿', cat:'tool', glyph:'竿', tool:{kind:'rod',tier:1}, desc:'竹制鱼竿。', stack:1 },
-  net:    { name:'渔网', cat:'tool', glyph:'网', tool:{kind:'net',tier:1}, desc:'藤编渔网：河畔、近海、海底鱼群都能撒（河畔一网下去要空几天）。', stack:1 },
+  net:    { name:'渔网', cat:'tool', glyph:'网', tool:{kind:'net',tier:1}, desc:'藤编渔网：河畔、近海、海底鱼群都能撒。河畔撒网后次日网点休整，鱼竿仍可垂钓。', stack:1 },
   trap:   { name:'陷阱', cat:'tool', glyph:'阱', desc:'木藤陷阱（消耗品）：在草地布下，次日再去草地有 50% 概率捕到羊羔。', stack:5 },
+  lantern:{ name:'提灯', cat:'tool', glyph:'灯', desc:'装备在工具栏时，陆地移动与采集遇袭概率减半；每累计1小时消耗1耐久，海上和海底不生效。', stack:1, tool:{kind:'lantern',tier:1} },
   torch:  { name:'火把', cat:'tool', glyph:'炬', desc:'树脂火把，驱散黑暗。', stack:5 },
   tinder: { name:'火绒', cat:'tool', glyph:'绒', desc:'燧石与茅草做的火绒。', stack:5 },
   spyglass:{ id:'spyglass', name:'望远镜', cat:'tool', glyph:'镜', desc:'水晶镜片，瞭望台三级的关键。', stack:1 },
@@ -120,41 +143,44 @@ const ITEMS = {
   club:   { name:'木棒', cat:'weapon', glyph:'棒', atk:5, spd:11, desc:'随手捡的木棒。', stack:1 },
   spear:  { name:'石矛', cat:'weapon', glyph:'矛', atk:6, spd:12, throw:1, desc:'燧石矛，可投掷一次。', stack:1 },
   ironSword:{ id:'ironSword', name:'铁剑', cat:'weapon', glyph:'剑', atk:11, spd:10, desc:'锻打的铁剑。', stack:1 },
-  steelSword:{ id:'steelSword', name:'钢剑', cat:'weapon', glyph:'剑', atk:15, spd:9, desc:'百炼的钢剑。', stack:1 },
-  blackSword:{ id:'blackSword', name:'玄铁剑', cat:'weapon', glyph:'剑', atk:18, spd:8, desc:'玄铁与秘银铸成的剑。', stack:1 },
-  ironGreatSword:{ id:'ironGreatSword', name:'铁大剑', cat:'weapon', glyph:'剑', atk:22, spd:6, twoHand:1, desc:'双手巨剑，沉重缓慢，一击势大力沉。', stack:1 },
+  steelSword:{ id:'steelSword', name:'钢剑', cat:'weapon', glyph:'剑', atk:15, spd:10, desc:'百炼的钢剑。', stack:1 },
+  blackSword:{ id:'blackSword', name:'玄铁剑', cat:'weapon', glyph:'剑', atk:18, spd:10, desc:'玄铁与秘银铸成的剑。', stack:1 },
+  blackGreatSword:{ id:'blackGreatSword', name:'玄铁大剑', cat:'weapon', glyph:'剑', atk:40, spd:5, twoHand:1, desc:'双手重器：攻击40、攻速5。占用双手，不能搭配盾或副手武器；以极重一击击碎高甲。', stack:1 },
+  ironGreatSword:{ id:'ironGreatSword', name:'铁大剑', cat:'weapon', glyph:'剑', atk:25, spd:6, twoHand:1, desc:'双手巨剑，沉重缓慢，一击势大力沉。', stack:1 },
   bow:    { name:'猎弓', cat:'weapon', glyph:'弓', atk:10, spd:8, ranged:1, desc:'竹木猎弓，远程先手。', stack:1 },
-  // ---------- 限定物：神弓（v1.06 限时活动，全账号唯一，可存进邮箱跨局） ----------
+  // ---------- 神弓：限时制作已结束，可重复持有、存邮箱跨局 ----------
   // 数值与猎弓完全一致（攻10/攻速8），不靠数值膨胀；特权是"每场战斗第一次命中必定会心一击"
   divineBow: { name:'神弓', cat:'weapon', glyph:'弓', atk:10, spd:8, ranged:1, divineCrit:1, stack:1, price:0, alwaysFit:1, keepBroken:1,
-    // keepBroken：耐久归零【不会消失】，只自动卸下 —— 它是限时绝版（活动结束后造不出来），
-    // 删掉等于玩家白玩一场。回营地磨刀石修补（秘银锭×1）即可再战。
-    desc:'传说中的古弓，弓身淌着熔金般的纹路。威力与竹木猎弓无异，但每场战斗的第一次命中必定会心一击。耐久 120，用坏了不会消失，回营地「磨刀石」用秘银锭×1 修补即可再战——全服仅此一把，可存入邮箱留给下一局。（限时制作 26.9.15-26.9.30，活动结束后不能再造，已做出的永久可用）' },
-  arrow:  { name:'箭矢', cat:'weapon', glyph:'矢', ammo:1, desc:'燧石箭头的箭。', stack:30 },
-  eagleArrow:{ id:'eagleArrow', name:'鹰羽箭', cat:'weapon', glyph:'鹰', ammo:1, atkBonus:8, desc:'鹰羽尾羽的箭，精准有力。', stack:30 },
+    // keepBroken：耐久归零不消失，但不能修复或再次装备，只作为收藏保留。
+    desc:'传说中的古弓，威力与猎弓相同；每场战斗第一次命中必定会心。基础耐久 120，不可修复；耐久耗尽后自动卸下，仍留在背包中作收藏。可持有多把并逐件存入邮箱跨局；商城售价 15 星之点，遗海交换机有极低概率出现。' },
+  arrow:  { name:'箭矢', cat:'weapon', glyph:'矢', ammo:1, desc:'燧石箭头的箭。', stack:50 },
+  eagleArrow:{ id:'eagleArrow', name:'鹰羽箭', cat:'weapon', glyph:'鹰', ammo:1, atkBonus:8, desc:'鹰羽尾羽的箭，精准有力。', stack:50 },
   // ---- 防具 / 衣物 ----
   grassArmor:{ id:'grassArmor', name:'草甲', cat:'armor', glyph:'甲', def:2, desc:'茅草编的护甲。', stack:1 },
   leatherArmor:{ id:'leatherArmor', name:'皮甲', cat:'armor', glyph:'甲', def:4, desc:'皮革护甲。', stack:1 },
   ironArmor:{ id:'ironArmor', name:'铁甲', cat:'armor', glyph:'甲', def:6, desc:'铁片甲。', stack:1 },
+  divineArmor:{ id:'divineArmor', name:'神之甲', cat:'armor', glyph:'甲', def:6, hitHeal:2, stack:1, alwaysFit:1, price:0, desc:'铁甲档护甲，防御 +6；受到敌人的实际攻击伤害且存活时回复 2 生命。闪避、格挡和环境伤害不触发。基础耐久 110，商城售价 15 星之点，也可通过官方兑换码获得。' },
   blackArmor:{ id:'blackArmor', name:'玄铁甲', cat:'armor', glyph:'甲', def:8, desc:'玄铁重甲。', stack:1 },
   grassCloth:{ id:'grassCloth', name:'草衣', cat:'cloth', glyph:'衣', warm:1, desc:'茅草编的衣服。', stack:1 },
   hempCloth:{ id:'hempCloth', name:'麻衣', cat:'cloth', glyph:'衣', warm:2, desc:'纤维织的麻衣。', stack:1 },
   leatherCloth:{ id:'leatherCloth', name:'皮衣', cat:'cloth', glyph:'衣', warm:3, desc:'皮革衣服。', stack:1 },
-  furCoat:{ id:'furCoat', name:'毛皮大衣', cat:'cloth', glyph:'裘', warm:6, desc:'厚实的毛皮大衣，山顶必备。', stack:1 },
+  furCoat:{ id:'furCoat', name:'毛皮大衣', cat:'cloth', glyph:'裘', warm:6, desc:'厚实的毛皮大衣，严寒时很有用；炎热地区应及时脱下。', stack:1 },
   shellAmulet:{ id:'shellAmulet', name:'贝壳护符', cat:'accessory', glyph:'贝', def:1, desc:'海贝串成的护符，替你挡一下擦伤。', stack:1, price:40 },
   beastFang:{ id:'beastFang', name:'兽牙吊坠', cat:'accessory', glyph:'牙', atk:1, desc:'猎物的獠牙，给你下手的狠劲。', stack:1, price:50 },
-  pearlNeck:{ id:'pearlNeck', name:'珍珠项链', cat:'accessory', glyph:'珠', hp:10, desc:'莹润的珍珠，据说能养身。', stack:1, price:120 },
-  hornAmulet:{ id:'hornAmulet', name:'牛角护符', cat:'accessory', glyph:'角', def:2, desc:'磨亮的牛角挂在胸前，硬得能替你挨一下。', stack:1, price:80 },
+  pearlNeck:{ id:'pearlNeck', name:'珍珠项链', cat:'accessory', glyph:'珠', hp:10, desc:'佩戴后生命上限 +10；摘下即失去这项加成。', stack:1, price:120 },
+  hornAmulet:{ id:'hornAmulet', name:'牛角护符', cat:'accessory', glyph:'角', crit:0.10, desc:'锋利的牛角提醒你抓住破绽；暴击率 +10%。', stack:1, price:80 },
   woodShield:{ id:'woodShield', name:'木盾', cat:'shield', glyph:'盾', def:2, block:0.15, desc:'木板拼的盾，能挡一下。', stack:1, price:20 },
   ironShield:{ id:'ironShield', name:'铁盾', cat:'shield', glyph:'盾', def:4, block:0.25, desc:'铸铁盾，可靠。', stack:1, price:60 },
   steelShield:{ id:'steelShield', name:'钢盾', cat:'shield', glyph:'盾', def:6, block:0.30, desc:'钢制塔盾，几乎无懈可击。', stack:1, price:140 },
   // ---- 药品 ----
-  herbPaste:{ id:'herbPaste', name:'草药膏', cat:'med', glyph:'膏', heal:20, desc:'外敷的草药膏，止血生肌。', stack:20, price:15 },
-  bandage:{ id:'bandage', name:'止血绷带', cat:'med', glyph:'绷', heal:10, stopBleed:1, desc:'包扎止血的绷带，顺带回一点血。', stack:20, price:12 },
-  antidote:{ id:'antidote', name:'解毒剂', cat:'med', glyph:'解', curePoison:1, desc:'解蛇蝎之毒。', stack:20, price:25 },
-  tea:    { name:'提神茶', cat:'med', glyph:'茶', spirit:14, desc:'草药蜂蜜煮的茶，安神。', stack:20, price:18 },
+  herbPaste:{ id:'herbPaste', name:'草药膏', cat:'med', healthRestore:15, cureInfection:1, glyph:'膏', heal:15, desc:'生命+15、健康+15，治疗感染。兼顾伤势与体质。', stack:20, price:15 },
+  bandage:{ id:'bandage', name:'止血绷带', cat:'med', glyph:'绷', heal:15, stopBleed:1, desc:'生命+15并止血。不恢复健康，适合紧急包扎。', stack:20, price:12 },
+  antidote:{ id:'antidote', name:'解毒剂', cat:'med', healthRestore:10, glyph:'解', curePoison:1, desc:'解除中毒、健康+10。不回血、不治疗感染。', stack:20, price:25 },
+  tea:    { name:'提神茶', cat:'med', glyph:'茶', spirit:14, desc:'草药蜂蜜煮的茶，恢复 14 点精神。', stack:20, price:18 },
   lotusPill:{ id:'lotusPill', name:'不死丹', cat:'med', glyph:'丹', heal:60, revive:1, reviveHp:30, desc:'吃下回复 60 生命；若你倒下，它替你留住 30 点生命。每局最多炼制 3 颗。', stack:3 },
-  salve:{ id:'salve', name:'简易药膏', cat:'med', glyph:'膏', heal:10, desc:'草药捣成的膏，能止血养伤。', stack:20, price:8 },
+  tideVitalPill:{ name:'潮生丹', cat:'med', glyph:'丹', desc:'服用后本局生命上限永久 +2；每局最多制作 5 颗，服用不限次数。', stack:5 },
+  abyssBreathPill:{ name:'渊息丹', cat:'med', glyph:'丹', desc:'服用后本局体力上限永久 +3；每局最多制作 5 颗，服用不限次数。', stack:5 },
+  salve:{ id:'salve', name:'简易药膏', cat:'med', healthRestore:20, glyph:'膏', desc:'健康+20。不回血、不止血，适合便宜地调理体质。', stack:20, price:8 },
   blueBull:{ id:'blueBull', name:'蓝牛', cat:'med', glyph:'牛', sta:70, water:30, spirit:-10, desc:'腥甜的蓝色体力药水：体力+70、水分+30，代价是精神-10——药劲是透支来的。', stack:10 },
   zhangLaoJi:{ id:'zhangLaoJi', name:'张老吉', cat:'med', glyph:'吉', sta:30, spirit:-10, desc:'草药熬出的苦茶，凉了更好喝：体力+30，但精神-10。一口就能再干小半天活。', stack:20 },
   smokeBomb:{ id:'smokeBomb', name:'简易烟雾弹', cat:'special', glyph:'烟', stack:5, price:20, desc:'掷出浓烟，本场战斗中逃跑必定成功（只能战斗中使用）。' },
@@ -166,45 +192,51 @@ const ITEMS = {
   wheat:{ id:'wheat', name:'小麦', cat:'food', glyph:'麦', food:8, spoil:240, desc:'收获的小麦。', stack:30, price:4 },
   // ---- 图纸 / 剧情 ----
   bpGunpowder:{ id:'bpGunpowder', name:'火药配方', cat:'bp', glyph:'图', desc:'记载火药配方的旧纸。', stack:1 },
-  bpFurnace:  { name:'高炉图纸', cat:'bp', glyph:'图', desc:'高炉的建造图纸。', stack:1 },
+  bpFurnace:  { retired:true, name:'高炉图纸', cat:'bp', glyph:'图', desc:'高炉结构的收藏图纸；建造高炉不需要图纸。', stack:1 },
   bpShip:     { name:'远洋船图纸', cat:'bp', glyph:'图', desc:'远洋大船的建造图纸。', stack:1 },
   bpBlack:    { name:'玄铁武器图纸', cat:'bp', glyph:'图', desc:'玄铁装备的锻造图纸。', stack:1 },
   bpLotus:    { name:'不死丹方', cat:'bp', glyph:'图', desc:'不死丹的古方。', stack:1 },
   slate:  { name:'石板', cat:'special', glyph:'碑', desc:'刻着古文字的石板。（集齐三块可解谜；没人肯收，别无他用）', stack:3, price:0, alwaysFit:1 },
   relic:  { name:'遗物', cat:'special', glyph:'遗', desc:'山顶祭坛里的古老遗物。结局「秘辛」要把它放回祭坛（还需石板×3、龙骨×1）——不是那种加属性的「神物」，别混了。', stack:1, price:500, alwaysFit:1 },
   rot: { name:'腐烂物', cat:'mat', glyph:'烂', desc:'过期食物变质而来。埋进田里能肥地：施肥一次，该地块收获 +50%。', stack:20, price:1 },
-  namecard:{ name:'命名牌', cat:'special', glyph:'铭', desc:'刻着名字的木牌，可让武器永久+1伤害。（暂不投放，作充值/活动奖励）', stack:1, price:0 },
+  namecard:{ name:'命名牌', cat:'special', glyph:'铭', desc:'刻着名字的木牌，可让武器永久+1伤害。', stack:1, price:0 },
   dragonbone:{ id:'dragonbone', name:'龙骨', cat:'special', glyph:'骨', desc:'巨大的龙骨，既是船材也是祭品。', stack:1, price:600, alwaysFit:1 },
   seachart:{ id:'seachart', name:'海图', cat:'special', glyph:'图', desc:'通向故乡的航海图。', stack:1 },
   supplybox:{ id:'supplybox', name:'补给箱', cat:'special', glyph:'箱', desc:'远航用的补给箱。', stack:3 },
   driftbottle:{ id:'driftbottle', name:'漂流瓶', cat:'special', glyph:'瓶', desc:'装着老潮的信的漂流瓶。', stack:1 },
   // ---- 亚特兰蒂斯（第二章）物资 ----
-  diveSuit:{ id:'diveSuit', name:'潜水服', cat:'cloth', glyph:'潜', warm:2, dive:1, stack:1, price:0, desc:'孤岛工作台可做的基础潜水服（占衣物），决定耐受水压与可达深度；保暖 2，耐久 50。' },
-  diveSuit2:{ id:'diveSuit2', name:'高级潜水服', cat:'cloth', glyph:'潜', warm:2, dive:2, stack:1, price:0, desc:'珠光工作台打造的高级潜水服，耐压更高、保暖 2，耐久 200。' },
+  diveSuit:{ id:'diveSuit', name:'潜水服', cat:'cloth', glyph:'潜', warm:2, dive:1, stack:1, price:0, desc:'孤岛工作台可做的基础潜水服（占衣物），耐受水压、保暖 2；普通海底区域额外隔温，极深处效果下降。耐久 50。' },
+  diveSuit2:{ id:'diveSuit2', name:'高级潜水服', cat:'cloth', glyph:'潜', warm:2, dive:2, stack:1, price:0, desc:'珠光工作台打造的高级潜水服，耐压更高、保暖 2；包括深海区域在内都有稳定隔温。耐久 200。' },
   diveMask:{ id:'diveMask', name:'氧气罩', cat:'tool', glyph:'氧', tool:{kind:'o2',tier:1}, stack:1, price:0, diveO2:1, desc:'提供水下氧气（可装备到工具栏），可长期停留；耐久 100。' },
   goggles:{ id:'goggles', name:'潜水护目镜', cat:'tool', glyph:'镜', stack:1, price:0, light:1, desc:'照明道具（拥有即生效）：可探索沉没之城与珊瑚带。' },
   lightWeak:{ id:'lightWeak', name:'弱光防水手电', cat:'tool', glyph:'灯', stack:1, price:0, light:2, desc:'照明道具：照亮海沟，可探索中层黑暗区域。' },
   lightStrong:{ id:'lightStrong', name:'防水强光潜水手电', cat:'tool', glyph:'灯', stack:1, price:0, light:3, desc:'照明道具：照亮深水圣殿，可探索深海区域。' },
-  sourceOre:{ id:'sourceOre', name:'源矿', cat:'mat', glyph:'源', stack:20, price:20, desc:'亚特兰蒂斯地层的能量矿石。' },
-  sourceBar:{ id:'sourceBar', name:'源质锭', cat:'mat', glyph:'质', stack:20, price:60, desc:'源矿经源质熔炉精炼而成。' },
+  sourceOre:{ id:'sourceOre', name:'源矿', cat:'mat', glyph:'源', stack:20, price:40, desc:'亚特兰蒂斯地层的能量矿石。' },
+  sourceBar:{ id:'sourceBar', name:'源质锭', cat:'mat', glyph:'质', stack:20, price:260, desc:'源矿经源质熔炉精炼而成。' },
+  tideSteel:{ id:'tideSteel', name:'潮鸣钢', cat:'mat', glyph:'潮', stack:20, price:80, desc:'深海高压把源矿反复挤压成的层纹钢。' },
+  shipPlate:{ id:'shipPlate', name:'古船甲片', cat:'mat', glyph:'甲', stack:20, price:65, desc:'从沉船残骸上撬下的源质装甲片。' },
   deepCoral:{ id:'deepCoral', name:'深珊瑚', cat:'mat', glyph:'珊', stack:20, price:15, desc:'深海发光的珊瑚，可建可炼。' },
-  anctDevice:{ id:'anctDevice', name:'发光远古装置', cat:'special', glyph:'机', stack:5, price:0, desc:'远古文明的能量装置，可精炼为源质。' },
+  anctDevice:{ id:'anctDevice', name:'发光远古装置', cat:'special', glyph:'机', stack:5, price:120, desc:'远古文明的能量装置，可精炼为源质。' },
   pearlGranule:{ id:'pearlGranule', name:'珍珠粒', cat:'mat', glyph:'珠', stack:20, price:10, desc:'深海底的细碎珍珠。' },
   coralArmor:{ id:'coralArmor', name:'珊瑚甲', cat:'armor', glyph:'甲', def:6, dodge:0.15, stack:1, price:0, desc:'略低于玄铁，却提高 15% 闪避率。' },
   sourceArmor:{ id:'sourceArmor', name:'源质重甲', cat:'armor', glyph:'甲', def:10, stack:1, price:0, desc:'源质锻造的重甲，深海的守护。' },
   coralBlade:{ id:'coralBlade', name:'珊瑚刺刃', cat:'weapon', glyph:'刃', atk:11, spd:11, acc:0.1, stack:1, price:0, desc:'珊瑚磨成的利刃，提高命中率。' },
   sourceSpear:{ id:'sourceSpear', name:'源质长枪', cat:'weapon', glyph:'枪', atk:20, spd:9, stack:1, price:0, desc:'源质铸成的长枪。' },
   bpDive:{ id:'bpDive', name:'深海装备图纸', cat:'bp', glyph:'图', stack:1, desc:'潜水服与氧气罩的制造图纸。' },
-  atlantisCore:{ id:'atlantisCore', name:'源晶', cat:'special', glyph:'晶', stack:5, price:0, desc:'亚克兰蒂斯核心的结晶，远古装置的心脏——稀有，且总在危险之处。' },
+  atlantisCore:{ id:'atlantisCore', name:'海底矿晶', cat:'special', glyph:'晶', stack:5, price:0, desc:'海底岩层里的致密矿晶；源质长枪、重甲及两种丹药需要它。与源能晶石不同。' },
   thruster:{ id:'thruster', name:'推进器', cat:'accessory', glyph:'推', stack:1, price:0, desc:'亚克兰蒂斯的水下推进器（饰品）：在第二张图内移动时，时间与体力消耗减半。' },
   energyCrystal:{ id:'energyCrystal', name:'源能晶石', cat:'special', glyph:'能', stack:10, price:0, desc:'亚克兰蒂斯深层的能量晶石，比源矿更精纯，是源能武器与高阶装备的核心材料。' },
+  // 新能源材料（作者 2026-09-22）：玩家反馈"矿一堆、发光装置太缺"。
+  // 根因是死锁：强光手电要「源能晶石」，而晶石只产于**需要照明 3** 的深渊/源晶簇——
+  // 没有强光就刷不到做强光的材料。荧光晶簇产自**不需要照明**的浅层点位，用来顶掉一部分矿物需求。
+  glowCrystal:{ id:'glowCrystal', name:'荧光晶簇', cat:'mat', glyph:'荧', stack:20, price:0, desc:'海葵与发光丛里结出的自发光晶体，亮度不如源能晶石，但浅水就能采到；做灯具与潜水装备够用。' },
   pistol:{ id:'pistol', name:'源能手枪', cat:'weapon', glyph:'枪', atk:50, spd:5, ranged:1, ammoItem:'bullet', stack:1, price:0, desc:'远古源能手枪：伤害极高但射速慢，每次射击消耗 1 颗源能子弹。' },
-  bullet:{ id:'bullet', name:'源能子弹', cat:'weapon', glyph:'弹', ammo:1, stack:30, price:0, desc:'源能手枪的弹药。' },
+  bullet:{ id:'bullet', name:'源能子弹', cat:'weapon', glyph:'弹', ammo:1, stack:50, price:0, desc:'源能手枪的弹药。' },
   brokenPistol:{ id:'brokenPistol', name:'破损的源能手枪', cat:'special', glyph:'枪', stack:1, price:0, desc:'从海盗头目处夺来的破损手枪，可在礁石栖息地的修补台修复。' },
   rareFishA:{ id:'rareFishA', name:'深海鲷', cat:'food', glyph:'鱼', food:12, buffStat:'atk', buffVal:3, buffH:24, stack:5, desc:'稀有深海鱼，只能直接吃：24 小时内攻击 +3。' },
   rareFishB:{ id:'rareFishB', name:'幽光鳗', cat:'food', glyph:'鱼', food:12, buffStat:'spd', buffVal:2, buffH:24, stack:5, desc:'稀有深海鱼，只能直接吃：24 小时内攻速 +2。' },
   rareFishC:{ id:'rareFishC', name:'冰纹鳕', cat:'food', glyph:'鱼', food:12, buffStat:'def', buffVal:2, buffH:24, stack:5, desc:'稀有深海鱼，只能直接吃：24 小时内防御 +2。' },
-  rareFishD:{ id:'rareFishD', name:'血红鲈', cat:'food', glyph:'鱼', food:12, buffStat:'spirit', buffVal:10, buffH:24, negChance:0.25, negHp:10, stack:5, desc:'稀有深海鱼，24 小时精神 +10；但有 25% 概率反胃（-10 生命）。' },
+  rareFishD:{ id:'rareFishD', name:'血红鲈', cat:'food', glyph:'鱼', food:12, buffStat:'spirit', buffVal:10, buffH:24, negChance:0.25, negHp:10, stack:5, desc:'稀有深海鱼，食用立即恢复精神 +10；但有 25% 概率反胃（-10 生命）。' },
   rareFishE:{ id:'rareFishE', name:'幻彩鱼', cat:'food', glyph:'鱼', food:12, buffStat:'hp', buffVal:20, buffH:24, negChance:0.25, negPoison:1, stack:5, desc:'稀有深海鱼，24 小时生命上限 +20；但有 25% 概率中毒。' },
   bpPistol:{ id:'bpPistol', name:'手枪图纸', cat:'bp', glyph:'图', stack:1, desc:'一张画着远古手枪结构的图纸。' },
   bpBullet:{ id:'bpBullet', name:'子弹图纸', cat:'bp', glyph:'图', stack:1, desc:'一张画着弹丸与火药装填的图纸。' },
@@ -213,17 +245,24 @@ const ITEMS = {
   bpThruster:{ id:'bpThruster', name:'推进器图纸', cat:'bp', glyph:'图', stack:1, desc:'水下推进器的构造图纸。' },
   bpSourceSpear:{ id:'bpSourceSpear', name:'源质长枪图纸', cat:'bp', glyph:'图', stack:1, desc:'源质长枪的锻造图纸。' },
   bpSourceArmor:{ id:'bpSourceArmor', name:'源质重甲图纸', cat:'bp', glyph:'图', stack:1, desc:'源质重甲的锻造图纸。' },
+  // 作者 2026-09-24：三道进阶料理改由对岸「美食家」卖图纸（声望 3 解锁）。
+  // 拿到图纸前**不显示**这三道菜（UI 里 needBp 未拥有直接隐藏），不再摆着一堆做不了的灰按钮。
+  bpStew:    { id:'bpStew', name:'萝卜炖肉食谱', cat:'bp', glyph:'谱', stack:1, desc:'对岸美食家写的食谱：萝卜炖肉。' },
+  bpOmelette:{ id:'bpOmelette', name:'超级大蛋食谱', cat:'bp', glyph:'谱', stack:1, desc:'对岸美食家写的食谱：超级大蛋。' },
+  bpCake:    { id:'bpCake', name:'蛋糕食谱', cat:'bp', glyph:'谱', stack:1, desc:'对岸美食家写的食谱：蛋糕。' },
   deepCore:{ id:'deepCore', name:'深殿核心', cat:'special', glyph:'核', stack:4, price:0, desc:'深水圣殿之门的四块核心之一；集齐四块才能推开守护者祭坛。' },
 };
 
 // ---------- 天赋 ----------
 const IDENTITIES = {
   fisher:  { name:'渔夫', desc:'钓鱼收获 +50%，初始带鱼竿。', fishBonus:0.5, items:{ rod:1 } },
+  hunter:  { name:'猎人', desc:'基础命中率 +10 个百分点、暴击率 +5 个百分点；初始带石矛。', items:{ spear:1 } },
+  trainer: { name:'健身教练', desc:'可建跑步机与哑铃；每次锻炼需 6 小时，同日只能练一种器材，逐步提高生命与攻击。', items:{ meat:2, water:2 } },
   woodcutter:{ id:'woodcutter', name:'樵夫', desc:'伐木收获 +50%，初始带石斧。', woodBonus:0.5, items:{ axeStone:1 } },
-  herbalist:{ id:'herbalist', name:'药师', desc:'草药采集翻倍，初始带药膏。', herbBonus:1, items:{ herb:3, herbPaste:1 } },
-  beekeeper:{ id:'beekeeper', name:'养蜂人', desc:'树林取蜜必定成功、还有额外收获（30% 多 1 份、10% 再多 2 份），且不会被蛰；能造专属家具「蜂箱」，每天清晨收 1 份蜂蜜。', honeyBonus:1, items:{ honey:2, thatch:4 } },
-  smith:   { name:'铁匠学徒', desc:'制造耗时 -20%，初始带燧石。', craftTime:0.8, items:{ flint:3 } },
-  linghui: { id:'linghui', name:'灵灰', desc:'从北方海域漂来的鲸鱼娘，没什么本事却很可爱，偶尔会跟你说说话。', items:{} },
+  herbalist:{ id:'herbalist', name:'药师', desc:'草药采集翻倍，初始带药膏；使用道具的回复量 +50%。', herbBonus:1, medBonus:1, items:{ herb:3, herbPaste:1 } },
+  beekeeper:{ id:'beekeeper', name:'养蜂人', desc:'树林取蜜必定成功还能多拿，且不会被蛰；能造专属家具「蜂箱」（详情看营地·家具帮助）。', honeyBonus:1, items:{ honey:2, thatch:4 } },
+  smith:   { name:'铁匠学徒', desc:'制造耗时 -20%，额外带木材×4、燧石×3。', craftTime:0.8, items:{ wood:4, flint:3 } },
+  linghui: { id:'linghui', name:'灵灰', desc:'从北方海域漂来的鲸鱼娘，没什么本事却很可爱，每天都会跟你说说话，偶尔还带点小东西回来。', items:{} },
 };
 
 const DIFFICULTIES = {
@@ -231,15 +270,16 @@ const DIFFICULTIES = {
             desc:'资源丰富、怪物更弱、饥渴更慢；防御 100% 生效，夜袭强度也最低。新手推荐从这里开始。开局获得 12 份随机食物和一支长矛。' },
   normal: { name:'冒险家', resMul:1.15, enemyMul:0.85, drainMul:0.85, raidWolf:2, defEff:0.9, death:'day', stamina:0, start:{ food:6 },
             desc:'标准体验：资源略多、怪物略弱，防御 90% 生效。开局获得 6 份随机食物。' },
-  hard:   { name:'幸存者', resMul:1.0, enemyMul:1.3, defEff:0.8, death:'day', stamina:0, start:{}, desc:'资源不再打折，怪物更强（×1.3），防御只有 80% 生效；开局一无所有。' },
-  legend: { name:'传奇', resMul:1.0, enemyMul:1.6, defEff:0.7, death:'perm', stamina:0, start:{}, desc:'怪物极强（×1.6），防御只有 70% 生效，死亡不可回退。' },
+  hard:   { name:'幸存者', resMul:1.0, enemyMul:1.3, defEff:0.8, death:'day', stamina:0, start:{}, desc:'资源不再打折，怪物更强（×1.3），防御只有 80% 生效；享受历代遗章传承，开局物资由传承决定。' },
+  legend: { name:'传奇', resMul:1.0, enemyMul:1.6, defEff:0.7, death:'perm', stamina:0, start:{}, desc:'仅携带职业自带物品，无基础补给、空营地开局，帐篷、储物箱和篝火都要自行建造；怪物极强（×1.6），防御只有 70% 生效，死亡不可回退，不享受历代遗章传承。' },
+  nightmare: { name:'噩梦', resMul:1, enemyMul:1.3, defEff:0.8, death:'day', stamina:0, start:{}, desc:'岛上出现了不可名状的怪物。享受历代遗章传承；移动与采集可能遭遇逐日增强的梦魇，击败沉没之王后，在深水圣殿挑战噩梦之源通关。' },
   dev:    { name:'开发者', resMul:1, enemyMul:1, defEff:1, death:'day', stamina:500, start:{}, desc:'调试用：初始全部资源×100，背包 200 格。（隐藏）' },
 };
 
 // ---------- 场景 ----------
 // unlockWatch: 需要瞭望台等级；needBoat/needWarm: 额外条件；distMin: 赶路分钟
 const SCENES = [
-  { id:'camp', name:'营地', img:'assets/img/camp.png', distMin:0, danger:1, unlockWatch:0,
+  { id:'camp', name:'营地', img:'assets/img/build/camp-ground-bw-v2.png', distMin:0, danger:1, unlockWatch:0,
     desc:{
       intro:'你的营地。篝火的余温还在，晾绳上的鱼干轻轻摇晃。这里是全岛唯一能安心喘口气的地方。',
       night:'篝火噼啪作响，把黑夜挡在营地之外。远处传来不知名的叫声。',
@@ -263,9 +303,14 @@ const SCENES = [
       rain:'河水涨了，浑黄的水裹着上游的枯枝向下游冲去。',
     },
     points:[
-      { id:'river_water', name:'取水点', type:'gather', time:20, energy:8, need:{}, yields:[{ id:'water', min:2, max:3 }], daily:3, text:'你俯身捧起河水，冰凉清冽。' },
+      { id:'river_mushroom', name:'岸边蘑菇', type:'gather', time:20, energy:8, need:{}, yields:[{id:'mushroom',min:1,max:2}], daily:2, cond:{rain:true}, hideWhenDry:true, text:'雨水浸透了地面，成簇的新蘑菇冒了出来。' },
+      { id:'river_water', name:'取水点', type:'gather', time:20, energy:8, need:{}, yields:[{ id:'water', min:2, max:3 }], daily:3, cond:{ season:['春','夏','秋'] }, text:'你俯身捧起河水，冰凉清冽。' },
+      // 冬季专属（作者 2026-09-25）：冬天取水要同时吃"季节 0.6 × 雪天 0.6"两重折扣，一天只剩 3 份淡水。
+      // 采雪保留冬季产量折扣，但不再因正在降雪而额外减产；回篝火烧雪取水：
+      // 一天 3 次 → 约 3~6 份积雪 →「烧雪水」2 积雪 + 1 木材 = **1** 淡水 → 每天多出 1~3 份淡水。
+      { id:'river_snow', name:'采雪', type:'gather', time:15, energy:6, need:{}, yields:[{ id:'snow', min:3, max:5 }], daily:3, cond:{ season:['冬'] }, text:'你拨开表层，把底下干净的积雪压实装进袋子。' },
       { id:'river_fish', name:'垂钓点', type:'fish', time:40, energy:15, need:{ item:'rod' }, yields:[{ id:'fish', min:1, max:2 }], daily:3, text:'浮漂轻点，鱼线绷直——上钩了！' },
-  { id:'river_net', name:'撒网点', type:'gather', time:55, energy:18, need:{ item:'net' }, yields:[{ id:'fish', min:3, max:5 }], daily:2, text:'你一扬手，渔网在水面铺开，兜起了不少鱼。' },
+  { id:'river_net', name:'撒网点', type:'gather', time:55, energy:18, need:{ item:'net' }, yields:[{ id:'fish', min:3, max:5 }], daily:1, text:'你一扬手，渔网在水面铺开，兜起了不少鱼。' },
       { id:'river_clay', name:'黏土滩', type:'gather', time:25, energy:12, need:{}, yields:[{ id:'clay', min:2, max:3 }], daily:2, text:'你挖起一团细腻的河泥。' },
       { id:'river_reeds', name:'芦苇丛', type:'gather', time:20, energy:8, need:{}, yields:[{ id:'thatch', min:2, max:3 }], daily:3, text:'你割下一捆芦苇。' },
       { id:'river_drift', name:'漂流物', type:'drift', time:20, energy:5, need:{}, once:true, text:'你在河边仔细翻找上游漂来的东西。' },
@@ -280,10 +325,10 @@ const SCENES = [
     points:[
       { id:'forest_tree', name:'老松树', type:'gather', time:25, energy:15, need:{ tool:'axe' }, yields:[{ id:'wood', min:2, max:4 }, { id:'branch', min:1, max:2, chance:0.5 }], daily:4, text:'你抡起斧子，木屑飞溅，树干轰然倒下。' },
       { id:'forest_berry', name:'灌木丛', type:'gather', time:20, energy:8, need:{}, yields:[{ id:'berry', min:1, max:2 }], daily:2, text:'你摘下一捧紫黑的浆果。' },
-      { id:'forest_vine', name:'藤蔓坡', type:'gather', time:20, energy:8, need:{}, yields:[{ id:'vine', min:1, max:3 }], daily:2, text:'你割下一段柔韧的藤蔓。' },
-      { id:'forest_mushroom', name:'蘑菇圈', type:'gather', time:20, energy:8, need:{}, yields:[{ id:'mushroom', min:1, max:2 }], daily:2, cond:{ rain:true }, text:'雨后新出的蘑菇，沾着水珠。' },
+      { id:'forest_vine', name:'藤蔓坡', type:'gather', time:20, energy:8, need:{}, yields:[{ id:'vine', min:4, max:6 }], daily:2, text:'你割下一段柔韧的藤蔓。' },
+      { id:'forest_mushroom', name:'蘑菇圈', type:'gather', time:20, energy:8, need:{}, yields:[{ id:'mushroom', min:1, max:2 }], daily:2, cond:{ rain:true }, hideWhenDry:true, text:'雨中新出的蘑菇，沾着水珠。' },
       { id:'forest_herb', name:'草药丛', type:'gather', time:20, energy:8, need:{}, yields:[{ id:'herb', min:1, max:2 }, { id:'wood', min:1, max:1, chance:0.3 }], daily:2, text:'你认出几株草药的叶子。' },
-      { id:'forest_resin', name:'老松树(割脂)', type:'gather', time:20, energy:8, need:{ tool:'knife' }, yields:[{ id:'resin', min:1, max:2 }], daily:1, text:'你用石刀在松树上割开一道口子。' },
+      { id:'forest_resin', name:'老松树(割脂)', type:'gather', time:20, energy:8, need:{ tool:'knife', tier:1 }, yields:[{ id:'resin', min:1, max:2 }], daily:1, text:'你用石质匕首在松树上割开一道口子。' },
       { id:'forest_hive', name:'蜂巢', type:'adventure', time:30, energy:15, need:{}, daily:1, text:'树杈上挂着一个蜂巢，蜂蜜诱人，蜂群凶悍。' },
       { id:'forest_hunt', name:'兽径', type:'hunt', time:30, energy:20, need:{}, daily:2, enemies:['boar'], text:'你顺着野兽的脚印摸过去。' },
     ], events:[], travelFrom:'你走进树林，光线暗了下来。', travelTo:'' },
@@ -294,8 +339,9 @@ const SCENES = [
       rain:'雨打竹叶，声音清脆，像谁在轻轻击节。',
     },
     points:[
-      { id:'bamboo_cut', name:'竹丛', type:'gather', time:25, energy:15, need:{ tool:'axe' }, yields:[{ id:'bamboo', min:2, max:4 }], daily:3, text:'你砍倒几根粗竹，竹节脆响。' },
-      { id:'bamboo_fiber', name:'剖竹', type:'gather', time:25, energy:10, need:{ tool:'knife' }, yields:[{ id:'fiber', min:2, max:3 }], daily:2, text:'你用石刀把竹片剖成细条。' },
+      { id:'bamboo_mushroom', name:'竹根蘑菇', type:'gather', time:20, energy:8, need:{}, yields:[{id:'mushroom',min:1,max:2}], daily:2, cond:{rain:true}, hideWhenDry:true, text:'雨水浸透了地面，成簇的新蘑菇冒了出来。' },
+      { id:'bamboo_cut', name:'竹丛', type:'gather', time:25, energy:15, need:{ tool:'axe' }, yields:[{ id:'bamboo', min:6, max:8 }], daily:3, text:'你砍倒几根粗竹，竹节脆响。' },
+      { id:'bamboo_fiber', name:'剖竹', type:'gather', time:25, energy:10, need:{ tool:'knife' }, yields:[{ id:'fiber', min:2, max:3 }], daily:2, text:'你用石质匕首把竹片剖成细条。' },
       { id:'bamboo_shoot', name:'竹笋', type:'gather', time:20, energy:8, need:{}, yields:[{ id:'bambooShoot', min:1, max:2 }], daily:2, cond:{ season:['春','夏'] }, text:'你刨出一根带着晨露的竹笋。' },
       { id:'bamboo_deep', name:'竹林深处', type:'hunt', time:30, energy:20, need:{}, daily:1, enemies:['snake'], text:'你拨开竹枝，向深处走去。' },
     ], events:[], travelFrom:'你沿着坡地走入竹海。', travelTo:'' },
@@ -320,6 +366,7 @@ const SCENES = [
       rain:'雨水把草叶压弯，草原变成一片湿漉漉的墨色。',
     },
     points:[
+      { id:'grass_mushroom', name:'雨生蘑菇', type:'gather', time:20, energy:8, need:{}, yields:[{id:'mushroom',min:1,max:2}], daily:2, cond:{rain:true}, hideWhenDry:true, text:'雨水浸透了地面，成簇的新蘑菇冒了出来。' },
       { id:'grass_wool', name:'羊群(剪毛)', type:'gather', time:30, energy:12, need:{ tool:'knife' }, yields:[{ id:'wool', min:1, max:2 }], daily:2, text:'你悄悄靠近羊群，割下一团羊毛。' },
       { id:'grass_hay', name:'干草丛', type:'gather', time:20, energy:8, need:{ tool:'knife' }, yields:[{ id:'hay', min:1, max:2 }], daily:2, text:'你割下几捆晒得干透的野草——正好当羊的饲料。' },
       { id:'grass_herb', name:'草药丛', type:'gather', time:20, energy:8, need:{}, yields:[{ id:'herb', min:1, max:2 }], daily:2, text:'草原上的草药长得更壮。' },
@@ -385,11 +432,16 @@ const SCENES = [
       ], points:[
         { id:'sea_fish', name:'撒网捕鱼', type:'gather', time:70, energy:20, need:{ item:'net' }, rareFishChance:0.3, yields:[{ id:'fish', min:4, max:6 }], daily:2, text:'你撒下渔网，拉上来一网银亮的鱼。' },
         { id:'sea_shell', name:'拾贝壳', type:'gather', time:30, energy:10, need:{}, yields:[{ id:'beibi', min:3, max:8 }], daily:2, text:'你弯腰捡起几枚好看的贝壳。' },
-        { id:'sea_oyster', name:'撬牡蛎', type:'gather', time:35, energy:15, need:{ tool:'knife', tier:1 }, daily:2, yields:[{ id:'pearl', min:1, max:1, chance:0.4 },{ id:'beibi', min:1, max:3 }], text:'退潮后礁石露出来，牡蛎密密麻麻嵌在上面——你拿刀把它撬开。' },
-      { id:'sea_salt', name:'晒盐', type:'gather', time:40, energy:12, need:{}, yields:[{ id:'salt', min:1, max:2 },{ id:'seasalt', min:1, max:1, chance:0.35 }], daily:2, cond:{ season:['夏','秋'] }, text:'海水在盐田里晒成雪白的盐，边角上还结着更纯的海盐。' },
+        { id:'sea_oyster', name:'撬牡蛎', type:'gather', time:35, energy:15, need:{ tool:'knife', tier:1 }, daily:2, yields:[{ id:'pearl', min:1, max:1, chance:0.32 },{ id:'beibi', min:1, max:3 }], text:'退潮后礁石露出来，牡蛎密密麻麻嵌在上面——你拿刀把它撬开。' },
+      { id:'sea_salt', name:'晒盐', type:'gather', time:40, energy:12, need:{}, yields:[{ id:'salt', min:1, max:2 },{ id:'salt', min:1, max:1, chance:0.35 }], daily:2, cond:{ season:['夏','秋'] }, text:'海水在盐田里晒成雪白的盐，你把结晶收拢起来。' },
         { id:'sea_deep', name:'深水区(捕大鱼)', type:'gather', time:55, energy:25, need:{ item:'net' }, yields:[{ id:'fish', min:2, max:4 }, { id:'sharkfin', min:1, max:1, chance:0.25 }], daily:1, cond:{ boat:'boat' }, risk:'shark', text:'你划到深水区，海面下暗流涌动。' },
         { id:'sea_rescue', name:'求救信号', type:'adventure', time:30, energy:10, need:{}, once:true, cond:{ day:12 }, text:'礁石上绑着一面破布条，像有人来过这里。' },
-        { id:'sea_pirate', name:'海盗出没', type:'hunt', time:40, energy:20, need:{}, daily:1, cond:{ day:20, dayMod:5 }, enemies:['pirateBoss'], text:'海面上飘来一艘挂着骷髅旗的战船，船长站在船头磨刀——是海盗头目！' },
+        // ⚠️ 两套文案：头目日走 text，小喽啰日走 textMinion。
+    //    以前只有 text（写着"是海盗头目！"），非头目日却刷两只小喽啰 —— 日志在骗人
+    //    （作者 2026-09-23 反馈"普通海盗的文案和海盗头目的文案一样"）。
+    { id:'sea_pirate', name:'海盗出没', type:'hunt', time:40, energy:20, need:{}, daily:1, cond:{ day:20, dayMod:5 }, enemies:['pirateBoss','pirate','pirate'],
+      text:'海面上飘来一艘挂着骷髅旗的战船，船长站在船头磨刀——是海盗头目！',
+      textMinion:'海面上飘来一艘挂着骷髅旗的战船，甲板上跳下来两个拎着弯刀的海盗——头目不在船上。' },
       ]},
       cove: { name:'沉船湾', hotspots:[
         { x:38, y:62, point:'cove_wood', label:'拆船木' },
@@ -451,31 +503,31 @@ const SCENES = [
         { id:'atl_ruin', name:'遗迹残柱', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'deepCoral', min:1, max:2 },{ id:'pearlGranule', min:1, max:2, chance:0.5 }], daily:3, text:'你在断柱间摸索，找到发光的珊瑚。' },
         { id:'atl_altar', name:'遗迹石台', type:'hunt', time:30, energy:20, need:{}, daily:2, enemies:['deepGuard'], text:'石台后的阴影里，深海卫兵睁开了眼。' },
         { id:'atl_vendor', name:'遗失的交易机', type:'atlTrade', time:20, energy:5, need:{}, text:'街角立着一台还在微光闪烁的远古交易机。' }, { id:'atl_pistol', name:'船长遗物箱', type:'gather', time:45, energy:22, need:{}, once:true, yields:[{ id:'bpPistol', min:1, max:1 }], text:'你撬开一只锈死的箱子，里面是一张手枪图纸。' } ] },
-      coral:{ name:'珊瑚生长带', img:'assets/img/atlantis/coral.png', hotspots:[ { x:36, y:60, label:'珊瑚丛', point:'atl_coral' }, { x:62, y:44, label:'珍珠滩', point:'atl_pearl' }, { x:46, y:76, label:'海葵丛', point:'atl_anemone' } , { x:58, y:84, label:'深殿核心', point:'atl_dcore_coral' }, { x:70, y:70, label:'深海鱼群', point:'atl_fishschool' }], points:[
-        { id:'atl_coral', name:'珊瑚丛', type:'gather', time:25, energy:12, need:{}, yields:[{ id:'deepCoral', min:2, max:3 }], daily:3, text:'你采下一丛发光的珊瑚。' },
-        { id:'atl_pearl', name:'珍珠滩', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'pearlGranule', min:2, max:4 }], daily:2, text:'细沙里翻出许多珍珠粒。' },
-        { id:'atl_anemone', name:'海葵丛', type:'gather', time:30, energy:15, need:{}, guard:['tentacle'], guardChance:0.6, yields:[{ id:'pearlGranule', min:1, max:2 },{ id:'atlantisCore', min:1, max:1, chance:0.15 }], daily:2, text:'海葵丛里结着发光的硬粒，但触手也会缠上来。' }, { id:'atl_dcore_coral', name:'深殿核心·珊瑚', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1 }], text:'珊瑚深处嵌着一块温热的核心。' }, { id:'atl_fishschool', name:'深海鱼群', type:'gather', time:40, energy:18, need:{ item:'net' }, daily:2, yields:[{ id:'fish', min:1, max:3 },{ id:'rareFishA', min:1, max:1, chance:0.18 },{ id:'rareFishB', min:1, max:1, chance:0.12 }], text:'鱼群里有几条从没见过的鱼。' } ] },
-      trench:{ name:'海沟', img:'assets/img/atlantis/trench.png', hotspots:[ { x:60, y:62, label:'沟壁矿脉', point:'atl_source' }, { x:40, y:50, label:'深渊怪影', point:'atl_deep' }, { x:78, y:34, label:'无光深渊', point:'atl_dark' } , { x:25, y:68, label:'深殿核心', point:'atl_dcore_trench' }, { x:82, y:62, label:'暗流鱼群', point:'atl_deepfish' }], points:[
-        { id:'atl_source', name:'沟壁矿脉', type:'gather', time:40, energy:22, need:{ tool:'pick', tier:3 }, needLight:2, guard:['tentacle','mechGuard'], guardChance:1, yields:[{ id:'sourceOre', min:1, max:2 }], daily:2, text:'你凿下几块发光的源矿。' },
+      coral:{ name:'珊瑚生长带', img:'assets/img/atlantis/coral.png', hotspots:[ { x:36, y:60, label:'珊瑚丛', point:'atl_coral' }, { x:62, y:44, label:'淡化残罐', point:'atl_pearl' }, { x:46, y:76, label:'海葵丛', point:'atl_anemone' } , { x:58, y:84, label:'深殿核心', point:'atl_dcore_coral' }, { x:70, y:70, label:'深海鱼群', point:'atl_fishschool' }], points:[
+        { id:'atl_coral', name:'珊瑚丛', type:'gather', time:25, energy:12, need:{}, yields:[{ id:'deepCoral', min:1, max:2 },{ id:'shipPlate', min:1, max:1, chance:0.3 }], daily:3, text:'你采下一丛发光的珊瑚。' },
+        { id:'atl_pearl', name:'淡化残罐', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'water', min:2, max:3, chance:0.7 }], daily:3, text:'检查浅水区古老的密封淡化罐，寻找仍可饮用的淡水。' },
+        { id:'atl_anemone', name:'海葵丛', type:'gather', time:30, energy:15, need:{}, guard:['tentacle'], guardChance:0.6, yields:[{ id:'pearlGranule', min:1, max:2 },{ id:'glowCrystal', min:1, max:1, chance:0.5 },{ id:'atlantisCore', min:1, max:1, chance:0.15 }], daily:2, text:'海葵丛里结着发光的硬粒，但触手也会缠上来。' }, { id:'atl_dcore_coral', name:'深殿核心·珊瑚', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1 }], text:'珊瑚深处嵌着一块温热的核心。' }, { id:'atl_fishschool', name:'深海鱼群', type:'gather', time:40, energy:18, need:{ item:'net' }, daily:2, yields:[{ id:'fish', min:1, max:3 },{ id:'rareFishA', min:1, max:1, chance:0.18 },{ id:'rareFishB', min:1, max:1, chance:0.12 }], text:'鱼群里有几条从没见过的鱼。' } ] },
+      trench:{ name:'海沟', img:'assets/img/atlantis/trench.png', needLight:2, hotspots:[ { x:60, y:62, label:'沟壁矿脉', point:'atl_source' }, { x:40, y:50, label:'深渊怪影', point:'atl_deep' }, { x:78, y:34, label:'无光深渊', point:'atl_dark' } , { x:25, y:68, label:'深殿核心', point:'atl_dcore_trench' }, { x:82, y:62, label:'暗流鱼群', point:'atl_deepfish' }], points:[
+        { id:'atl_source', name:'沟壁矿脉', type:'gather', time:40, energy:22, need:{ tool:'pick', tier:3 }, needLight:2, guard:['tentacle','mechGuard'], guardChance:1, yields:[{ id:'sourceOre', min:1, max:2 },{ id:'tideSteel', min:1, max:1, chance:0.35 }], daily:2, text:'你凿下几块发光的源矿。' },
         { id:'atl_deep', name:'深渊怪影', type:'hunt', time:35, energy:25, need:{}, needLight:2, daily:1, enemies:['tentacle','mechGuard'], text:'黑暗中，触手与机械在你周围游弋。' },
-        { id:'atl_dark', name:'无光深渊', type:'gather', time:45, energy:25, need:{ tool:'pick', tier:3 }, needLight:3, guard:['mechGuard'], guardChance:0.8, yields:[{ id:'sourceOre', min:2, max:3 },{ id:'atlantisCore', min:1, max:1, chance:0.2 },{ id:'energyCrystal', min:1, max:1, chance:0.5 }], daily:1, text:'更深的沟底漆黑一片，源晶的光却透了出来——机械守卫守在那里。' }, { id:'atl_dcore_trench', name:'深殿核心·海沟', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1 }], text:'沟底的石匣里封着一块核心。' }, { id:'atl_deepfish', name:'暗流鱼群', type:'gather', time:45, energy:20, need:{ item:'net' }, needLight:2, daily:2, guard:['tentacle'], guardChance:0.3, yields:[{ id:'fish', min:1, max:3 },{ id:'rareFishC', min:1, max:1, chance:0.15 },{ id:'rareFishD', min:1, max:1, chance:0.1 },{ id:'rareFishE', min:1, max:1, chance:0.08 }], text:'暗流里藏着发光的鱼影。' } ] },
-      sanctum:{ name:'深水圣殿', img:'assets/img/atlantis/sanctum.png', hotspots:[ { x:42, y:60, label:'圣殿之门', point:'atl_device' }, { x:62, y:72, label:'守护者祭坛', point:'atl_boss' }, { x:29, y:42, label:'符文密室', point:'atl_runelab' } ], points:[
+        { id:'atl_dark', name:'无光深渊', type:'gather', time:45, energy:25, need:{ tool:'pick', tier:3 }, needLight:3, guard:['mechGuard'], guardChance:0.8, yields:[{ id:'sourceOre', min:1, max:2 },{ id:'tideSteel', min:1, max:2, chance:0.6 },{ id:'atlantisCore', min:1, max:1, chance:0.2 },{ id:'energyCrystal', min:1, max:1, chance:0.5 }], daily:1, text:'更深的沟底漆黑一片，海底矿晶反射出一点微光——机械守卫守在那里。' }, { id:'atl_dcore_trench', name:'深殿核心·海沟', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1 }], text:'沟底的石匣里封着一块核心。' }, { id:'atl_deepfish', name:'暗流鱼群', type:'gather', time:45, energy:20, need:{ item:'net' }, needLight:2, daily:2, guard:['tentacle'], guardChance:0.3, yields:[{ id:'fish', min:1, max:3 },{ id:'rareFishC', min:1, max:1, chance:0.15 },{ id:'rareFishD', min:1, max:1, chance:0.1 },{ id:'rareFishE', min:1, max:1, chance:0.08 }], text:'暗流里藏着发光的鱼影。' } ] },
+      sanctum:{ name:'深水圣殿', img:'assets/img/atlantis/sanctum.png', needLight:3, hotspots:[ { x:42, y:60, label:'圣殿之门', point:'atl_device' }, { x:62, y:72, label:'守护者祭坛', point:'atl_boss' }, { x:29, y:42, label:'符文密室', point:'atl_runelab' } ], points:[
         { id:'atl_device', name:'圣殿之门', type:'gather', time:40, energy:22, need:{}, needLight:3, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'anctDevice', min:1, max:1 }], daily:1, text:'圣殿之门旁，躺着一件发光远古装置。' },
         { id:'atl_boss', name:'守护者祭坛', type:'hunt', time:45, energy:30, need:{}, needLight:3, needCore:4, daily:1, enemies:['sunkenKing'], text:'沉没之王在祭坛中央缓缓起身。' },
         { id:'atl_runelab', name:'符文密室', type:'gather', time:45, energy:25, need:{}, needLight:3, guard:['tentacle','mechGuard'], guardChance:1, yields:[{ id:'anctDevice', min:1, max:2 },{ id:'atlantisCore', min:1, max:1, chance:0.35 },{ id:'energyCrystal', min:1, max:1, chance:0.4 }], daily:1, text:'密室的门要懂符文才开；门后是远古装置与一块源晶。' } ] },
-      shipwreck:{ name:'沉船墓地', img:'assets/img/atlantis/shipwreck.png', hotspots:[ { x:38, y:62, label:'沉船残骸', point:'atl_wreck' }, { x:64, y:70, label:'船舱深处', point:'atl_wreckhunt' }, { x:25, y:38, label:'船长室', point:'atl_cabin' } , { x:78, y:52, label:'深殿核心', point:'atl_dcore_wreck' }], points:[
-        { id:'atl_wreck', name:'沉船残骸', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'shipwood', min:1, max:2 },{ id:'ironpart', min:1, max:1, chance:0.4 }], daily:3, text:'你从沉船里拆下可用的船木与铁件。' },
+      shipwreck:{ name:'沉船墓地', img:'assets/img/atlantis/shipwreck.png', hotspots:[ { x:38, y:62, label:'沉船残骸', point:'atl_wreck' }, { x:64, y:70, label:'船舱深处', point:'atl_wreckhunt' }, { x:25, y:38, label:'船长室', point:'atl_cabin' } , { x:78, y:52, label:'深殿核心', point:'atl_dcore_wreck' }, { x:70, y:84, label:'神秘人鱼', point:'atl_fishman' }], points:[
+        { id:'atl_wreck', name:'沉船残骸', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'shipwood', min:1, max:2 },{ id:'ironpart', min:1, max:1, chance:0.4 },{ id:'shipPlate', min:1, max:1, chance:0.5 }], daily:3, text:'你从沉船里拆下可用的船木与铁件。' },
         { id:'atl_wreckhunt', name:'船舱深处', type:'hunt', time:30, energy:20, need:{}, daily:2, enemies:['deepGuard','tentacle'], text:'船舱深处，有东西在动。' },
-        { id:'atl_cabin', name:'船长室', type:'gather', time:35, energy:18, need:{}, needLight:2, guard:'deepGuard', guardChance:0.7, yields:[{ id:'coin', min:2, max:4 },{ id:'anctDevice', min:1, max:1, chance:0.25 }], daily:1, text:'船长室里还锁着东西——也有不欢迎你的东西。' }, { id:'atl_dcore_wreck', name:'深殿核心·沉船', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1 }], text:'船骸的龙骨下压着一块核心。' } ] },
+        { id:'atl_cabin', name:'船长室', type:'gather', time:35, energy:18, need:{}, needLight:2, guard:'deepGuard', guardChance:0.7, yields:[{ id:'coin', min:2, max:4 },{ id:'anctDevice', min:1, max:1, chance:0.25 }], daily:1, text:'船长室里还锁着东西——也有不欢迎你的东西。' }, { id:'atl_dcore_wreck', name:'深殿核心·沉船', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1 }], text:'船骸的龙骨下压着一块核心。' }, { id:'atl_fishman', name:'神秘人鱼', type:'trade', time:0, energy:0, need:{}, text:'蒙面的人鱼女子坐在沉船龙骨旁，银发与鳞片泛着微光。她收金锭与深海材料，不收贝壳。' } ] },
       coralForest:{ name:'珊瑚森林', img:'assets/img/atlantis/coralForest.png', hotspots:[ { x:40, y:62, label:'珊瑚林', point:'atl_cforest' }, { x:66, y:56, label:'发光丛', point:'atl_glow' }, { x:27, y:72, label:'幽光花', point:'atl_deepbloom' } ], points:[
         { id:'atl_cforest', name:'珊瑚林', type:'gather', time:25, energy:12, need:{}, yields:[{ id:'deepCoral', min:2, max:4 }], daily:3, text:'珊瑚林里资源丰饶。' },
-        { id:'atl_glow', name:'发光丛', type:'gather', time:30, energy:15, need:{}, guard:'tentacle', guardChance:0.7, yields:[{ id:'anctDevice', min:1, max:1, chance:0.3 },{ id:'pearlGranule', min:1, max:3 }], daily:2, text:'你在发光丛里翻找。' },
+        { id:'atl_glow', name:'发光丛', type:'gather', time:30, energy:15, need:{}, guard:'tentacle', guardChance:0.7, yields:[{ id:'anctDevice', min:1, max:1, chance:0.3 },{ id:'glowCrystal', min:1, max:2 },{ id:'pearlGranule', min:1, max:3 }], daily:2, text:'你在发光丛里翻找。' },
         { id:'atl_deepbloom', name:'幽光花', type:'gather', time:35, energy:18, need:{}, needLight:1, guard:'tentacle', guardChance:0.7, yields:[{ id:'anctDevice', min:1, max:1, chance:0.4 },{ id:'atlantisCore', min:1, max:1, chance:0.1 }], daily:2, text:'幽光花会发光，也会招来触手。' } ] },
-      pearlCave:{ name:'珍珠洞窟', img:'assets/img/atlantis/pearlCave.png', hotspots:[ { x:42, y:64, label:'珍珠壁', point:'atl_pearlcave' }, { x:64, y:52, label:'晶簇', point:'atl_crystal' }, { x:52, y:30, label:'珍珠之心', point:'atl_pearlheart' } , { x:34, y:44, label:'古匠工坊', point:'atl_bullet' }], points:[
+      pearlCave:{ name:'珍珠洞窟', img:'assets/img/atlantis/pearlCave.png', needLight:1, hotspots:[ { x:42, y:64, label:'珍珠壁', point:'atl_pearlcave' }, { x:64, y:52, label:'晶簇', point:'atl_crystal' }, { x:52, y:30, label:'珍珠之心', point:'atl_pearlheart' } , { x:34, y:44, label:'古匠工坊', point:'atl_bullet' }], points:[
         { id:'atl_pearlcave', name:'珍珠壁', type:'gather', time:30, energy:15, need:{}, needLight:1, yields:[{ id:'pearlGranule', min:3, max:5 }], daily:3, text:'洞壁上嵌满珍珠。' },
         { id:'atl_crystal', name:'晶簇', type:'gather', time:35, energy:18, need:{ tool:'pick', tier:2 }, needLight:1, yields:[{ id:'crystal', min:1, max:2 },{ id:'sourceOre', min:1, max:2, chance:0.5 }], daily:2, text:'你凿下发光晶簇。' },
         { id:'atl_pearlheart', name:'珍珠之心', type:'gather', time:40, energy:20, need:{}, needLight:1, guard:['deepGuard'], guardChance:0.7, yields:[{ id:'pearlGranule', min:4, max:6 },{ id:'atlantisCore', min:1, max:1, chance:0.2 },{ id:'energyCrystal', min:1, max:1, chance:0.5 }], daily:1, text:'洞窟最深处嵌着一颗"珍珠之心"，卫兵守在那里。' }, { id:'atl_bullet', name:'古匠工坊', type:'gather', time:45, energy:22, need:{}, once:true, yields:[{ id:'bpBullet', min:1, max:1 }], text:'工坊的台面上压着一张画满弹丸的图纸。' } ] },
-      abyss:{ name:'深渊裂谷', img:'assets/img/atlantis/abyss.png', hotspots:[ { x:44, y:64, label:'裂谷深处', point:'atl_abyssore' }, { x:64, y:52, label:'机械残骸', point:'atl_mech' }, { x:56, y:78, label:'源晶簇', point:'atl_sourcecore' } , { x:32, y:34, label:'深殿核心', point:'atl_dcore_abyss' }], points:[
+      abyss:{ name:'深渊裂谷', img:'assets/img/atlantis/abyss.png', needLight:3, hotspots:[ { x:44, y:64, label:'裂谷深处', point:'atl_abyssore' }, { x:64, y:52, label:'机械残骸', point:'atl_mech' }, { x:56, y:78, label:'源晶簇', point:'atl_sourcecore' } , { x:32, y:34, label:'深殿核心', point:'atl_dcore_abyss' }], points:[
         { id:'atl_abyssore', name:'裂谷深处', type:'gather', time:40, energy:22, need:{ tool:'pick', tier:3 }, needLight:3, yields:[{ id:'sourceOre', min:2, max:3 }], daily:2, text:'裂谷深处，源矿遍布。' },
         { id:'atl_mech', name:'机械残骸', type:'hunt', time:40, energy:25, need:{}, needLight:3, daily:1, enemies:['mechGuard'], text:'残骸中，机械守卫缓缓站起。' },
         { id:'atl_sourcecore', name:'源晶簇', type:'gather', time:50, energy:28, need:{ tool:'pick', tier:3 }, needLight:3, guard:['mechGuard'], guardChance:1, yields:[{ id:'sourceOre', min:2, max:4 },{ id:'atlantisCore', min:1, max:1, chance:0.5 },{ id:'energyCrystal', min:1, max:1, chance:0.6 }], daily:1, text:'裂谷最底的源晶簇，机械守卫寸步不离。' }, { id:'atl_dcore_abyss', name:'深殿核心·深渊', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1 }], text:'裂谷最暗处，核心静静发光。' } ] },
@@ -490,29 +542,35 @@ const RECIPES = [
   // ----- 亚特兰蒂斯（第二章）配方：源质熔炉精炼 / 珠光工作台制造 -----
   { id:'r_sourcebar', name:'源质锭', out:{ sourceBar:1 }, in:{ sourceOre:2, anctDevice:1 }, station:'sourceForge', time:30 },
   { id:'r_divesuit', name:'潜水服', out:{ diveSuit:1 }, in:{ leather:4, resin:4, canvas:2, ironpart:2 }, station:'work2', time:240, needBp:'bpDive' },
-  { id:'r_divesuit2', name:'高级潜水服', out:{ diveSuit2:1 }, in:{ deepCoral:6, sourceBar:2, canvas:2, energyCrystal:1 }, station:'pearlWork', time:300, needBp:'bpDive' },
+  { id:'r_divesuit2', name:'高级潜水服', out:{ diveSuit2:1 }, in:{ deepCoral:6, sourceBar:2, tideSteel:2, canvas:2, glowCrystal:3 }, station:'pearlWork', time:300, needBp:'bpDive' },
   { id:'r_diveMask', name:'氧气罩', out:{ diveMask:1 }, in:{ leather:2, cloth:3, ironpart:2, flint:2 }, station:'work2', time:180, needBp:'bpDive' },
   { id:'r_goggles', name:'潜水护目镜', out:{ goggles:1 }, in:{ deepCoral:4, pearlGranule:4 }, station:'pearlWork', time:90 },
-  { id:'r_lightweak', name:'弱光防水手电', out:{ lightWeak:1 }, in:{ sourceBar:1, anctDevice:1, crystal:1 }, station:'pearlWork', time:120 },
-  { id:'r_lightstrong', name:'防水强光潜水手电', out:{ lightStrong:1 }, in:{ sourceBar:3, anctDevice:2, pearlGranule:6, energyCrystal:1 }, station:'pearlWork', time:180 },
+  { id:'r_lightweak', name:'弱光防水手电', out:{ lightWeak:1 }, in:{ sourceBar:1, glowCrystal:2, crystal:1 }, station:'pearlWork', time:120 },
+  // 强光手电：源能晶石 1→**0**（改由荧光晶簇承担），并下调远古装置 2→1。
+  // 这样"没强光就刷不到做强光的材料"的死锁被打断：浅层点位就能凑齐。
+  { id:'r_lightstrong', name:'防水强光潜水手电', out:{ lightStrong:1 }, in:{ sourceBar:3, glowCrystal:4, anctDevice:1, pearlGranule:6 }, station:'pearlWork', time:180 },
   { id:'r_coralarmor', name:'珊瑚甲', out:{ coralArmor:1 }, in:{ deepCoral:12, pearlGranule:6, cloth:2 }, station:'pearlWork', time:180, needBp:'bpCoralArmor' },
   { id:'r_coralblade', name:'珊瑚刺刃', out:{ coralBlade:1 }, in:{ deepCoral:8, sourceBar:1 }, station:'pearlWork', time:150, needBp:'bpCoralBlade' },
-  { id:'r_sourcearmor', name:'源质重甲', out:{ sourceArmor:1 }, in:{ sourceBar:8, deepCoral:10, energyCrystal:2 }, station:'pearlWork', time:300, needBp:'bpSourceArmor' },
-  { id:'r_sourcespear', name:'源质长枪', out:{ sourceSpear:1 }, in:{ sourceBar:6, anctDevice:2, energyCrystal:2 }, station:'pearlWork', time:240, needBp:'bpSourceSpear' },
+  { id:'r_sourcearmor', name:'源质重甲', out:{ sourceArmor:1 }, in:{ sourceBar:6, shipPlate:4, deepCoral:6, energyCrystal:2, atlantisCore:2 }, station:'pearlWork', time:300, needBp:'bpSourceArmor' },
+  { id:'r_sourcespear', name:'源质长枪', out:{ sourceSpear:1 }, in:{ sourceBar:4, tideSteel:4, anctDevice:2, energyCrystal:2, atlantisCore:1 }, station:'pearlWork', time:240, needBp:'bpSourceSpear' },
   { id:'r_thruster', name:'推进器', out:{ thruster:1 }, in:{ sourceBar:3, anctDevice:2, deepCoral:6, energyCrystal:2 }, station:'pearlWork', time:180, needBp:'bpThruster' },
   { id:'r_pistol', name:'源能手枪', out:{ pistol:1 }, in:{ sourceBar:6, energyCrystal:3, anctDevice:3, ironpart:4 }, station:'pearlWork', time:300, needBp:'bpPistol' },
   { id:'r_bullet', name:'源能子弹×2', out:{ bullet:2 }, in:{ energyCrystal:1, gunpowder:1, ironingot:1 }, station:'pearlWork', time:30, needBp:'bpBullet' },
   // 加工
-  { id:'r_plank', name:'削木板', out:{ plank:1 }, in:{ wood:2 }, station:'none', time:15, text:'你用斧子把原木削成木板。' },
+  { id:'r_plank', name:'削木板', out:{ plank:2 }, in:{ wood:4 }, station:'none', time:30, text:'你用斧子把原木削成木板。' },
   { id:'r_pole', name:'削木杆', out:{ pole:1 }, in:{ branch:2 }, station:'none', time:15 },
   { id:'r_rope', name:'搓绳索', out:{ rope:1 }, in:{ vine:3 }, station:'none', time:15 },
+  { id:'r_plank_iron', name:'精细削板', legacyPlank:true, out:{plank:3}, in:{wood:4}, station:'none', needTool:'axe', needToolTier:2, time:20 },
+  { id:'r_plank_steel', name:'高效削板', legacyPlank:true, out:{plank:3}, in:{wood:4}, station:'none', needTool:'axe', needToolTier:3, time:20 },
+  { id:'r_brick_bulk', name:'成批烧砖', out:{stonebrick:5}, in:{stone:4,clay:2}, station:'furn2', time:45 },
   { id:'r_brick', name:'烧石砖', out:{ stonebrick:2 }, in:{ stone:2, clay:1 }, station:'furn1', time:30 },
   { id:'r_tile', name:'烧瓦片', out:{ tile:2 }, in:{ clay:2 }, station:'furn1', time:30 },
   { id:'r_charcoal', name:'烧木炭', out:{ charcoal:1 }, in:{ wood:2 }, station:'furn1', time:30 },
   { id:'r_ironingot', name:'炼铁锭', out:{ ironingot:1 }, in:{ ironore:2, charcoal:1 }, station:'furn1', time:45 },
   { id:'r_steelingot', name:'炼钢锭', out:{ steelingot:1 }, in:{ ironingot:1, charcoal:1 }, station:'furn2', time:60 },
-  { id:'r_blackingot', name:'炼玄铁锭', out:{ blackingot:1 }, in:{ blackiron:2, charcoal:1 }, station:'furn3', time:90, needBp:'bpFurnace' },
-  { id:'r_mithrilingot', name:'炼秘银锭', out:{ mithrilingot:1 }, in:{ mithril:2, charcoal:1 }, station:'furn3', time:90, needBp:'bpFurnace' },
+  { id:'r_blackingot', name:'炼玄铁锭', out:{ blackingot:1 }, in:{ blackiron:2, charcoal:1 }, station:'furn3', time:90 },
+  { id:'r_mithrilingot', name:'炼秘银锭', out:{ mithrilingot:1 }, in:{ mithril:2, charcoal:1 }, station:'furn3', time:90 },
+  { id:'r_goldingot', name:'熔炼金锭', out:{ goldIngot:1 }, in:{ goldore:8, charcoal:4 }, station:'furn2', time:120, fixedMats:true },
   { id:'r_nail', name:'打铁钉', out:{ nail:4 }, in:{ ironingot:1 }, station:'furn1', time:30 },
   { id:'r_ironpart', name:'打铁件', out:{ ironpart:1 }, in:{ ironingot:1 }, station:'work1', time:45 },
   { id:'r_claypot', name:'烧陶锅', out:{ claypot:1 }, in:{ clay:2 }, station:'furn1', time:30 },
@@ -524,22 +582,28 @@ const RECIPES = [
   { id:'r_silkcloth', name:'纺蛛丝', out:{ cloth:1 }, in:{ silk:2 }, station:'spin', time:40 },
   { id:'r_basket', name:'编竹篓', out:{ basket:1 }, in:{ bamboo:6, vine:2 }, station:'work1', time:45 },
   // 工具
-  { id:'r_axestone', name:'石斧', out:{ axeStone:1 }, in:{ wood:1, flint:1 }, station:'none', time:20 },
-  { id:'r_axeiron', name:'铁斧', out:{ axeIron:1 }, in:{ ironingot:1, wood:1 }, station:'work1', time:40 },
-  { id:'r_axesteel', name:'钢斧', out:{ axeSteel:1 }, in:{ steelingot:1, wood:1 }, station:'work2', time:50 },
-  { id:'r_pickstone', name:'石镐', out:{ pickStone:1 }, in:{ wood:1, flint:1 }, station:'none', time:20 },
-  { id:'r_pickiron', name:'铁镐', out:{ pickIron:1 }, in:{ ironingot:1, wood:1 }, station:'work1', time:40 },
-  { id:'r_picksteel', name:'钢镐', out:{ pickSteel:1 }, in:{ steelingot:1, wood:1 }, station:'work2', time:50 },
-  { id:'r_pickblack', name:'玄铁镐', out:{ pickBlack:1 }, in:{ blackingot:1, wood:1 }, station:'work3', time:60, needBp:'bpBlack' },
+  {id:'r_reedpack',name:'苇编背包',out:{reedPack:1},in:{thatch:12,vine:4},station:'none',time:30},
+  {id:'r_leatherpack',name:'皮革背包',out:{leatherPack:1},in:{leather:6,rope:3},station:'work1',time:60},
+  {id:'r_expeditionpack',name:'远行背包',out:{expeditionPack:1},in:{canvas:6,leather:4,ironpart:2},station:'work2',time:90},
+  { id:'r_axestone', name:'石斧', out:{ axeStone:1 }, in:{ wood:2, flint:2 }, station:'none', time:20 },
+  { id:'r_axestone_vine', name:'石斧·枝藤配方', out:{axeStone:1}, in:{branch:2,vine:1,flint:2}, station:'none', time:20 },
+  { id:'r_axeiron', name:'铁斧', out:{ axeIron:1 }, in:{ ironingot:2, wood:2 }, station:'work1', time:40 },
+  { id:'r_axesteel', name:'钢斧', out:{ axeSteel:1 }, in:{ steelingot:2, wood:2 }, station:'work2', time:50 },
+  { id:'r_pickstone', name:'石镐', out:{ pickStone:1 }, in:{ wood:2, flint:2 }, station:'none', time:20 },
+  { id:'r_pickiron', name:'铁镐', out:{ pickIron:1 }, in:{ ironingot:2, wood:2 }, station:'work1', time:40 },
+  { id:'r_picksteel', name:'钢镐', out:{ pickSteel:1 }, in:{ steelingot:2, wood:2 }, station:'work2', time:50 },
+  { id:'r_pickblack', name:'玄铁镐', out:{ pickBlack:1 }, in:{ blackingot:2, wood:2 }, station:'work3', time:60, needBp:'bpBlack' },
   { id:'r_knife', name:'石质匕首', out:{ knifeStone:1 }, in:{ wood:1, flint:1 }, station:'none', time:15 },
   { id:'r_irondagger', name:'铁匕首', out:{ ironDagger:1 }, in:{ ironingot:1, wood:1 }, station:'work1', time:40 },
+  { id:'r_blackgreatsword', name:'玄铁大剑', out:{blackGreatSword:1}, in:{blackingot:8,steelingot:4,plank:3}, station:'work2', time:180, needBp:'bpBlack' },
   { id:'r_irongreatsword', name:'铁大剑', out:{ ironGreatSword:1 }, in:{ ironingot:5, wood:2 }, station:'work2', time:120 },
-  { id:'r_hoe', name:'锄头', out:{ hoe:1 }, in:{ wood:2, stone:1 }, station:'none', time:20 },
-  { id:'r_rod', name:'鱼竿', out:{ rod:1 }, in:{ bamboo:2, vine:1 }, station:'none', time:15 },
+  { id:'r_hoe', name:'锄头', out:{ hoe:1 }, in:{ wood:2, stone:2 }, station:'none', time:20 },
+  { id:'r_rod', name:'鱼竿', out:{ rod:1 }, in:{ bamboo:3, vine:2 }, station:'work1', time:15 },
     // 渔网（作者 2026-09-19：造价略微提高 6藤蔓+3木 → 8藤蔓+4木）
-    { id:'r_net', name:'渔网', out:{ net:1 }, in:{ vine:8, wood:4 }, station:'none', time:30 },
-  { id:'r_trap', name:'陷阱', out:{ trap:1 }, in:{ wood:2, vine:2 }, station:'none', time:20 },
+    { id:'r_net', name:'渔网', out:{ net:1 }, in:{ vine:8, wood:4 }, station:'work1', time:30 },
+  { id:'r_trap', name:'陷阱', out:{ trap:1 }, in:{ wood:3, vine:3 }, station:'work1', time:20 },
   { id:'r_split', name:'劈柴', out:{ branch:4 }, in:{ wood:2 }, station:'none', time:10 },
+  { id:'r_lantern', name:'提灯', out:{lantern:1}, in:{ironpart:2,wood:2,resin:2,cloth:1}, station:'work2', time:60, sortPriority:-20 },
   { id:'r_torch', name:'火把', out:{ torch:1 }, in:{ branch:2, resin:1 }, station:'none', time:10 },
   { id:'r_tinder', name:'火绒', out:{ tinder:1 }, in:{ flint:1, thatch:2 }, station:'none', time:10 },
   { id:'r_spyglass', name:'望远镜', out:{ spyglass:1 }, in:{ crystal:1, eaglefeather:1, wood:2 }, station:'work2', time:60 },
@@ -547,8 +611,10 @@ const RECIPES = [
   { id:'r_club', name:'木棒', out:{ club:1 }, in:{ wood:2 }, station:'none', time:10 },
   { id:'r_spear', name:'石矛', out:{ spear:1 }, in:{ wood:1, flint:1 }, station:'none', time:20 },
   { id:'r_ironsword', name:'铁剑', out:{ ironSword:1 }, in:{ ironingot:2, wood:1 }, station:'work1', time:60 },
+  { id:'r_steeldagger', name:'钢匕首', out:{ steelDagger:1 }, in:{ steelingot:2, leather:1 }, station:'work2', time:70 },
+  { id:'r_blackdagger', name:'玄铁匕首', out:{ blackDagger:1 }, in:{ blackingot:2, mithrilingot:1, dragonbone:1 }, station:'work3', time:100, needBp:'bpBlack' },
   { id:'r_steelsword', name:'钢剑', out:{ steelSword:1 }, in:{ steelingot:2, wood:1 }, station:'work2', time:90 },
-  { id:'r_blacksword', name:'玄铁剑', out:{ blackSword:1 }, in:{ blackingot:2, mithrilingot:1 }, station:'work3', time:120, needBp:'bpBlack' },
+  { id:'r_blacksword', name:'玄铁剑', out:{ blackSword:1 }, in:{ blackingot:2, mithrilingot:1, dragonbone:1 }, station:'work3', time:120, needBp:'bpBlack' },
   { id:'r_bow', name:'猎弓', out:{ bow:1 }, in:{ bamboo:4, vine:2, sinew:1 }, station:'work1', time:60 },
   { id:'r_arrow', name:'箭矢×3', out:{ arrow:3 }, in:{ wood:1, flint:1 }, station:'none', time:15 },
   { id:'r_eaglearrow', name:'鹰羽箭', out:{ eagleArrow:1 }, in:{ arrow:1, eaglefeather:1 }, station:'work2', time:20 },
@@ -556,17 +622,23 @@ const RECIPES = [
   { id:'r_grassarmor', name:'草甲', out:{ grassArmor:1 }, in:{ thatch:6, vine:2 }, station:'none', time:30 },
   { id:'r_leatherarmor', name:'皮甲', out:{ leatherArmor:1 }, in:{ leather:3, vine:2 }, station:'work1', time:60 },
   { id:'r_ironarmor', name:'铁甲', out:{ ironArmor:1 }, in:{ ironingot:4 }, station:'work2', time:90 },
-  { id:'r_blackarmor', name:'玄铁甲', out:{ blackArmor:1 }, in:{ blackingot:4, mithrilingot:1 }, station:'work3', time:120, needBp:'bpBlack' },
-  { id:'r_grasscloth', name:'草衣', out:{ grassCloth:1 }, in:{ thatch:4 }, station:'none', time:20 },
-  { id:'r_hempcloth', name:'麻衣', out:{ hempCloth:1 }, in:{ fiber:4 }, station:'none', time:20 },
-  { id:'r_leathercloth', name:'皮衣', out:{ leatherCloth:1 }, in:{ leather:3 }, station:'work1', time:40 },
-  { id:'r_furcoat', name:'毛皮大衣', out:{ furCoat:1 }, in:{ hide:4, wool:4 }, station:'work2', time:90 },
+  { id:'r_blackarmor', name:'玄铁甲', out:{ blackArmor:1 }, in:{ blackingot:4, mithrilingot:1, dragonbone:1 }, station:'work3', time:120, needBp:'bpBlack' },
+  { id:'r_grasscloth', name:'草衣', out:{ grassCloth:1 }, in:{ thatch:4 }, station:'tailor', time:20 },
+  { id:'r_hempcloth', name:'麻衣', out:{ hempCloth:1 }, in:{ fiber:4 }, station:'tailor', time:20 },
+  { id:'r_leathercloth', name:'皮衣', out:{ leatherCloth:1 }, in:{ leather:3 }, station:'tailor', time:40 },
+  { id:'r_furcoat', name:'毛皮大衣', out:{ furCoat:1 }, in:{ hide:4, wool:4 }, station:'tailor', time:90 },
   // 食物
+  // 烧雪水（作者 2026-09-25）：冬季专属水源。**2 积雪 + 1 木材 = 1 淡水**（15 分钟，不要陶罐）。
+  // ⚠️ 作者 2026-09-25 二次调整："削弱一下雪，变成两个雪只能烧一份淡水"（原来 2 积雪 → 2 淡水）。
+  //    现在比「取水」贵：取水 20 分钟 2~3 份，烧雪水 15 分钟 1 份 + 还要 1 木材。
+  //    冬天取水被双重折扣压到每次 1 份，所以这条线仍然值得跑，只是不再比取水更划算。
+  { id:'r_meltwater', name:'烧雪水', out:{ water:1 }, in:{ snow:2, wood:1 }, station:'fire', time:15 },
   { id:'r_roastfish', name:'烤鱼', out:{ roastFish:1 }, in:{ fish:1, wood:1 }, station:'fire', time:20 },
   { id:'r_roastmeat', name:'烤肉', out:{ roastMeat:1 }, in:{ meat:1, wood:1 }, station:'fire', time:20 },
   { id:'r_vegsoup', name:'野菜汤', out:{ vegSoup:1 }, in:{ wildveg:1, water:1 }, station:'fire', time:20, needItem:'claypot' },
   { id:'r_meatsoup', name:'肉汤', out:{ meatSoup:1 }, in:{ meat:1, water:1, wood:1, salt:1 }, station:'fire', time:25, needItem:'claypot' },
-  { id:'r_honeywater', name:'蜂蜜水', out:{ honeyWater:1 }, in:{ honey:1, water:1 }, station:'fire', time:15, needItem:'claypot' },
+  // 蜂蜜水：五维全给，原料却只要蜂箱白给的蜂蜜 —— 加一份草药把它变成"药膳"（作者 2026-09-22 定案）
+  { id:'r_honeywater', name:'蜂蜜水', out:{ honeyWater:1 }, in:{ honey:2, water:1, herb:1 }, station:'fire', time:15, needItem:'claypot' },
     { id:'r_smokedfish', name:'熏鱼', out:{ smokedFish:1 }, in:{ fish:1, branch:2 }, station:'smoke1', time:40 },
     { id:'r_smokedmeat', name:'熏肉', out:{ smokedMeat:1 }, in:{ meat:1, branch:2 }, station:'smoke1', time:40 },
   { id:'r_saltedmeat', name:'腌肉', out:{ saltedMeat:1 }, in:{ meat:1, salt:1 }, station:'fire', time:20 },
@@ -576,7 +648,8 @@ const RECIPES = [
   // ⚠️ 出肉率（作者 2026-09-19 校准）：**1 份肉只晾出 2 条肉干**，所以一批（肉×2）= 肉干×4。
   //    原来是 1 份肉出 3 条 = 90 饱食/肉，是烟熏炉「肉×1+盐+柴 → 肉干×1（30 饱食）」的整整 3 倍，
   //    而且不要盐不要柴；改成 2 条后是 60 饱食/肉（烟熏炉的 2 倍），20 小时的等待才对得上收益。
-  { id:'r_rackmeat', name:'晾肉干', out:{ jerky:4 }, in:{ meat:2 }, station:'rack', time:30, hang:1200 },
+  // 晾肉干：不加盐的肉干撑不到 30 天。要盐之后，肉干才从"白嫖口粮"变成"拿到盐才解锁的远行干粮"
+  { id:'r_rackmeat', name:'晾肉干', out:{ jerky:4 }, in:{ meat:2, salt:2 }, station:'rack', time:30, hang:1200 },
   { id:'r_shellamulet', name:'贝壳护符', out:{ shellAmulet:1 }, in:{ rope:1, flint:1 }, station:'work1', time:15 },
   { id:'r_beastfang', name:'兽牙吊坠', out:{ beastFang:1 }, in:{ tusk:1, rope:1 }, station:'work1', time:15 },
   { id:'r_pearlneck', name:'珍珠项链', out:{ pearlNeck:1 }, in:{ pearl:1, rope:1 }, station:'work1', time:20 },
@@ -586,7 +659,17 @@ const RECIPES = [
   { id:'r_steelshield', name:'钢盾', out:{ steelShield:1 }, in:{ steelingot:2, ironShield:1 }, station:'work2', time:180 },
   { id:'r_dragonbone', name:'提炼龙骨', out:{ dragonbone:1 }, in:{ fossil:2 }, station:'furn1', time:60 },
   { id:'r_vegfry', name:'爆炒野菜', out:{ vegFry:1 }, in:{ wildveg:2, salt:1 }, station:'stove', time:15 },
-  { id:'r_meatstew', name:'炖肉', out:{ meatStew:1 }, in:{ meat:2, salt:1 }, station:'stove', time:25 },
+  { id:'r_meatstew', name:'炖肉', out:{ meatStew:1 }, in:{ meat:2, salt:1, wood:1 }, station:'stove', time:25 },
+  // 作者 2026-09-23 点名加的三道菜：萝卜炖肉 / 面包 / 蛋糕
+  // 造价刻意压在"种田有回报"上：萝卜 2 根就能把一份炖肉升级；面包/蛋糕吃小麦。
+  { id:'r_carrotstew', name:'萝卜炖肉', out:{ carrotStew:1 }, in:{ meat:2, carrot:2, water:1, salt:1 }, station:'stove', time:30, needItem:'claypot', needBp:'bpStew' },
+  // 作者 2026-09-25：小麦 → 面粉 → 面包/蛋糕（面粉是中间产物）。
+  //   · 磨面粉放在**灶台**，和面包/蛋糕同一个工位 —— 玩家在同一格里就能看见整条链，
+  //     不用为了磨粉再去做一件家具（研钵虽然更像"研磨"，但它的配方都归在「药品」页，放吃的不合适）。
+  //   · 换算：小麦×3 → 面粉×2；面包 面粉×2（≡小麦×3，成本没变）；蛋糕 面粉×3（≈小麦 4.5，原来 4，略贵一点点）。
+  { id:'r_flour', name:'面粉', out:{ flour:2 }, in:{ wheat:3 }, station:'stove', time:20 },
+  { id:'r_bread', name:'面包', out:{ bread:2 }, in:{ flour:2, water:1, wood:1 }, station:'stove', time:30 },
+  { id:'r_cake', name:'蛋糕', out:{ cake:1 }, in:{ flour:3, egg:3, honey:2 }, station:'stove', time:45, needItem:'claypot', needBp:'bpCake' },
   { id:'r_mushroomsoup', name:'蘑菇汤', out:{ mushroomSoup:1 }, in:{ mushroom:1, water:1, wood:1 }, station:'fire', time:20, needItem:'claypot' },
   // 药品
     { id:'r_herbpaste', name:'草药膏', out:{ herbPaste:1 }, in:{ herb:2, water:2 }, station:'mortar', time:30 },
@@ -597,26 +680,26 @@ const RECIPES = [
   { id:'r_tea', name:'提神茶', out:{ tea:1 }, in:{ herb:1, honey:1, water:1 }, station:'pot', time:20, needItem:'claypot' },
   { id:'r_hay', name:'晒干草', out:{ hay:2 }, in:{ thatch:4 }, station:'none', time:15 },
   { id:'r_friedegg', name:'煎蛋', out:{ friedEgg:1 }, in:{ egg:1 }, station:'fire', time:15 },
-  { id:'r_bigomelette', name:'大煎蛋', out:{ bigOmelette:1 }, in:{ egg:5, water:1, wood:1 }, station:'fire', time:25, needItem:'claypot' },
-  { id:'r_superegg', name:'超级大蛋', out:{ superEgg:1 }, in:{ egg:12, water:3, wood:3 }, station:'stove', time:40, needItem:'claypot' },
-  { id:'r_bluebull', name:'蓝牛', out:{ blueBull:1 }, in:{ water:2, herb:3, honey:1 }, station:'medPot', time:45 },
+  // 大煎蛋：往锅里倒了两份淡水，那 水+60 就该被看见 —— 加野菜和盐，让它成为"菜蛋饼"而不是纯蛋
+  { id:'r_bigomelette', name:'大煎蛋', out:{ bigOmelette:1 }, in:{ egg:5, wildveg:2, salt:1, water:2, wood:1 }, station:'fire', time:25, needItem:'claypot' },
+  // 超级大蛋：不该是一份早餐，该是一场宴席。加兽肉与野菜、要盐调味，天然变成中期料理（数值不动）
+  { id:'r_superegg', name:'超级大蛋', out:{ superEgg:1 }, in:{ egg:12, wildveg:4, salt:2, water:3, wood:3 }, station:'stove', time:40, needItem:'claypot', needBp:'bpOmelette' },
+  // 蓝牛：运动饮料要有电解质 —— 蜂蜜从 1 提到 2，不能靠蜂箱白嫖
+  // （2026-09-22 二次修订已去掉盐，注释同步修正，别让后来人以为配方里还有盐）
+  { id:'r_bluebull', name:'蓝牛', out:{ blueBull:1 }, in:{ water:2, herb:3, honey:2 }, station:'medPot', time:45 },
   { id:'r_zhanglaoji', name:'张老吉', out:{ zhangLaoJi:1 }, in:{ water:2, herb:2 }, station:'pot', time:20, needItem:'claypot' },
   { id:'r_lotuspill', name:'不死丹', out:{ lotusPill:1 }, in:{ snowlotus:3 }, station:'medPot', time:60, needBp:'bpLotus' },
+  { id:'r_tidevital', name:'潮生丹', out:{ tideVitalPill:1 }, in:{ queenSilk:1, rareFishE:1, atlantisCore:1, water:2 }, station:'medPot', time:120, permLimit:5 },
+  { id:'r_abyssbreath', name:'渊息丹', out:{ abyssBreathPill:1 }, in:{ sharkfin:1, rareFishC:1, atlantisCore:1, water:2 }, station:'medPot', time:120, permLimit:5 },
   // 特殊
   { id:'r_gunpowder', name:'火药', out:{ gunpowder:1 }, in:{ niter:2, sulfur:1, charcoal:1 }, station:'mortar', time:30, needBp:'bpGunpowder' },
   { id:'r_smoke', name:'简易烟雾弹', out:{ smokeBomb:1 }, in:{ sulfur:1, niter:1, branch:2 }, station:'work1', time:20 },
   { id:'r_supplybox', name:'打包补给箱', out:{ supplybox:1 }, in:{ smokedMeat:20, water:20 }, station:'work2', time:60 },
-  // 限时活动 · 神弓（26.9.15-26.9.30）：全账号唯一（手上有或邮箱里有就不再显示）。
-  // ⚠️ 作者 2026-09-17 要求"把神弓的制造放到最下面"——所以它固定在 RECIPES 数组的**最后一条**
-  //    （列表是按数组顺序渲染的，放最后就是精工工作台/制造页最底下一格）。
-  // 活动结束后：把这一条配方删掉即可（物品定义与领取逻辑不用动，已做出的神弓照常可用）。
-  // 作者 2026-09-19：配方名里的日期看着别扭 → 名字只留"限定 · 神弓"，时间写在下面那行说明里（不然界面很乱）
-  { id:'r_divinebow', name:'限定 · 神弓', out:{ divineBow:1 }, station:'work2', time:180, uniqueItem:'divineBow',
-    in:{ mithrilingot:2, eaglefeather:6, queenSilk:1, deepCoral:3, sourceBar:1, rope:4 } },
+  // 神弓限时制造已结束；物品与存档保留，旧玩家仍可使用。
 ];
 
 // ---------- 建筑 ----------
-// ---------- 作物（生长天数 / 基础产量；收获时统一 +2 奖励） ----------
+// ---------- 作物（生长天数 / 基础产量；具体收获见 harvest） ----------
 const CROPS = {
   seedCarrot: { name:'萝卜', out:'carrot', days:3, min:2, max:3 },
   seedWheat:  { name:'小麦', out:'wheat',  days:3, min:3, max:4 },
@@ -625,21 +708,27 @@ const CROPS = {
 
 // 建筑链：house/fire/storage/wall/watch/dock/farm；家具：furniture 列表
 const BUILDING_CHAINS = {
+  cellar: [
+    { tier:0, name:'地窖', mats:{ stonebrick:30, plank:20, ironpart:8, clay:20 }, time:240, cap:20, desc:'营地地下的20格独立食物储藏空间，仅存食物和饮品，腐坏速度降至三分之一。存取不会刷新保鲜；食之包可远程取食。' },
+  ],
   house: [
-    { tier:0, name:'帐篷', mats:{}, time:0, storage:30, rest:0.6, warm:0, slots:1, desc:'海难后搭起的第一个家。' },
+    { tier:0, name:'帐篷', mats:{ wood:4, branch:4, thatch:6 }, time:60, storage:30, rest:0.6, warm:0, slots:1, desc:'海难后搭起的第一个家。传奇难度需自行建造。' },
     { tier:1, name:'草房', mats:{ plank:10, thatch:20, vine:6 }, time:240, storage:60, rest:0.8, warm:1, slots:2, desc:'铺着茅草顶的小屋，风雨不侵。' },
     { tier:2, name:'木屋', mats:{ plank:30, nail:15 }, time:480, storage:100, rest:1.0, warm:2, slots:4, desc:'结实的木屋，像个真正的家。' },
     { tier:3, name:'砖瓦房', mats:{ stonebrick:30, tile:20, nail:20 }, time:960, storage:150, rest:1.2, warm:3, slots:7, desc:'砖瓦房，全岛最体面的房子。' },
   ],
   fire: [
-    { tier:0, name:'篝火', mats:{}, time:0, cook:1, warm:0, desc:'石与木搭的篝火，炊烟能招来商船。' },
-    { tier:1, name:'火塘', mats:{ stonebrick:8, clay:4 }, time:120, cook:2, warm:1, desc:'石砌火塘，雨雪天也能生火。' },
-    { tier:2, name:'壁炉', mats:{ stonebrick:12, ironpart:2 }, time:240, cook:3, warm:2, desc:'屋内的壁炉，整个冬天都是暖的。' },
+    { tier:0, name:'篝火', mats:{ wood:2, stone:3, flint:1 }, time:30, cook:1, warm:0, desc:'石与木搭的篝火，炊烟能招来商船。传奇难度需自行建造。' },
+    // 火塘起要一份火绒（tinder）——把「火绒」这个原本没处用的物品接进生火链路。
+    // 火绒是手工制作（燧石×1+茅草×2，station none），不卡工作台；旧档已建过火的不追缴。
+    { tier:1, name:'火塘', mats:{ stonebrick:8, clay:4, tinder:1 }, time:120, cook:2, warm:1, desc:'石砌火塘，寒冷时温和供暖。' },
+    { tier:2, name:'壁炉', mats:{ stonebrick:12, ironpart:2 }, time:240, cook:3, warm:2, desc:'屋内的壁炉，寒冷时供暖更强，不会因供暖过热。' },
   ],
   storage: [
-    { tier:0, name:'储物箱', mats:{}, time:0, cap:20, desc:'木箱，装下全部家当。' },
-    { tier:1, name:'大木箱', mats:{ plank:6, nail:2 }, time:120, cap:50, desc:'更大的木箱。' },
-    { tier:2, name:'仓库', mats:{ plank:16, nail:8 }, time:360, cap:150, desc:'仓库，家底厚实起来。' },
+    { tier:0, name:'储物箱', mats:{ wood:4, branch:4 }, time:45, cap:15, desc:'初级木箱，独立储存15格物品。传奇难度需自行建造。' },
+    { tier:1, name:'大木箱', mats:{ plank:6, nail:2 }, time:120, cap:40, desc:'更大的木箱。' },
+    { tier:2, name:'储物棚', mats:{ plank:12, nail:6 }, time:240, cap:80, desc:'木棚里整齐摆放着箱子，遮风挡雨。' },
+    { tier:3, name:'仓库', mats:{ plank:16, nail:8 }, time:360, cap:120, desc:'仓库，家底厚实起来。' },
   ],
   wall: [
     { tier:0, name:'无围墙', mats:{}, time:0, def:0, raid:0.15, desc:'营地毫无遮拦。' },
@@ -651,7 +740,7 @@ const BUILDING_CHAINS = {
     { tier:0, name:'未建造', mats:{}, time:0, desc:'营地旁的小丘空着。' },
     { tier:1, name:'一级瞭望台', mats:{ pole:8, plank:8, vine:4 }, time:120, unlock:['grassland','desert','cave'], desc:'能望见草原、荒漠与山洞口。' },
     { tier:2, name:'二级瞭望台', mats:{ plank:16, nail:8, rope:2 }, time:240, unlock:['peak','sea','shore'], weather12:1, desc:'能望见山顶、海域与对岸岛影。' },
-    { tier:3, name:'三级瞭望台', mats:{ stonebrick:16, ironpart:8, canvas:2, spyglass:1 }, time:480, unlock:['ruins'], weather24:1, info:1, desc:'鹰眼全图，全岛动静尽收眼底。' },
+    { tier:3, name:'三级瞭望台', mats:{ stonebrick:16, ironpart:8, canvas:2, spyglass:1 }, time:480, unlock:['ruins'], weather24:1, info:1, desc:'解锁海域的遗迹分区，显示全岛情报与 24 小时天气；前往海域仍需造船。' },
   ],
   dock: [
     { tier:0, name:'未建造船坞', mats:{}, time:0, boat:'none', desc:'河边还没有码头。' },
@@ -670,20 +759,31 @@ const BUILDING_CHAINS = {
 
 // 家具（独立建造，占家具位）
 const FURNITURE = [
-  { id:'wb1', name:'简易工作台', station:'work1', mats:{ plank:4, stone:4 }, time:60, desc:'敲敲打打的地方。' },
-  { id:'wb2', name:'精工工作台', station:'work2', mats:{ plank:8, ironpart:2 }, time:180, needPrev:'wb1', needCraft:2, desc:'能加工精细铁件。' },
-  { id:'wb3', name:'高级工坊', station:'work3', mats:{ ironpart:6, stonebrick:10 }, time:360, needPrev:'wb2', desc:'锻造顶级装备的工坊。' },
+  {id:'nightmareExtractor',name:'噩梦汲取仪',onlyDifficulty:'nightmare',station:'nightmareInfusion',mats:{plank:16,steelingot:12,mithrilingot:6,energyCrystal:4,anctDevice:4},time:360,desc:'以30份同阶魂魄作出不可撤回的选择；每阶魂魄仅可选择两次。'},
+  {id:'soulSeparator',name:'解魂器',onlyDifficulty:'nightmare',station:'soul',mats:{wood:8,stone:6,ironpart:2},time:120,desc:'分解噩梦魂魄，获得物资；每份独立有20%概率获得1魂点、3%概率获得1星之点。'},
+  // ⚠️ 作者 2026-09-21：原来的「工作台」拆成两条线——
+  //   · 工具台（wb1/wb2/wb3，station 仍是 work1/2/3）：沿用旧 ID 语义，负责工具/武器原配方
+  //   · 裁缝台（tailor，station='tailor'）：负责麻衣与适合的衣物配方；纺车/织布机职责保留
+  { id:'wb1', name:'简易工具台', station:'work1', mats:{ plank:4, stone:4 }, time:60, desc:'敲敲打打的地方，做工具与武器。' },
+  { id:'wb2', name:'精工工具台', station:'work2', mats:{ plank:8, ironpart:2 }, time:180, needPrev:'wb1', needCraft:2, desc:'能加工精细铁件。' },
+  { id:'wb3', name:'高级工具坊', station:'work3', mats:{ ironpart:6, stonebrick:10 }, time:360, needPrev:'wb2', desc:'锻造顶级装备的工坊。' },
+  // 裁缝台：成本刻意避开自身产物（不用 fiber/cloth），wood6+branch4+vine1（绳=藤蔓）即可，避免卡死
+  { id:'tailor', name:'裁缝台', station:'tailor', mats:{ wood:6, branch:4, vine:1 }, time:90, desc:'缝制麻衣与各类衣物的地方。' },
   { id:'fr1', name:'简易熔炉', station:'furn1', mats:{ clay:6, stone:6 }, time:120, desc:'烧陶炼铁的小炉子。' },
   { id:'fr2', name:'砖熔炉', station:'furn2', mats:{ stonebrick:8, clay:4 }, time:180, needPrev:'fr1', desc:'温度更高，能炼钢。' },
-  { id:'fr3', name:'高炉', station:'furn3', mats:{ stonebrick:12, ironpart:4 }, time:360, needPrev:'fr2', needBp:'bpFurnace', desc:'熔炼玄铁秘银的高炉。' },
-  { id:'sm1', name:'烟熏炉', station:'smoke1', mats:{ stone:6, wood:4 }, time:60, desc:'熏鱼熏肉，保鲜七日。' },
+  { id:'fr3', name:'高炉', station:'furn3', mats:{ stonebrick:12, ironpart:4 }, time:360, needPrev:'fr2', desc:'熔炼玄铁秘银的高炉。' },
+  { id:'sm1', name:'烟熏炉', station:'smoke1', mats:{ stone:6, wood:4 }, time:60, desc:'熏鱼保鲜七日，熏肉保鲜十四日。' },
   { id:'sm2', name:'熏制房', station:'smoke2', mats:{ stonebrick:8, ironpart:2 }, time:180, needPrev:'sm1', desc:'批量熏制，能做肉干。' },
   // ⚠️ sleepH 统一 8 小时（作者 2026-09-15）：床的好坏体现在"体力恢复比例 rest"和"精神恢复 spirit"上，
   //    不再让好床睡得更短（以前 8/7/6/5，玩家会觉得"买了好床反而睡得更少"）。
-  { id:'bed1', name:'草床', rest:0.7, sleepH:8, spirit:6, mats:{ thatch:10, wood:4 }, time:30, desc:'草铺的床。' },
-  { id:'bed2', name:'木床', rest:0.9, sleepH:8, spirit:7, mats:{ plank:4, cloth:2 }, time:60, needPrev:'bed1', desc:'木床睡得踏实。' },
-  { id:'bed3', name:'软床', rest:1.0, sleepH:8, spirit:9, mats:{ wool:4, felt:2, plank:4 }, time:120, needPrev:'bed2', desc:'铺着毛毡的软床。' },
-  { id:'bed4', name:'大床', rest:1.2, sleepH:8, spirit:10, mats:{ wool:6, felt:3, plank:6 }, time:180, needPrev:'bed3', desc:'宽敞的大床。' },
+  // ⚠️ 作者 2026-09-21：初期草床/木床/软床的体力恢复下调约 20~22%（原 0.7/0.9/1.0），
+  //    保持"无床 < 草床 < 木床 < 软床 < 大床"的清晰递增；最高的「大床」属后期，维持 1.2 不削弱。
+  // 作者 2026-09-23 反馈："希望有方法增加体力上限，比如做高级床，每级+5体力上限"
+  // → stamCap 就是该床提供的**体力上限加成**（取当前拥有里最高的那张，不叠加）
+  { id:'bed1', name:'草床', rest:0.58, sleepH:8, spirit:6, stamCap:5,  mats:{ thatch:10, wood:4 }, time:30, desc:'草铺的床。体力上限 +5。' },
+  { id:'bed2', name:'木床', rest:0.9, sleepH:8, spirit:7, stamCap:10, mats:{ plank:4, cloth:2 }, time:60, needPrev:'bed1', desc:'木床睡得踏实。体力上限 +10。' },
+  { id:'bed3', name:'软床', rest:1.0, sleepH:8, spirit:9, stamCap:15, mats:{ wool:4, felt:2, plank:4 }, time:120, needPrev:'bed2', desc:'铺着毛毡的软床。体力上限 +15。' },
+  { id:'bed4', name:'大床', rest:1.2, sleepH:8, spirit:10, stamCap:20, mats:{ wool:6, felt:3, plank:6 }, time:180, needPrev:'bed3', desc:'宽敞的大床。体力上限 +20。' },
   { id:'stove', name:'灶台', station:'stove', mats:{ stone:8, clay:4 }, time:60, desc:'能同时煮两锅。' },
   { id:'rack', name:'晾肉架', station:'rack', mats:{ wood:6, vine:2 }, time:30, desc:'风干肉条。' },
   { id:'tannery', name:'制革架', station:'tannery', mats:{ wood:4, stone:4 }, time:30, desc:'把兽皮鞣成皮革。' },
@@ -693,19 +793,23 @@ const FURNITURE = [
   { id:'medPot', name:'药炉', station:'medPot', mats:{ clay:4, stone:4 }, time:60, needPrev:'mortar', desc:'炼制丹药。' },
   // 水壶系（储水）——家具，但**不占家具位**（在既有家具上加装的次级工位）
   { id:'tank', name:'水壶', mats:{ clay:6 }, time:60, desc:'储水罐：造好后口渴消耗 -20%，长期有效、不占家具位。' },
-  { id:'rainfilter', name:'滤雨器', mats:{ clay:8, stonebrick:4, charcoal:2 }, time:120, needPrev:'tank', desc:'在水壶上加装滤网：保留水壶的 -20% 口渴效果，另外下雨天自动收集 2~4 份淡水。不占家具位。' },
-  { id:'shelf', name:'书架', craftBonus:0.1, mats:{ plank:8 }, time:120, desc:'制造经验+10%。' },
+  { id:'rainfilter', name:'滤雨器', mats:{ clay:8, stonebrick:4, charcoal:2 }, time:120, needPrev:'tank', desc:'在水壶上加装滤网：保留 -20% 口渴效果。雨天将 2~4 份淡水存入滤雨器，去营地点击取水；储水上限 20。不占家具位。' },
+  { id:'shelf', name:'书架', mats:{ plank:30, leather:10, ironpart:6 }, time:240, desc:'点击选择制造、采集或战斗集中，只能生效一种。获得对应经验时，有50%概率获得双倍经验；可随时切换。' },
   { id:'flag', name:'信号旗', mats:{ wood:4, cloth:2 }, time:30, desc:'升起旗帜，次日商船必来。' },
   { id:'signpost', name:'路标', travelBonus:0.1, mats:{ wood:4 }, time:30, desc:'赶路时间-10%。' },
   { id:'grindstone', name:'磨刀石', station:'grind', mats:{ stone:4, flint:1 }, time:40, desc:'磨刀/修补武器的石台。', grind:1 },
-  { id:'coop', name:'鸡舍', mats:{ wood:10, vine:4 }, time:60, desc:'最多养 3 只鸡（在鸡舍管理里可以扩建两次：3 → 4 → 5 只）：外岛买的小鸡连喂 5 天小麦就长成母鸡，母鸡每天吃 1 份小麦、下一颗蛋，20~30 天后寿终（留 1 份兽肉）。' },
-  { id:'pen', name:'羊圈', mats:{ wood:12, vine:6 }, time:90, desc:'最多养 3 只羊：每只每天吃 1 份干草、产 1 份羊毛，40~60 天后寿终（留 3 份兽肉）。' },
+  { id:'coop', name:'鸡舍', mats:{ wood:10, vine:4 }, time:60, farmOnly:1, desc:'最多养 3 只鸡（在鸡舍管理里可以扩建两次：3 → 4 → 5 只）：外岛买的小鸡连喂 5 天小麦就长成母鸡，母鸡每天吃 1 份小麦、下一颗蛋，20~30 天后寿终（留 1 份兽肉）。**建在农田**，占 1 个农田畜牧位（不占住房家具位）。' },
+  { id:'pen', name:'羊圈', mats:{ wood:12, vine:6 }, time:90, farmOnly:1, desc:'最多养 3 只羊：每只每天吃 1 份干草、产 1 份羊毛，40~60 天后寿终（留 3 份兽肉）。**建在农田**，占 1 个农田畜牧位（不占住房家具位）。' },
   // 养蜂人专属：每天清晨自动产 1 份蜂蜜（走 newDay 的 dailyItems 通用机制）；占 1 个家具位
-  { id:'beehive', name:'蜂箱', mats:{ wood:8, thatch:6 }, time:90, onlyIdentity:'beekeeper', dailyItems:{ honey:1 }, desc:'养蜂人专属：每天清晨收获 1 份蜂蜜。占 1 个家具位。' },
+  { id:'beehive', name:'蜂箱', mats:{ wood:8, thatch:6 }, time:90, onlyIdentity:'beekeeper', desc:'养蜂人专属。每天清晨储存蜂蜜×1，最多储存 12 份；点击蜂箱收取。占 1 个家具位。' },
+  { id:'treadmill', name:'跑步机', mats:{ ironingot:10, ironpart:8, plank:10, leather:4 }, time:360, onlyIdentity:'trainer', desc:'健身教练专属。每天可选一种器材锻炼 6 小时；跑步最多 16 次，前 6 次生命上限各 +5，之后各 +2。占 1 个家具位。' },
+  { id:'dumbbell', name:'哑铃架', mats:{ ironingot:8, ironpart:6, stonebrick:8, leather:3 }, time:300, onlyIdentity:'trainer', desc:'健身教练专属。每天可选一种器材锻炼 6 小时；举重最多 16 次，前 6 次攻击各 +0.5，之后各 +0.2。占 1 个家具位。' },
 ];
 
 // 亚特兰蒂斯 · 礁石栖息地专属家具（独立家具位，与第一章互不干扰）
 const ATLANTIS_FURNITURE = [
+  {id:'seaStorage1',name:'海底储物箱',station:'seaStorage',mats:{deepCoral:4,stonebrick:2},time:45,capacity:20,desc:'独立储存20格物品，只能在礁石栖息地存取。'},
+  {id:'seaStorage2',name:'加固海底储物箱',station:'seaStorage',mats:{deepCoral:6,sourceBar:2,pearlGranule:4},time:90,capacity:40,upgradeFrom:'seaStorage1',desc:'将海底储物箱升级为40格，原库存保留，替换原家具位。'},
   { id:'pearlWork', name:'珠光工作台', station:'pearlWork', mats:{ deepCoral:8, pearlGranule:10 }, time:120, desc:'制造潜水与源质装备。' },
   { id:'sourceForge', name:'源质熔炉', station:'sourceForge', mats:{ sourceOre:10, stonebrick:8 }, time:180, desc:'把源矿精炼成源质锭。' },
   { id:'repairBench', name:'修补台', station:'repair', mats:{ deepCoral:4, sourceBar:1 }, time:60, desc:'用亚特兰蒂斯材料修补潜水服/氧气罩。', repairDive:1 },
@@ -713,17 +817,18 @@ const ATLANTIS_FURNITURE = [
 
 // 礁石栖息地可点击热点
 const ATLANTIS_HOTSPOTS = [
-  { id:'camp',   x:40, y:58, glyph:'➤', label:'礁石营地 · 建造' },
-  { id:'inv',    x:60, y:60, glyph:'➤', label:'储物箱 · 背包' },
-  { id:'repair', x:56, y:72, glyph:'✚', label:'修补台' },
+  { id:'camp',   x:34, y:50, glyph:'➤', label:'礁石营地 · 建造' },
+  { id:'warehouse', x:77, y:51, glyph:'➤', label:'海底储物箱' },
+  { id:'repair', x:53, y:80, glyph:'✚', label:'修补台' },
   { id:'stone',  x:50, y:48, glyph:'◈', label:'传送石 · 回孤岛', needFlag:'ended_C' },
-  { id:'map',    x:22, y:30, glyph:'▣', label:'查看大地图' },   // 右移：别被左侧日志栏压住
 ];
 // 礁石栖息地家具对位（建造后在该坐标显示贴图）
 const ATLANTIS_BUILD_POS = {
-  pearlWork:   { x:38, y:64 },
-  sourceForge: { x:62, y:64 },
-  repairBench: { x:50, y:80 },
+  seaStorage1: { x:77, y:54 },
+  seaStorage2: { x:77, y:54 },
+  pearlWork:   { x:28, y:69 },
+  sourceForge: { x:52, y:60 },
+  repairBench: { x:53, y:83 },
 };
 // 亚特兰蒂斯大地图上的区域箭头（点箭头消耗时间移动）
 const ATLANTIS_MAP_ARROWS = {
@@ -738,6 +843,19 @@ const ATLANTIS_MAP_ARROWS = {
   sanctum:     { x:50, y:80, label:'深水圣殿' },
   home:        { x:8,  y:20, label:'↑ 返回孤岛' },
 };
+// 全彩地图重新绘制了地标，只调整画面热点；航行耗时继续使用上方原坐标。
+const ATLANTIS_MAP_ARROWS_COLOR = {
+  habitat:     { x:92, y:30, label:'礁石栖息地' },
+  city:        { x:50, y:43, label:'沉没之城' },
+  coral:       { x:36, y:23, label:'珊瑚生长带' },
+  shipwreck:   { x:14, y:33, label:'沉船墓地' },
+  coralForest: { x:17, y:76, label:'珊瑚森林' },
+  pearlCave:   { x:55, y:18, label:'珍珠洞窟' },
+  trench:      { x:81, y:52, label:'海沟' },
+  abyss:       { x:91, y:78, label:'深渊裂谷' },
+  sanctum:     { x:51, y:83, label:'深水圣殿' },
+  home:        { x:8,  y:12, label:'↑ 返回孤岛' },
+};
 
 // 深海区（要摸黑/开灯才敢走的海底区域）：在这些区域附近游动，40% 会被海底怪物拦截
 // 注意：不包含 礁石栖息地（安全营地）、沉没之城、珊瑚生长带（较浅）
@@ -745,28 +863,39 @@ const ATLANTIS_DEEP_ZONES = ['coralForest','pearlCave','shipwreck','trench','aby
 
 // ---------- 敌人 ----------
 // traits: charge首回合×2 / poison / flee高逃跑 / pack成群 / enrage狂暴 / evade高闪避 /
-//         first先手 / water水中不可防御 / ironImmune免疫铁器 / summon召唤 / gun火枪
+//         first先手 / water水中不可防御 / summon召唤 / gun火枪
+//         （⛔ ironImmune「免疫铁器」已按作者 2026-09-23 要求**整个移除**：金属武器数值本身就高，
+//           再给它们豁免减免等于双重优势。三个曾经的"铁甲"敌人 traits 已清空，别再恢复。）
 const ENEMIES = {
+  nightmare1:{id:'nightmare1',name:'梦魇·窃影',img:'assets/img/enemies/nightmare1.png',nightmare:1,hp:28,atk:7,def:1,spd:9,traits:['dread'],drops:[{id:'nightmareSoul',qty:'1-4',ch:1}],desc:'它伏在你的影子里，却比影子多出一张脸。'},
+  nightmare2:{id:'nightmare2',name:'梦魇·枯行',img:'assets/img/enemies/nightmare2.png',nightmare:2,hp:48,atk:10,def:2,spd:10,traits:['dread'],drops:[{id:'nightmareSoul',qty:'1-4',ch:1}],desc:'细长的脚踩过落叶，声音却从你的耳后响起。'},
+  nightmare3:{id:'nightmare3',name:'梦魇·缠骸',img:'assets/img/enemies/nightmare3.png',nightmare:3,hp:75,atk:13,def:4,spd:11,traits:['dread','enrage'],drops:[{id:'nightmareSoul2',qty:'1-4',ch:1}],desc:'骨架间的空洞里，另一副骨架正在缓慢爬动。'},
+  nightmare4:{id:'nightmare4',name:'梦魇·空面',img:'assets/img/enemies/nightmare4.png',nightmare:4,hp:110,atk:16,def:5,spd:12,traits:['dread','nightStun'],drops:[{id:'nightmareSoul2',qty:'1-4',ch:1}],desc:'你看不见它的脸，却知道它一直在看你。'},
+  nightmare5:{id:'nightmare5',name:'梦魇·百目',img:'assets/img/enemies/nightmare5.png',nightmare:5,hp:160,atk:20,def:7,spd:13,traits:['dread','enrage'],drops:[{id:'nightmareSoul3',qty:'1-4',ch:1}],desc:'每只眼睛里，都映着一个尚未发生的死亡。'},
+  nightmare6:{id:'nightmare6',name:'梦魇·裂渊',img:'assets/img/enemies/nightmare6.png',nightmare:6,hp:225,atk:24,def:9,spd:14,traits:['dread','nightStun'],drops:[{id:'nightmareSoul3',qty:'1-4',ch:1}],desc:'裂口深处没有尽头。连风吹过它时，也会停下来。'},
+  nightmareBoss:{id:'nightmareBoss',name:'噩梦之源',img:'assets/img/enemies/nightmare7.png',nightmare:7,boss:1,hp:580,atk:29,def:12,spd:13,traits:['nightSplit','dread','nightStun'],drops:[{id:'nightmareSoul',qty:'1-4',ch:1}],desc:'整个岛的恶梦，正在这张王座上醒来。分裂、恐吓与晕眩将轮流降临；防御可抵挡恐吓和晕眩。'},
+
   boar: { id:'boar',  name:'野猪', img:'assets/img/enemies/boar.png', hp:30, atk:8, def:2, spd:8, traits:['charge'], drops:[{ id:'meat', qty:'1-2', ch:0.7 },{ id:'hide', qty:1, ch:0.5 },{ id:'tusk', qty:1, ch:0.4 },{ id:'sinew', qty:1, ch:0.3 }], desc:'一头鬃毛竖起的野猪，獠牙对着你。' },
   goat: { id:'goat',  name:'岩羊', img:'assets/img/enemies/goat.png', hp:26, atk:8, def:2, spd:12, traits:['charge'], drops:[{ id:'meat', qty:'1-2', ch:0.7 },{ id:'hide', qty:1, ch:0.5 },{ id:'horn', qty:1, ch:0.35 }], desc:'长着一对厚重弯角的岩羊，站在峭壁上打量你。' },
-  eagle: { id:'eagle', name:'雪羽鹰', img:'assets/img/enemies/eagle.png', elite:1, hp:50, atk:18, def:5, spd:20, traits:['first','evade'], drops:[{ id:'eaglefeather', qty:'1-2', ch:0.7 },{ id:'meat', qty:1, ch:0.4 }], desc:'一只翼展惊人的雪羽鹰，尖啸着守着这片矿脉。' },
+  eagle: { id:'eagle', name:'雪羽鹰', img:'assets/img/enemies/eagle.png', elite:1, hp:50, atk:16, def:5, spd:14, traits:['first','evade'], drops:[{ id:'eaglefeather', qty:'1-2', ch:0.7 },{ id:'meat', qty:1, ch:0.4 }], desc:'一只翼展惊人的雪羽鹰，尖啸着守着这片矿脉。' },
   snake: { id:'snake',  name:'毒蛇', img:'assets/img/enemies/snake.png', hp:18, atk:6, def:1, spd:12, traits:['poison'], drops:[{ id:'snakegall', qty:1, ch:0.6 }], desc:'一条盘起的毒蛇，吐着信子。' },
   rabbit: { id:'rabbit',  name:'野兔', img:'assets/img/enemies/rabbit.png', hp:10, atk:2, def:0, spd:16, traits:['flee'], drops:[{ id:'meat', qty:1, ch:0.8 },{ id:'hide', qty:1, ch:0.3 }], desc:'一只受惊的野兔。' },
   wolf: { id:'wolf',  name:'狼', img:'assets/img/enemies/wolf.png', hp:45, atk:12, def:3, spd:14, traits:['pack'], drops:[{ id:'hide', qty:'1-2', ch:0.7 },{ id:'meat', qty:1, ch:0.6 },{ id:'sinew', qty:1, ch:0.5 }], desc:'灰狼伏低身子，喉咙里滚着低吼。' },
   ox: { id:'ox',  name:'野牛', img:'assets/img/enemies/ox.png', hp:70, atk:16, def:5, spd:10, traits:['enrage'], drops:[{ id:'meat', qty:'2-3', ch:0.9 },{ id:'hide', qty:2, ch:0.8 },{ id:'horn', qty:1, ch:0.4 }], desc:'一头野牛刨着蹄子，随时要冲过来。' },
   scorpion:{ id:'scorpion', name:'沙蝎', img:'assets/img/enemies/scorpion.png', hp:25, atk:10, def:2, spd:12, traits:['poison'], drops:[{ id:'venom', qty:1, ch:0.5 }], desc:'一只尾针高举的沙蝎。' },
-  boneguard:{ id:'boneguard', name:'白骨守卫', img:'assets/img/enemies/boneguard.png', hp:60, atk:14, def:5, spd:8, traits:['ironImmune'], nightBuff:1, drops:[{ id:'fossil', qty:1, ch:0.5 },{ id:'dragonbone', qty:1, ch:0.15 },{ id:'coin', qty:1, ch:0.05 }], desc:'一具持刀的白骨缓缓转身，眼窝里两点幽火。' },
+  boneguard:{ id:'boneguard', name:'白骨守卫', img:'assets/img/enemies/boneguard.png', hp:60, atk:14, def:5, spd:8, traits:[], nightBuff:1, drops:[{ id:'fossil', qty:1, ch:0.5 },{ id:'dragonbone', qty:1, ch:0.15 },{ id:'coin', qty:1, ch:0.05 }], desc:'一具持刀的白骨缓缓转身，眼窝里两点幽火。' },
   bats: { id:'bats',  name:'蝙蝠群', img:'assets/img/enemies/bats.png', hp:15, atk:6, def:1, spd:16, traits:['evade'], drops:[{ id:'niter', qty:'1-2', ch:0.7 }], desc:'黑压压的蝙蝠群向你扑来。' },
   spider: { id:'spider',  name:'巨型蜘蛛', img:'assets/img/enemies/spider.png', hp:55, atk:13, def:3, spd:10, traits:['poison'], drops:[{ id:'silk', qty:'1-2', ch:0.7 },{ id:'venom', qty:1, ch:0.3 }], desc:'一只磨盘大的蜘蛛从洞顶落下。' },
   // minDay：前 30 天不会出现（玩家反馈"洞穴熊有点强"）——路上拦路、洞里狩猎都按这个门槛过滤
   cavebear:{ id:'cavebear', name:'洞穴熊', img:'assets/img/enemies/cavebear.png', hp:120, atk:20, def:7, spd:8, traits:['enrage'], minDay:30, drops:[{ id:'hide', qty:2, ch:0.9 },{ id:'meat', qty:3, ch:0.9 }], desc:'冬眠被惊醒的巨熊，站起时几乎顶到洞顶。' },
   leopard:{ id:'leopard', name:'雪豹', img:'assets/img/enemies/leopard.png', hp:90, atk:18, def:6, spd:18, traits:['first'], drops:[{ id:'hide', qty:2, ch:0.8 },{ id:'meat', qty:2, ch:0.7 }], desc:'雪豹在岩石间移动，像一道白色的影子。' },
-  shark: { id:'shark',  name:'鲨鱼', img:'assets/img/enemies/shark.png', hp:100, atk:18, def:5, spd:14, traits:['water'], drops:[{ id:'sharkfin', qty:1, ch:0.6 },{ id:'meat', qty:2, ch:0.8 },{ id:'pearl', qty:1, ch:0.3 }], desc:'背鳍划开水面，绕着你打转。' },
+  shark: { id:'shark',  name:'鲨鱼', img:'assets/img/enemies/shark.png', hp:100, atk:18, def:5, spd:14, traits:['water'], drops:[{ id:'sharkfin', qty:1, ch:0.6 },{ id:'meat', qty:2, ch:0.8 },{ id:'pearl', qty:1, ch:0.24 }], desc:'背鳍划开水面，绕着你打转。' },
   pirate: { id:'pirate',  name:'海盗', img:'assets/img/enemies/pirate.png', hp:60, atk:14, def:4, spd:12, traits:['pack'], drops:[{ id:'coin', qty:'1-3', ch:0.5 },{ id:'rope', qty:1, ch:0.5 },{ id:'gunpowder', qty:1, ch:0.3 }], desc:'几个持刀的海盗狞笑着围上来。' },
-  guard: { id:'guard',  name:'遗迹守卫', img:'assets/img/enemies/guard.png', hp:150, atk:24, def:9, spd:6, traits:['ironImmune'], drops:[{ id:'coin', qty:'2-5', ch:0.7 },{ id:'crystal', qty:1, ch:0.5 }], desc:'石像发出沉闷的轰鸣，挡住了去路。' },
+  guard: { id:'guard',  name:'遗迹守卫', img:'assets/img/enemies/guard.png', hp:120, atk:20, def:8, spd:6, traits:[], drops:[{ id:'coin', qty:'2-5', ch:0.7 },{ id:'crystal', qty:1, ch:0.5 }], desc:'石像发出沉闷的轰鸣，挡住了去路。' },
   wolfKing:{ id:'wolfKing', name:'狼王', img:'assets/img/boss_wolf.png', boss:1, hp:130, atk:22, def:8, spd:16, traits:['summon'], drops:[{ id:'wolfkingpelt', qty:1, ch:1 },{ id:'hide', qty:3, ch:1 }], desc:'狼王站在山丘上，目光比月亮还冷。' },
   spiderQueen:{ id:'spiderQueen', name:'蜘蛛女王', img:'assets/img/boss_spider.png', boss:1, hp:160, atk:22, def:7, spd:10, traits:['summon','poison'], drops:[{ id:'queenSilk', qty:1, ch:1 },{ id:'silk', qty:3, ch:1 }], desc:'蛛网中央，蜘蛛女王缓缓睁开八只眼睛。' },
-  pirateBoss:{ id:'pirateBoss', name:'海盗头目', img:'assets/img/boss_pirate.png', boss:1, hp:180, atk:26, def:9, spd:14, traits:['gun'], drops:[{ id:'coin', qty:20, ch:1 },{ id:'bpGunpowder', qty:1, ch:0.5 },{ id:'bpDive', qty:1, ch:0.12 },{ id:'bpShip', qty:1, ch:0.12 },{ id:'bpBlack', qty:1, ch:0.12 },{ id:'brokenPistol', qty:1, ch:0.35 }], desc:'独眼海盗头目举起火枪，狞笑着瞄准你。' },
+  // 海盗头目：作者 2026-09-22 —— 金币 20→**12**、图纸概率 0.12→**0.08**（这个点位每天可刷，原数值刷烂了经济）
+  pirateBoss:{ id:'pirateBoss', name:'海盗头目', img:'assets/img/boss_pirate.png', boss:1, hp:180, atk:26, def:9, spd:14, traits:['gun'], drops:[{ id:'coin', qty:12, ch:1 },{ id:'bpGunpowder', qty:1, ch:0.5 },{ id:'bpDive', qty:1, ch:0.08 },{ id:'bpShip', qty:1, ch:0.08 },{ id:'bpBlack', qty:1, ch:0.08 },{ id:'brokenPistol', qty:1, ch:0.35 }], desc:'独眼海盗头目举起火枪，狞笑着瞄准你。' },
   slateGuard:{ id:'slateGuard', name:'石板守卫', img:'assets/img/enemies/slateguard.png', boss:1, hp:170, atk:24, def:9, spd:7, traits:['stoneGuard'], drops:[{ id:'slate', qty:1, ch:1 },{ id:'coin', qty:12, ch:1 }], desc:'一尊通灵的石碑守卫镇守着石板：石甲把一部分伤害弹回给你，石躯符文闪烁。' },
   slateGuard2:{ id:'slateGuard2', name:'石板守卫', img:'assets/img/enemies/slateguard.png', elite:1, noDex:1, hp:150, atk:22, def:9, spd:7, traits:['stoneGuard'], drops:[{ id:'coin', qty:'4-8', ch:1 },{ id:'crystal', qty:1, ch:0.5 }], desc:'又一尊从碑前站起的石像守卫，守着山上的雪线。它不持石板，但石甲的符文照样反弹伤害。' },
   // 海底远程精英（作者 2026-09-19）：攻击距离 20，玩家近战要贴到它身边才打得着；它只在中层黑暗（照明 ≥2）出没。
@@ -776,7 +905,7 @@ const ENEMIES = {
     desc:'悬在暗水里的机械哨兵，枪口始终对着你——它会在你靠近之前先开火。' },
   deepGuard:{ id:'deepGuard', name:'深海卫兵', img:'assets/img/enemies/deepGuard.png', hp:70, atk:16, def:6, spd:9, traits:[], drops:[{ id:'sourceOre', qty:1, ch:0.6 },{ id:'deepCoral', qty:1, ch:0.4 }], desc:'手持远古长矛的深海卫兵，眼灯幽蓝。' },
   tentacle:{ id:'tentacle', name:'触手哨兵', img:'assets/img/enemies/tentacle.png', hp:55, atk:14, def:4, spd:12, traits:['pack'], packAlways:1, drops:[{ id:'pearlGranule', qty:'1-2', ch:0.7 }], desc:'从深暗中伸出的触手哨兵，一下一下地收缩——而且从来不单独出现。' },
-  mechGuard:{ id:'mechGuard', name:'机械守卫', img:'assets/img/enemies/mechGuard.png', hp:120, atk:20, def:8, spd:7, traits:['ironImmune'], drops:[{ id:'anctDevice', qty:1, ch:0.5 },{ id:'sourceBar', qty:1, ch:0.3 }], desc:'远古机械守卫，在尘埃中缓缓苏醒。' },
+  mechGuard:{ id:'mechGuard', name:'机械守卫', img:'assets/img/enemies/mechGuard.png', hp:120, atk:20, def:8, spd:7, traits:[], drops:[{ id:'anctDevice', qty:1, ch:0.5 },{ id:'sourceBar', qty:1, ch:0.3 }], desc:'远古机械守卫，在尘埃中缓缓苏醒。' },
   sunkenKing:{ id:'sunkenKing', name:'沉没之王', img:'assets/img/boss_sunken.png', boss:1, hp:220, atk:28, def:10, spd:11, traits:['summon','pierce'], drops:[{ id:'sourceArmor', qty:1, ch:1 },{ id:'anctDevice', qty:3, ch:1 }], desc:'失落文明的最后守护者：它的必中一击，能撕裂深海。' },
 };
 
@@ -804,10 +933,31 @@ const LAOCHAO = {
   ],
   commissions: [
     { id:'c1', name:'熏鱼订单', need:{ smokedFish:20 }, reward:{ ironingot:5, beibi:50 }, from:5, text:'老潮要 20 条熏鱼，运去对岸卖。' },
-    { id:'c2', name:'兽皮订单', need:{ hide:10 }, reward:{ steelingot:2, beibi:80, fame:1 }, from:8, text:'对岸的裁缝要 10 张兽皮。' },
-    { id:'c3', name:'珍珠委托', need:{ pearl:3 }, reward:{ coin:10, beibi:50, fame:1 }, from:14, text:'有人高价求 3 颗珍珠。' },
-    { id:'c4', name:'剿灭海盗', type:'kill', target:'pirateBoss', reward:{ coin:30, steelingot:3, fame:1 }, from:20, text:'海岸海盗为祸，悬赏海盗头目！' },
-    { id:'c5', name:'古生物收藏', need:{ fossil:3 }, reward:{ coin:20, blackingot:2, fame:1 }, from:22, text:'对岸的学者想收三块骨化石做研究——石板那种东西，他让你自己留着。' },
+    { id:'c2', name:'兽皮订单', need:{ hide:10 }, reward:{ steelingot:2, beibi:80, fame:0.5 }, from:8, text:'对岸的裁缝要 10 张兽皮。' },
+    { id:'c3', name:'珍珠委托', need:{ pearl:3 }, reward:{ coin:10, beibi:50, fame:0.5 }, from:14, text:'有人高价求 3 颗珍珠。' },
+    { id:'c4', name:'剿灭海盗', type:'kill', target:'pirateBoss', reward:{ coin:30, steelingot:3, fame:0.5 }, from:20, text:'海岸海盗为祸，悬赏海盗头目！' },
+    { id:'c5', name:'古生物收藏', need:{ fossil:3 }, reward:{ coin:20, blackingot:2, fame:0.5 }, from:22, text:'对岸的学者想收三块骨化石做研究——石板那种东西，他让你自己留着。' },
+  ],
+};
+
+// 季度委托：每季从候选里稳定随机出一份，同一轮四季结束后才可再做。
+const SEASONAL_COMMISSIONS = {
+  '春': [
+    { id:'s_spring_wood', name:'春修木料', need:{ wood:15, branch:15 }, reward:{ coin:8, fame:0.5 }, text:'盐镇修船，急需一批新伐木料。' },
+    { id:'s_spring_food', name:'春季野味', need:{ berry:12, fish:8 }, reward:{ beibi:50, fame:0.5 }, text:'春市要摆一桌岛上的新鲜野味。' },
+  ],
+  '夏': [
+    { id:'s_summer_hide', name:'夏日皮革', need:{ hide:6, bamboo:12 }, reward:{ coin:12, fame:0.5 }, text:'裁缝要做一批遮阳棚和皮具。' },
+    { id:'s_summer_fish', name:'盛夏鱼获', need:{ fish:16, salt:4 }, reward:{ beibi:80, fame:0.5 }, text:'炎热天气里，鱼商想收鱼和盐作为腌鱼原料。' },
+  ],
+  '秋': [
+    { id:'s_autumn_grain', name:'秋收粮食', need:{ wheat:18, mushroom:8 }, reward:{ coin:15, fame:0.5 }, text:'镇上的粮仓要补足入冬的口粮。' },
+    { id:'s_autumn_cake', name:'秋市甜点', need:{ cake:3 }, reward:{ beibi:270, fame:0.5 }, text:'秋市需要新烤的蛋糕，赏钱比日常回收丰厚。' },
+    { id:'s_autumn_honey', name:'秋日甜酿', need:{ honey:6, carrot:12 }, reward:{ beibi:90, fame:0.5 }, text:'酒馆收些蜂蜜和秋菜。' },
+  ],
+  '冬': [
+    { id:'s_winter_smoke', name:'寒冬熏鱼', need:{ smokedFish:12, wool:6 }, reward:{ coin:20, fame:0.5 }, text:'冬季船队需要耐放的粮食和保暖羊毛。' },
+    { id:'s_winter_cloth', name:'冬衣备料', need:{ felt:8, smokedMeat:8 }, reward:{ beibi:100, fame:0.5 }, text:'镇上裁缝与守夜人要备过冬物资。' },
   ],
 };
 
@@ -818,21 +968,28 @@ const TOWN = {
       { id:'cloth', base:35 }, { id:'felt', base:30 }, { id:'nail', base:15 }, { id:'rope', base:8 },
       { id:'hay', base:6, from:5 }, { id:'chick', base:80, from:10 },
       { id:'wheat', base:8, from:3 },
-    ], buy:[ { id:'fish', base:5 }, { id:'carrot', base:5 }, { id:'wheat', base:4 }, { id:'honey', base:35 }, { id:'snakegall', base:18 }, { id:'seasalt', base:15 }, { id:'silk', base:18 }, { id:'rot', base:2 } ] },
+      { id:'arrow', base:24, from:3 }, { id:'eagleArrow', base:95, from:20 },
+    ], buy:[ { id:'fish', base:5 }, { id:'carrot', base:5 }, { id:'wheat', base:4 }, { id:'honey', base:35 }, { id:'snakegall', base:18 }, { id:'salt', base:15 }, { id:'silk', base:18 } ] },
   smith: { name:'铁匠', needFame:1, sell:[
       { id:'steelingot', base:150 }, { id:'blackingot', base:400 }, { id:'ironSword', base:200 },
-      { id:'steelSword', base:400 }, { id:'ironArmor', base:350 }, { id:'bpFurnace', base:200, kind:'bp' },
-    ], buy:[ { id:'ironore', base:15 }, { id:'charcoal', base:10 }, { id:'goldore', base:55 } ] },
+      { id:'steelSword', base:400 }, { id:'ironArmor', base:350 },
+    ], buy:[ { id:'ironore', base:15 }, { id:'charcoal', base:10 }, { id:'goldore', base:55 }, { id:'goldIngot', base:650 } ] },
   informant:{ id:'informant', name:'情报贩子', needFame:2, sell:[
       { id:'seachart', base:150, currency:'coin' }, { id:'bpShip', base:500, currency:'beibi', kind:'bp' },
       { id:'bpDive', base:400, currency:'beibi', kind:'bp' },
-    ], buy:[ { id:'relic', base:600 }, { id:'pearl', base:220 }, { id:'anctDevice', base:120 } ] },
+    ], buy:[ { id:'pearl', base:220 }, { id:'anctDevice', base:120 }, { id:'sourceOre', base:40 }, { id:'sourceBar', base:260 }, { id:'tideSteel', base:180 } ] },
+  // 作者 2026-09-24：对岸新增「美食家」，卖三道进阶料理的食谱（声望 3 解锁）。
+  // 拿到食谱前这三道菜在制造栏里**完全不显示**（见 renderCraft 的 needBp 过滤）。
+  gourmet: { name:'美食家', needFame:3, sell:[
+      { id:'honey', base:120 },
+      { id:'bpStew', base:260, kind:'bp' }, { id:'bpOmelette', base:320, kind:'bp' }, { id:'bpCake', base:360, kind:'bp' },
+    ], buy:[ { id:'carrotStew', base:28 }, { id:'cake', base:50 }, { id:'superEgg', base:130 }, { id:'roastFish', base:8 }, { id:'meatStew', base:22 } ] },
 };
 
 // 黑市（沉船湾 · 独眼）
 const BLACKMARKET = {
   sell: [ { id:'gunpowder', base:120 }, { id:'antidote', base:40 }, { id:'niter', base:35 }, { id:'sulfur', base:35 }, { id:'bpBlack', base:400, kind:'bp' } ],
-  buy: [ { id:'venom', base:60 }, { id:'silk', base:20 }, { id:'queenSilk', base:500 }, { id:'relic', base:600 } ],
+  buy: [ { id:'venom', base:60 }, { id:'silk', base:20 }, { id:'queenSilk', base:500 } ],
 };
 
 // ---------- 事件 ----------
@@ -896,14 +1053,14 @@ const RANDOM_EVENTS = [
       { label:'迎战', fight:'pirateBoss' },
   ]},
   // ⚠️ 送神物的奇遇：作者 2026-09-19 要求"获得概率减半" → 出现权重砍半（4→2、5→2.5）
-  { id:'re_shrine', scene:'cave', w:2, once:1, text:'洞壁暗处，一扇被藤蔓掩埋的石龛微微发光，里面供着三件神物。', choices:[
-      { label:'取走神物', relic:1 },
-      { label:'不敢妄动', spirit:2 },
-  ]},
-  { id:'re_peddler', scene:'shore', w:2.5, once:1, cond:{ zone:'saltTown' }, text:'一个裹着破斗篷的神秘人拦住你："三十枚远古金币，换一件神物，换不换？"', choices:[
-      { label:'成交', need:{ coin:30 }, relic:1 },
-      { label:'摇头离开', noop:1 },
-  ]},
+  // ⚠️ 石龛的选项在 game.js 的 triggerShrine() 里**动态生成**（作者 2026-09-25：
+  //    "文案写着供着三件神物，却只让你看一眼、不让你选" → 改成真·三选一），
+  //    所以这里 choices 是空的，别往这里加选项，加了也不会被读到。
+  //    另外：石龛的池子里**没有**亚特兰蒂斯之种（之种可从海底神秘鱼人交换或商城购买，见 triggerShrine）。
+  { id:'re_shrine', scene:'cave', w:2, once:1, text:'洞壁暗处，一扇被藤蔓掩埋的石龛微微发光，里面供着三件神物。', choices:[] },
+  // ⛔ 「神秘商人」(re_peddler) 已按作者 2026-09-23 要求**删除**。
+  //    亚特兰蒂斯之种可通过商城购买或海底「神秘鱼人」交换获得（见沉船墓地 atl_fishman），
+  //    不再有"对岸遇到神秘人 30 金币换神物"这条线。不要再把它加回来。
 ];
 
 // ---------- 天气 / 季节 ----------
@@ -947,18 +1104,21 @@ const MAP_ARROWS = {
 
 // ---------- 营地场景可点击热点（建造后才会显现；needBuild/needFurn 控制显隐；与建筑中心对齐） ----------
 const CAMP_HOTSPOTS = [
-  { id:'camp', x:30, y:60, glyph:'➤', label:'住处 · 营地升级' },
-  { id:'sleep', x:30, y:73, glyph:'☾', label:'睡觉' },
-  { id:'inv',  x:62, y:66, glyph:'➤', label:'储物箱 · 背包' },
-  { id:'fire', x:52, y:81, glyph:'➤', label:'篝火 · 烹饪' },   // 跟篝火精灵对齐（精灵下移了）
+  { id:'camp', x:43, y:28, glyph:'➤', label:'营地建造' },
+  { id:'room', x:28, y:61, glyph:'◈', label:'进屋', needBuild:'house', lvl:0 },
+  { id:'sleep', x:28, y:61, glyph:'☾', label:'睡觉' },
+  { id:'honey', x:46, y:46, glyph:'⬡', label:'蜂箱 · 收蜜', needFurn:['beehive'] },
+  { id:'warehouse',  x:66, y:55, glyph:'➤', label:'仓库', needBuild:'storage', lvl:0 },
+  { id:'cellar', x:79, y:68, glyph:'▣', label:'地窖', needBuild:'cellar', lvl:0 },
+  { id:'fire', x:49, y:66, glyph:'➤', label:'篝火 · 烹饪', needBuild:'fire', lvl:0 },   // 烹饪区位于营地内部，入口通道留空
   { id:'atlantis', x:80, y:28, glyph:'◈', label:'传送石 · 亚特兰蒂斯', needFlag:'ended_C' },
 ];
 
 // 营地场景铺地上的建筑精灵位置（% 坐标，均为中心；宽度按背景宽度百分比）
 const CAMP_BUILD_POS = {
   // ⚠️ y 越大表示越靠画面下方（越近），渲染时会按 y 排叠放次序 —— 见 ui.js renderCampBuildings
-  // fire 原来 78：仓库(66)画在它后面，把篝火盖掉了一半。下移到 84，并且现在按深度排序（篝火在仓库前面）。
-  house:[30,60], fire:[52,81], store:[62,66], wall:[14,62], dock:[84,38], farm:[68,80],
+  // 住处与蜂箱在左侧，仓库在右后方，烹饪区向内移，前方入口留空。
+  house:[28,52], hive:[46,42], fire:[49,64], store:[66,47], cellar:[79,72], wall:[50,74], dock:[87,26], farm:[68,80],
 };
 
 // ---------- 各场景可点击热点（point = 对应交互点 id，直接点击图片触发） ----------
@@ -971,10 +1131,11 @@ const SCENE_HOTSPOTS = {
     { x:50, y:82, point:'forest_herb',   label:'草药' },
     // 作者 2026-09-19：兽径挪到「草药」和「蘑菇」中间，三个采集点看着成一条线
     { x:62, y:79, point:'forest_hunt',   label:'兽径' },
-    { x:36, y:66, point:'forest_resin',  label:'割脂' },
-    { x:44, y:70, point:'forest_berry',  label:'野莓' },
+    { x:28, y:64, point:'forest_resin',  label:'割脂' },
+    { x:46, y:76, point:'forest_berry',  label:'野莓' },
   ],
   bamboo: [
+    {x:80,y:72,point:'bamboo_mushroom',label:'蘑菇'},
     // 作者 2026-09-19：砍竹/剖竹再右移一点，彻底躲开左侧日志栏
     { x:26, y:50, point:'bamboo_cut',    label:'砍竹' },
     { x:34, y:38, point:'bamboo_fiber',  label:'剖竹' },
@@ -999,7 +1160,9 @@ const SCENE_HOTSPOTS = {
     { x:66, y:42, point:'desert_guard',  label:'白骨守卫' },
   ],
   river: [
+    {x:72,y:78,point:'river_mushroom',label:'蘑菇'},
     { x:48, y:50, point:'river_water', label:'取水' },
+    { x:37, y:42, point:'river_snow',  label:'采雪' },   // 冬季才亮；贴着取水点，冬天一眼能看到第二条水源
     { x:53, y:62, point:'river_fish',  label:'垂钓' },
     { x:64, y:44, point:'river_net',   label:'撒网' },
     { x:24, y:60, point:'river_reeds', label:'芦苇丛' },
@@ -1010,8 +1173,11 @@ const SCENE_HOTSPOTS = {
   farm: [
     { x:62, y:58, point:'farm_veg',   label:'野菜' },
     { x:45, y:72, point:'farm_plant', label:'苗床' },
+    // 作者 2026-09-25：鸡舍/羊圈搬到农田 → 农田多一个「农场管理」热点（农事 + 畜牧位都在这里）
+    { id:'ranch', x:78, y:46, glyph:'⛭', label:'农场管理' },
   ],
   grassland: [
+    {x:78,y:82,point:'grass_mushroom',label:'蘑菇'},
     { x:74, y:62, point:'grass_wool',  label:'剪羊毛' },
     { x:52, y:42, point:'grass_hunt',  label:'狩猎' },
     { x:30, y:72, point:'grass_herb',  label:'草药' },
@@ -1021,13 +1187,15 @@ const SCENE_HOTSPOTS = {
     { x:20, y:62, point:'grass_wolfden', label:'狼穴' },   // 右移：别被左侧日志栏压住
   ],
   cave: [
-    { x:34, y:50, point:'cave_iron',   label:'洞壁铁矿' },
-    { x:60, y:38, point:'cave_bats',   label:'蝙蝠粪' },
-    { x:70, y:60, point:'cave_moss',   label:'发光苔藓' },
-    { x:56, y:72, point:'cave_deep',   label:'深处矿脉' },
-    { x:76, y:76, point:'cave_queen',  label:'蛛巢' },
-    { x:28, y:72, point:'cave_guard',  label:'黑暗兽吼' },
-    { x:44, y:46, point:'cave_slate',  label:'遗迹石板' },
+    { x:18, y:40, point:'cave_iron',   label:'洞壁铁矿' },
+    { x:62, y:30, point:'cave_bats',   label:'蝙蝠粪' },
+    { x:84, y:54, point:'cave_moss',   label:'发光苔藓' },
+    { x:18, y:72, point:'cave_deep',   label:'深处矿脉' },
+    // 作者 2026-09-22：蛛巢移到「中央偏下」，与深处矿脉/发光苔藓拉开（保证不遮挡）
+    { x:84, y:78, point:'cave_queen',  label:'蛛巢' },
+    // 作者 2026-09-22：黑暗兽吼放到「洞穴中央」（原来在 28,72 太靠左下，和深处矿脉挤在一角）
+    { x:48, y:62, point:'cave_guard',  label:'黑暗兽吼' },
+    { x:40, y:16, point:'cave_slate',  label:'遗迹石板' },
   ],
   peak: [
     { x:56, y:66, point:'peak_blackiron', label:'玄铁矿' },
@@ -1043,233 +1211,246 @@ const SCENE_HOTSPOTS = {
 // ---------- 结局 ----------
 // 官方兑换码（纯前端：每人本地用一次；你手动放出这些码，以后可随时加）
 const REDEEM_CODES = {
+  'LAOBANDAQI': { retired:true, soul:10000, adCoins:1000 },
+  'GANXIEPINGJIA': { retired:true, soul:300, adCoins:30 },
+  'XIEXIELAOBAN': { retired:true, item:'divineSuperPack', qty:1 },
+  'SHENJIA2026': { retired:true, item:'divineArmor', qty:1 },
+  'SHENGONG2026': { retired:true, item:'divineBow', qty:1 },  // 神弓：每个账号一次，先投递到邮箱
+  // 已下架，仅保留旧邮件回执迁移所需的奖励定义。
+  'GUOQING2026': { retired:true, mails:[{ soul:200 }, { item:'namecard', qty:1 }] },
   'GUYU2026': { soul: 50 },
   'QQ1014679931': { item: 'namecard', qty: 1 },
-  'NEICEWANJIA': { soul: 300 },   // 内部秘密码：300魂点（不展示在活动页）
+  'NEICEWANJIA': { retired:true, soul: 300 },   // 内部秘密码：300魂点（不展示在活动页）
   'HAPPY1': { item: 'namecard', qty: 1 },
   'HAPPY2': { soul: 80 },
-  'CORE4': { item: 'deepCore', qty: 4 },   // 神殿核心补偿：受"守卫怪顶掉一次性点位"影响的玩家，可领 4 块深殿核心
+  'CORE4': { retired:true, item: 'deepCore', qty: 4 },   // 神殿核心补偿：受"守卫怪顶掉一次性点位"影响的玩家，可领 4 块深殿核心
   // 送礼用的码（只在代码里，不写进活动页/公告，玩家不会自己看到）
-  'HAPPY9': { relic: 'vampire' },        // 吸血宝石
-  'HAPPY8': { relic: 'dodge' },          // 闪避护符
-  'HAPPY7': { relic: 'satchel' },        // 食之包
-  'HAPPY6': { relic: 'bloodvest' },      // 血色背心
-  'HAPPY5': { relic: 'atlantisSeed' },   // 亚特兰蒂斯之种
-  'RESOURCE1': { item: 'coin', qty: 10 },   // 10 枚古金币
+  'HAPPY9': { retired:true, relic: 'vampire' },        // 吸血宝石
+  'HAPPY8': { retired:true, relic: 'dodge' },          // 闪避护符
+  'HAPPY7': { retired:true, relic: 'satchel' },        // 食之包
+  'HAPPY6': { retired:true, relic: 'bloodvest' },      // 血色背心
+  'HAPPY5': { retired:true, relic: 'atlantisSeed' },   // 亚特兰蒂斯之种
+  'RESOURCE1': { retired:true, item: 'coin', qty: 10 },   // 10 枚古金币
+  'SHIBAN': { retired:true, item: 'slate', qty: 1 },      // 石板补给：石板×1（救济码，不写公告）
 };
 
 // ---------- 内置更新公告（会以邮件形式发到游戏里）----------
+// ---------- 全流程攻略（主页右上角「攻略」按钮）----------
+// ⚠️ 作者要求写明"版本每天变化，仅供参考" —— 数值/配方/门槛每个版本都可能动，
+//    所以顶部那句免责声明必须保留，改攻略时也要顺手核对里面的数字。
+const GUIDE_NOTE = '按页查看流程与操作，具体材料和属性可在制作页、图鉴查看。';
+const GUIDE = [
+  {
+    "title": "开局与营地",
+    "enTitle": "Getting Started",
+    "steps": [
+      "先打开背包，查看已有的食物、工具和武器；点击物品看详情，食物和药品从详情页使用。",
+      "先保证淡水、食物和休息。河畔取水，树林和河畔采集食物；生鱼、生肉可能引起反胃，优先烹饪。",
+      "准备石斧、石镐，收集木材、燧石、石头和茅草，再发展工具台、熔炉和床。所需材料看制作与营地建造页。",
+      "点击营地建筑进入管理；床和住所改善休息，仓库收纳物资，围墙降低夜袭风险。生命、体力、饱食、水分、精神和健康要分别照顾。"
+    ],
+    "enSteps": [
+      "Open your backpack to check starting supplies. Tap an item for details; use food and medicine from that screen.",
+      "Secure water, food and rest. Collect water at the river and forage nearby. Raw fish and meat can cause nausea; cook them when possible.",
+      "Prepare a stone axe and pickaxe, gather basic materials, then develop your workbench, furnace and bed. Check crafting and camp construction for costs.",
+      "Tap camp buildings to manage them. Beds and housing improve rest, storage holds supplies, and walls reduce raid risk. Health, stamina, hunger, thirst, spirit and wellness need separate care."
+    ]
+  },
+  {
+    "title": "背包、装备与仓库",
+    "enTitle": "Inventory and Storage",
+    "steps": [
+      "背包、装备、制作的顶部页签可以直接切换；背包分类帮助快速找到食物、工具、药品。",
+      "普通背包：轻点看详情，长按物品选择批量丢弃。食物详情可食用；装备页点击槽位更换，点击卸下移除装备。",
+      "仓库：左侧是背包，右侧是当地仓库。轻点物品搬一份；长按后可继续左右拖动选数量，松开后确认批量存入或取出。",
+      "自动存入可勾选物资，回到对应营地时执行；保存并立即存入可当场执行。仓库满时物品留在背包。",
+      "营地内制作、建造可使用当地仓库材料；野外不能借用营地库存。超载会增加移动体力消耗，整理后恢复。"
+    ],
+    "enSteps": [
+      "Use the top tabs to switch directly between backpack, equipment and crafting. Categories help you find supplies quickly.",
+      "In the backpack, tap for details or hold an item to discard a chosen quantity. Eat from food details. Tap equipment slots to change gear, or use Unequip.",
+      "Storage shows your backpack on the left and local stock on the right. Tap to move one item; hold and drag horizontally to choose a quantity, then confirm.",
+      "Choose supplies under Auto Store. They are deposited when you return to the matching camp. Save and Store Now runs it immediately; a full warehouse leaves items in your bag.",
+      "At camp, crafting and construction can use local stored materials. Outside camp, they cannot. Overloading increases travel stamina costs until you reduce your load."
+    ]
+  },
+  {
+    "title": "制造与长按操作",
+    "enTitle": "Crafting and Hold Actions",
+    "steps": [
+      "制作页先选工位与分类，再查看配方材料；缺少工位、图纸或材料时，按钮会提示原因。",
+      "高炉需先建砖熔炉，备齐石砖12、铁件4即可建造。削木板每批消耗4木材：基础产出2木板（30分钟），装备铁斧或钢斧产出3木板（20分钟）；砖熔炉可成批烧砖。营地建造里的船坞升级会提供船只，地图上的地点则用于出海探索。",
+      "轻点制作按钮制作一份，长按打开批量制作并选择次数。晾晒等需等待的配方一次只能挂一批，完成后先收取。",
+      "商人界面的购买、出售、贝壳和金币兑换按钮，轻点操作一份，长按选择批量数量；图纸等物品按实际可买数量处理。",
+      "长按食之包卡面，选择优先食物、优先饮料和禁食物品，每类最多3种；点已选物品可取消。优先物品用完会自动选择其他安全物品，禁食始终生效。地窖物品长按可批量存入或丢弃。",
+      "潮生丹和渊息丹各有制作上限，但服用不限次数。查看物品说明区分回复生命、恢复健康和提高上限的效果。"
+    ],
+    "enSteps": [
+      "Choose a crafting station and category, then check recipe costs. Disabled actions explain missing stations, blueprints or materials.",
+      "A Blast Furnace requires a Brick Furnace, 12 Stone Bricks and 4 Iron Parts. Planks cost 4 Wood per batch: 2 Planks in 30 minutes normally, or 3 in 20 minutes with an equipped Iron or Steel Axe; a Brick Furnace unlocks bulk brick firing. Upgrade your dock under Camp Construction for boats; map destinations are used for sailing and exploration.",
+      "Tap Craft for one batch; hold it to choose multiple batches. Drying recipes can run only one batch at a time; collect it before starting another.",
+      "At merchants, tap buy, sell or currency exchange for one unit; hold for a quantity selector. Blueprints follow their purchase limits.",
+      "Hold the Food Satchel card to select up to three preferred foods, drinks or excluded items per category. Tap selected items to remove them. When preferences run out, other safe items are used; exclusions always apply. Hold cellar items for bulk storage or discard.",
+      "Vital Tide Pills and Abyss Breath Pills have crafting limits but no consumption limit. Read item details to distinguish healing, wellness recovery and maximum-stat bonuses."
+    ]
+  },
+  {
+    "title": "战斗：选目标再行动",
+    "enTitle": "Combat Controls",
+    "steps": [
+      "遇敌后先点击想攻击的怪物立绘，确认选中标记，再选择攻击、射击或技能；多个敌人时可随时换目标。",
+      "距离不够时，攻击会先用于逼近。近战要贴身，弓和手枪有不同射程；射击需要携带相应箭矢或子弹。",
+      "观察敌人血条、技能预告和左侧战斗日志。防御降低本次行动受到的伤害；生命危险时可以选择逃跑。",
+      "技能有装备条件与冷却：横扫需要双手重武器，第一回合在近战范围内使用时先于普通敌人出手（首领战除外）；重击与必中需要学习。刀刀暴击提高会心率，不是每次攻击都必定暴击。",
+      "战斗道具从道具入口选择，每场最多使用两次。行动与伤害反馈结束后再操作，别在动画中连续点按；战斗结束再换装备。"
+    ],
+    "enSteps": [
+      "Tap the enemy you want to attack, check the selection marker, then choose Attack, Shoot or a skill. Switch targets when fighting a group.",
+      "An attack outside your range first moves you closer. Melee requires contact; bows and pistols have different ranges and need the matching ammunition.",
+      "Watch enemy health bars, intent previews and the combat log on the left. Defend reduces damage for that action; flee when survival is doubtful.",
+      "Skills have equipment requirements and cooldowns. Sweep needs a two-handed weapon. On turn one, an in-range Sweep acts before ordinary enemies, except in boss fights; Heavy Strike and Sure Hit must be learned. Critical Edge improves critical chance; it does not guarantee every hit.",
+      "Choose combat items from the item panel; you may use two per battle. Wait for action feedback before the next input, and change equipment after combat."
+    ]
+  },
+  {
+    "title": "技能升级与成长",
+    "enTitle": "Skills and Progression",
+    "steps": [
+      "进入装备→技能，选择采集、制造或战斗，再展开对应技能树。采集、制作和战斗分别积累自己的经验。",
+      "主干经验足够时，选择一个成长方向完成升级；例如战斗主干可选攻击、防御或会心率。不是所有方向同时获得。",
+      "专项技能单独点击学习，需要达到主干等级，并满足前置与互斥条件；灰色按钮下会写明缺少什么。",
+      "每个技能卡显示等级与效果，二级效果以卡面说明为准。刀刀暴击一级增加20个百分点会心率，二级增加30个百分点，二级不与一级相加。",
+      "需要调整路线时，可遗忘允许移除的末端技能并返还部分经验；有后续技能依赖时，先处理后续技能。"
+    ],
+    "enSteps": [
+      "Open Equipment, then Skills, and expand Gathering, Crafting or Combat. Each activity earns experience for its own tree.",
+      "When you have enough experience, choose one main-tree growth option. Combat offers attack, defense or critical chance; you receive only the option selected.",
+      "Learn branch skills separately. They require the stated main level and prerequisites, and may exclude each other. Disabled buttons explain why.",
+      "Skill cards show rank and effects. Critical Edge adds 20 percentage points of critical chance at rank one and 30 at rank two; the ranks do not add together.",
+      "To change your build, forget removable end skills to recover some experience. Remove dependent skills before their prerequisites."
+    ]
+  },
+  {
+    "title": "探索与照明等级",
+    "enTitle": "Exploration and Light",
+    "steps": [
+      "打开地图选择目的地，再点击场景中的采集热点。留意出发前的体力消耗、工具要求和危险程度。",
+      "升级瞭望台逐步开放新的探索区域；升级工具和武器后，再去采石场深层、山洞、荒漠与山顶。",
+      "部分热点有次数、工具等级、照明或前置事件要求。点灰色入口查看缺少条件，不必反复尝试。",
+      "黑暗地区先准备照明。照明不够会挡住部分探索入口；所需等级看热点提示，别只看是否携带火把。",
+      "提灯在精工工具台制作，放入工具栏后使陆地移动和采集遇袭概率减半，每累计1小时消耗1耐久；海上和海底不生效，固定守卫仍会出现。",
+      "出远门前补吃喝、修工具、清背包，准备衣物应对寒热。可在设置调整场景滑动与日志显示。"
+    ],
+    "enSteps": [
+      "Choose a destination on the map, then use gathering hotspots in the scene. Check travel stamina, required tools and danger before leaving.",
+      "Upgrade the watchtower to open more areas. Improve tools and weapons before exploring deeper quarries, caves, deserts and the peak.",
+      "Some hotspots require remaining uses, tool tiers, light or earlier events. Tap disabled entries to read their requirements.",
+      "Prepare lighting for dark places. Insufficient light blocks some actions; check the required light level, not just whether you carry a torch.",
+      "Craft a lantern at the Precision Workbench and equip it in a tool slot to halve random ambush chances on land. It uses one durability per hour of game time, is inactive at sea and underwater, and does not prevent fixed guards.",
+      "Before a long trip, replenish food and water, repair tools, reduce your load and prepare clothing for heat or cold. Settings control scene scrolling and log display."
+    ]
+  },
+  {
+    "title": "海底探索流程",
+    "enTitle": "Underwater Exploration",
+    "steps": [
+      "先推进瞭望台、船坞和出海路线，到盐镇提升声望、取得海图与深海装备图纸。也可按山顶祭坛线索开启传送路线。",
+      "下潜前装备潜水服，并把氧气罩放入工具栏；检查食水、装备耐久和药品。",
+      "到达海底后先熟悉栖居区，再准备当地仓库、工坊与修补设施；海底仓库与岛上仓库各自独立。",
+      "珊瑚生长带的淡化残罐可寻找淡水，每天最多检查3次；出发前仍需准备备用食水。",
+      "逐步探索珊瑚生长带、海沟、沉船墓地和深渊裂谷，击败守卫并收集深殿核心；危险区域先升级装备与照明。",
+      "集齐四块深殿核心，满足圣殿之门提示的照明要求后进入深水圣殿，准备挑战沉没之王。"
+    ],
+    "enSteps": [
+      "Develop the watchtower, dock and sailing route. Build reputation in Salt Town and obtain the chart and diving blueprint, or follow the peak altar clues to unlock a portal.",
+      "Equip a diving suit and place the oxygen hood in a tool slot. Check supplies, equipment durability and medicines before diving.",
+      "Learn the habitat area first, then establish local storage, workshops and repair facilities. Underwater and island storage are separate.",
+      "Search the Desalination Canister in the coral beds for fresh water, up to three times daily. Still carry backup food and water.",
+      "Explore the coral beds, trench, shipwreck graveyard and abyss rift. Defeat guards and collect temple cores; improve equipment and light before dangerous zones.",
+      "Collect four temple cores and meet the light requirement shown at the temple gate, then prepare to challenge the Sunken King."
+    ]
+  },
+  {
+    "title": "通关与结局",
+    "enTitle": "Endings",
+    "steps": [
+      "不同结局对应不同准备路线：营地建设与声望、航海准备、山顶祭坛或海底探索。先选择喜欢的方向，不必一次完成所有路线。",
+      "打开装备→属性查看当前可用的结局入口；未满足的条件会在相关入口说明中提示。",
+      "航海路线需准备船只、海图与补给；山顶路线按祭坛线索寻找遗物、石板和龙骨。材料来源可结合地图热点与图鉴查找。",
+      "海底路线击败沉没之王后，根据结局提示作出选择。重要选择前保存进度，并阅读确认说明。"
+    ],
+    "enSteps": [
+      "Endings follow different routes: camp development and reputation, sailing, the peak altar or underwater exploration. Choose a route; you need not complete all of them at once.",
+      "Open Equipment, then Attributes, to check ending actions. Relevant entries explain unmet requirements.",
+      "For sailing, prepare a ship, chart and supplies. For the peak, follow clues to the relic, stone slabs and dragon bone. Use map hotspots and the collection for reference.",
+      "After defeating the Sunken King, follow the ending choices. Save before important decisions and read their confirmation text."
+    ]
+  },
+  {
+    "title": "图鉴、说明与保存",
+    "enTitle": "Collection and Saving",
+    "steps": [
+      "菜单→图鉴可查看已发现的物品与怪物。物品条目可点开，查看攻击、防御、速度、耐久、食用效果等数值。",
+      "怪物图鉴可查看生命、攻击、防御、速度、特性与掉落；遇到陌生敌人前，先了解它擅长什么。",
+      "背包的物品详情也能查说明；装备→属性查看人物数值，场景状态标记可帮助了解温度和异常状态。",
+      "菜单可保存进度、使用备份与读档，并导出存档码。换设备前先导出并妥善保存，不要随意卸载或清除游戏数据。",
+      "遇到不明白的操作，先看按钮旁的问号、灰色提示和日志；攻略也可从邮箱的攻略页打开，两处内容相同。"
+    ],
+    "enSteps": [
+      "Open Collection from the menu to inspect discovered items and enemies. Tap items for attack, defense, speed, durability and use effects.",
+      "Enemy entries show health, attack, defense, speed, traits and drops. Learn unfamiliar enemies before taking risks.",
+      "Item details also show descriptions. Equipment Attributes show character stats; scene status indicators help explain temperature and ailments.",
+      "The menu offers saving, backups and save-code export. Export and keep a code before switching devices; avoid uninstalling or clearing game data without a backup.",
+      "Check question-mark help, disabled-action explanations and the log when unsure. The Guide tab in Mail uses the same pages as the menu guide."
+    ]
+  }
+];
+
+
 // approved 必须由作者点头改成 true 才会发；false 时代码里留着但玩家看不到。
-// 玩家对外版本号：当前宣传是 v1.04，本次打包为 v1.05。
+// 对外版本号以 index.html 的 BUILD_VER 为准；此列表只控制游戏内公告邮件。
 const PATCH_NOTES = [
   {
-    version: 'v1.08',
-    date: '2026-09-18',
-    approved: true,
-    title: 'v1.08 更新公告（技能树 + 存档加固 + 开头分镜）',
+    // 公告由作者审阅后决定启用；草稿仍随版本包保存。
+    version: 'v1.10',
+    date: '2026-10-01',
+    approved: false,
+    title: 'v1.10 更新公告（体感温度、新身份与制造分类）',
     body: [
-      '【大更新 · 技能树】',
-      '· 技能从"点一下升一级"改成技能树：点技能卡片展开整棵树——中间一条主干（Lv1→7），专项技能挂在两侧，互斥的一对分居左右、中间一条红虚线。',
-      '· 主干每升一级，从几个方向里选一个：采集是「产出 +10% / 耗时 -10% / 体力 -10%」，制造是「耗时 -10% / 10% 概率返还材料 / 10% 概率多产 1 件」，战斗是「攻击 +1 / 防御 +0.5 / 暴击率 +5%」。同一个方向可以重复选，效果叠加。',
-      '· 每个技能都配了图标，按钮上写清了要花多少经验；经验不够时会写明"现有多少、还差多少"，不再让你猜为什么点不动。',
-      '· 学错了能忘：「遗忘」只作用于最末端的技能，返还一半经验——忘掉最外层，里面那层就能接着忘。',
-      '· 战斗专项：阔刃横扫（双手重武器，横扫 1.0→1.4 倍伤害、CD 18/16/14 秒）+ 处决；嗜血狂刀（双持两把单手，伤害的 30~60% 回血）+ 复仇；盾墙 ⇄ 疾风连击；狂战 ⇄ 铁壁；弓术；枪械精通。',
-      '· 采集专项：伐木专精 ⇄ 自然感知；精细采集 ⇄ 粗放采集。制造专项：修补匠（最高 75% 修补不耗材料）；流水线 ⇄ 精工细作。',
-      '· 技能经验不跨局，但《历代遗章》新增「采集 / 制造 / 战斗心得」：买了以后每局开局直接送 30 / 60 / 100 点对应经验。',
-      '· ⚠️ 老玩家注意：旧技能等级会折算成经验返还（按新曲线升到同一等级所需经验的 2 倍），等级回到 0 级让你自己重新加点——折算给得比原来多，不会吃亏；读档时会有一条提示。',
-      '',
-      '【存档更稳了】',
-      '· 存档仍然同时写「本地存储 + cookie」两份，读取时取时间最新的那一份——平台清缓存只清掉一份也能恢复回来。',
-      '· 还是那句老话：隔一段时间去「菜单 → 备份 · 读档 → 导出存档码」复制一串存好，这是最稳的保命手段。',
-      '',
-      '【新存档开头有分镜了】',
-      '· 开新存档时会先播 5 格黑白木刻分镜：听说亚克兰蒂斯的传说 → 出海 → 特大风暴 → 沉没 → 醒来在荒岛。点画面 / 空格翻页，也能「跳过」，只在开新存档时播一次。',
-      '',
-      '【结局 & 山顶】',
-      '· 达成结局后会弹出「结局达成」，可以直接「观看结算画面」，也可以先继续玩——右下角会留一个「结算 · 结局「XX」」按钮随时回看。',
-      '· 材料齐了去山顶会有指路；条件不满足（瞭望台不够 / 雷暴 / 保暖不够 / 体力不够）时，点大地图箭头会当场在屏幕中央说清原因。',
-      '',
-      '【限定 · 神弓】',
-      '· 神弓耐久归零不再消失：只自动卸下，回营地用磨刀石修补（秘银锭 ×1）就能接着用。',
-      '· 制造列表里神弓配方挪到最下面一格。',
-      '',
-      '【牧场 · 鸡舍】',
-      '· 鸡舍可以扩建两次：3 → 4 只（木板×8、铁钉×10、茅草×20）、4 → 5 只（木板×16、铁钉×20、茅草×40、铁件×3）。',
-      '',
-      '【界面与手感】',
-      '· 主界面按钮缩小约 1/3，图鉴与每日签到收进「设置」面板。',
-      '· 选角色界面的立绘改成小头像 + 说明，一屏能看完所有身份。',
-      '· 弹窗刚打开的头 0.35 秒不接收点击（防止"单击直接睡俩小时"这种误触）。',
-      '· 赶路遇袭不能再关闭了；山洞里一直可能遇到洞穴熊（洞外拦路的熊仍是第 30 天起）。',
-      '',
-      '喜欢的话麻烦给个好评吧——个人作者一个人在做，这对我真的很重要！',
-      '',
-      '有任何问题欢迎进群反馈：QQ 群 1014679931。',
+      "【体感温度与两种新身份】",
+      "· 季节、地点、衣物、营地住所与火源、移动后的活动状态现在共同决定「温度」。太冷或太热会按游戏小时损失生命；进入新的冷热区域有 30 游戏分钟换衣缓冲。山顶不再硬性要求先穿厚衣，但贸然久留仍危险。",
+      "· 猎人重新开放：近战和远程基础命中各提高 10 个百分点，暴击率提高 5 个百分点，开局带石矛。",
+      "· 健身教练可建专属跑步机和哑铃架。每次锻炼耗 6 小时与 30 体力，同一天只能练一次；两种器材各限 16 次。跑步最多提高 50 点生命上限，哑铃最多提高 5 点攻击。",
+      "",
+      "【制造、食物与冬季】",
+      "· 制造页新增第二列配方分类，原料、工具、武器、防具、饮食等可以直接筛选。纺布与衣物归到一起，篝火、灶台、烟熏炉的食物归到一起；原有图纸和工位要求不变。",
+      "· 冬季河畔可以采雪，带回篝火烧成淡水；入冬时会提示水源与保暖风险。小麦先加工成面粉，再制作面包和蛋糕；鸡舍、羊圈改在农田管理，不再占住房家具位。",
+      "· 对岸美食家摊位现可正常购买萝卜炖肉、超级大蛋和蛋糕的食谱。制作需要相应图纸。",
+      "",
+      "【战斗、道具与海底】",
+      "· 战斗 2 级可在「重击」和「必中」间选择：重击伤害更高但更难命中，必中稳定命中；二者共用冷却。修正混装射速、弓术暴击、盾墙与复仇层数等问题。",
+      "· 牛角护符改为暴击率 +10 个百分点。潮生丹和渊息丹每局各最多制作 5 颗，服用不限次数。海底材料「遗城晶核」更名为「海底矿晶」，已有存档和配方保持可用。",
+      "· 山顶祭坛遗物不能再卖给商人反复领取刷贝壳币。旧档若已经失去遗物，仍可回祭坛补领以继续结局。",
+      "",
+      "【体验与存档】",
+      "· 冬季取水、石龛选神物、战斗最后一击血条、推进器体力显示等反馈已修正；中毒和流血在睡眠中仍会按时间生效。",
+      "· 制造、物品及身份补充了黑白图像，修复部分场景悬浮小方块和手机界面拥挤问题。",
+      "· Tap 云存档上传增加排队与防并发保护；本机即时进度、备份槽和存档码继续保留。更新后建议先确认原有存档能正常继续，再进行云端同步。",
+      "",
+      "感谢大家的反馈，更多问题欢迎继续告诉我。QQ群：1014679931。",
     ],
   },
-  {
-    version: 'v1.07',
-    date: '2026-09-17',
-    approved: true,
-    title: 'v1.07 更新公告',
-    body: [
-      '【重要 · 存档安全再加一层】',
-      '· 存档现在会同时写两份：浏览器本地存储 + cookie。哪份新就用哪份 —— 万一平台清缓存只清掉了本地存储，游戏会自动从 cookie 把进度和魂点恢复回来，并写回本地。',
-      '· 配合上一版的"启动异常自动进安全模式"（连续两次打不开会自动提示，让你先导出存档码、或用上一次的备份档继续）。',
-      '· 还是那句话：过一段时间就去「菜单 → 备份 · 读档 → 导出存档码」复制一串存好，这是最稳的保命手段。',
-      '',
-      '【新增：每日签到】',
-      '· 每天可领 魂点 ×30 + 备份点 ×2。主界面和游戏内菜单都有入口，领完按钮会变成"明天再来"。',
-      '',
-      '【新增：养蜂人 + 专属家具「蜂箱」】',
-      '· 养蜂人：树林取蜜必定成功、不会被蛰，还额外多产（30% 多 1 份、10% 再多 2 份）；开局带 蜂蜜 ×2、茅草 ×4。',
-      '· 蜂箱（养蜂人专属，占 1 个家具位）：每天清晨自动收获 1 份蜂蜜。',
-      '',
-      '【新增：人物立绘「彩绘卡面」皮肤】',
-      '· 新增皮肤包「彩绘卡面」：渔夫 / 樵夫 / 药师 / 铁匠学徒 / 养蜂人 换成整套全彩立绘（灵灰保持原样），在「设置 → 皮肤包」里一键切换。',
-      '· 默认那套黑白立绘里也补上了「养蜂人」。',
-      '',
-      '【新增：邮箱「攻略」页】',
-      '· 邮箱多了「攻略」标签：第二章传送门、深殿核心、蜂蜜/淡水/干草、雪莲与秘银、图纸去哪儿买、魂点怎么来、夜袭与赶路遇袭、工具耐久……群里问得最多的几条都在里面。',
-      '',
-      '【体验修复】',
-      '· 交易界面顶部现在显示"你身上：贝壳币 ×N · 金币 ×M"（老潮、盐镇集市、黑市、海底交易机都有）。',
-      '· 打开弹窗那一下会顺手点到弹窗里第一个按钮（有人反映"单击直接睡俩小时"）——现在弹窗刚打开的头 0.35 秒不接收点击。',
-      '· 一次性点位不关弹窗连点也能重复领（救小海、荒漠白骨包裹）——修好了。',
-      '· 水壶升级成滤雨器之后水壶"消失"、口渴 -20% 失效、属性面板显示"未装备水壶"——现在滤雨器算作水壶的升级，效果保留；没建水壶时也不再显示那行看不懂的字。',
-      '· 图纸不再占背包格子（背包满了也收得下）。',
-      '· 石板第三关"点灯"：以前"点亮"画成纯黑（看着像全黑），现在点亮是暖光 + ✦，并且实时显示"已点亮 N/9"。',
-      '· 海域的「沉船湾」、对岸的「盐镇 / 遗迹」点不动（界面层级把点击挡住了）——修好了。',
-      '',
-      '喜欢的话麻烦给个好评吧——个人作者一个人在做，这对我真的很重要！',
-      '',
-      '有任何问题欢迎进群反馈：QQ 群 1014679931。',
-    ],
-  },
-  {
-    // ⚠️ version 是"发没发过"的键：v1.06 已经发过，所以这版用 v1.06b，保证老玩家也能收到这条。
-    version: 'v1.06b',
-    date: '2026-09-15',
-    approved: true,
-    title: 'v1.06b 更新公告（存档安全提醒 + 一批修复）',
-    body: [
-      '【重要 · 先说存档安全】',
-      '· 这个游戏的存档只存在你自己的手机 / 浏览器本地，不在服务器上——换手机、换浏览器、清缓存都不会自动跟过去。',
-      '· 手机浏览器 / 微信 / QQ 内置浏览器偶尔会因为内存吃紧，把整个页面回收掉（表现就是"游戏突然退出去"）。这种小概率意外一旦发生，本地存档可能来不及写完。',
-      '· 所以强烈建议：过一段时间就去「菜单 → 备份 · 读档 → 导出存档码」复制一串码存好（微信收藏、备忘录都行）。真出了意外，把码粘回来就能恢复进度。',
-      '· 这一版已经把图片整体瘦身（省掉约三成内存），并且加上了"启动异常自动进安全模式"：万一连续两次打不开，会自己弹出提示，让你先导出存档码、或用上一次的备份存档继续。',
-      '',
-      '【本版修复与调整】',
-      '· 存档加固：写完会读回来校验；"另一个标签页有更新进度"时不再互相覆盖；切后台/锁屏/关页面都会立刻存一次；每 20 秒兜底自动存。',
-      '· 双持两把近战武器时战斗会崩（血条不动、武器不掉耐久）——修好了：现在两把轮流出手、轮流掉耐久，日志里标出这一刀用的是哪把。',
-      '· 远程武器以前永远不掉耐久（弓 / 手枪 / 神弓都不掉）——修好了。顺带调整了数值：神弓耐久 50 → 120，手枪 120 → 50。',
-      '· 蛛巢这类"点进去只弹讨伐确认"的地点，以前撤退也会白扣体力、还占掉当日次数——现在确认了才扣。',
-      '· 一次性地点能重复刷：救小满能救四次、荒漠白骨包裹能无限刷金币——都修好了，老存档也会自动收口。',
-      '· 新手引导点「跳过」没反应——修好了（同一个毛病还顺带修了"领完邮件不刷新""兑换码不切页"）。',
-      '· 工具用坏后还挂在工具栏里、看不到耐久——现在工具栏和背包直接写耐久数字，坏了自动换背包里的备用。',
-      '· 洞穴熊太强：改成第 30 天起才会出现（拦路和洞里狩猎都算）。',
-      '· 珍珠之心的源能水晶爆率 30% → 50%。',
-      '· 睡觉得到统一：安稳睡觉一律 8 小时（床的好坏只体现在体力/精神恢复上）；睡觉与小睡那两张动画图发灰、看不清，也重新调好了。',
-      '· 营地篝火被仓库挡住——现在按远近叠放，篝火在仓库前面，位置也往下挪了一点。',
-      '· 大地图尺寸规则统一：宽度 = 屏幕宽度（手机 / 平板 / 电脑都一样），左右都能看全，多出来的高度上下拖动看；进地图会自动对准你当前所在的位置。',
-      '· 背景音乐太吓人：原来的音是"每个音都重新随机抽"，听着像刮擦声；现在改成五声音阶的级进旋律 + 慢起音，柔和很多。',
-      '· 手机端体验：底栏加高到 30px、可点区域变大；全屏模糊特效在手机上关掉（省电省内存）；左侧日志栏不再压住场景热点（热点现在画在它上面，永远看得见、点得到）。',
-      '· 海域的「沉船湾」、对岸的「盐镇 / 遗迹」这些分区按钮点不动——修好了（界面层级把点击挡住了）。',
-      '',
-      '【一句心里话】',
-      '这是个人作者做的第一个游戏，作者每天都在努力更新。觉得还不错的话，麻烦给个好评吧——非常感谢，这对我非常重要！',
-      '',
-      '有任何问题欢迎进群反馈：QQ 群 1014679931。',
-    ],
-  },
-  {
-    version: 'v1.06',
-    date: '2026-09-13',
-    approved: true,
-    title: 'v1.06 更新公告',
-    body: [
-      '【双持重做：轮流挥砍 + 攻速对称】',
-      '· 双持不再取两把平均伤害，而是轮流出手：这一刀用哪把就按哪把算，也扣哪把耐久，日志会标出〔所用武器〕。',
-      '· 攻速不再只看主手：以前主手塞把快匕首、副手放高攻武器就能近乎无敌（互换主副手差 150%）。现在两把按攻击力加权平均，主副手完全对称。',
-      '',
-      '【新增：横扫（双手重武器专属）】',
-      '· 装备铁大剑这类双手重武器时，战斗里多出「横扫」：对全部敌人各造成 1 倍伤害，命中略降，冷却 20 个单位时间（按出手次数扣）。',
-      '',
-      '【多目标战斗：敌人开始有意图了】',
-      '· 当场上活着的敌人 ≥2 只时，敌人每回合掷一次意图（单挑完全不触发）：',
-      '  蓄力 20%：本回合不出手，下一击双倍；掩护 20%：不出手，全体友方减伤 30%；猛击 30%：攻击 ×1.3 但自身防御归零。',
-      '· 每只怪的血条后会标出它下回合要干什么，"先打谁"终于有依据：打断蓄力、先清掩护、趁猛击破绽。',
-      '',
-      '【图标与皮肤】',
-      '· 补齐 19 个缺失的物品图标：源能手枪、源能子弹、破损的源能手枪、深殿核心、亚特兰蒂斯核心、源能晶石、兽角吊坠，以及 7 张图纸和 5 件神物。以前这些在背包里只能显示一个汉字（比如"枪"）。',
-      '· 皮肤包真的能换图标了：「深海琥珀」皮肤，目前仅仅作为功能尝试。',
-      '· 睡觉有动画了：小睡是靠着石头打盹，整觉是蜷在睡袋里、旁边一堆将熄的篝火；画面会缓慢呼吸起伏，头顶还会飘出 z。守夜（清醒）不播放。',
-      '',
-      '【界面】',
-      '· 生命条 / 体力条改成淡米红与淡米黄，比原来的纯白/灰更好认，两套皮肤下都生效。',
-      '· 工具栏能看到工具图标了：以前槽位里只显示一个汉字，现在是物品图标 + 名字 + 耐久条。',
-      '· 营地面板底部重复的"声音"开关删掉了（设置里已经有音乐/音效/环境音三个独立开关）。',
-      '· 鸡舍 / 羊圈的按钮文字看不见——修好了。原因是深色卡片里的浅底按钮继承了父级的浅色字，变成"浅底浅字"，现在按钮自带前景色。',
-      '· 右下角按钮不再互相压住：窄屏下"与老潮交易"会和"休息"栏重叠 23px，现在两者排成一列，结构上不可能重叠。',
-      '· 日志栏展开按钮挪到「返回地图」右侧、高度与它一致（以前悬在画面正中间，像穿帮）。',
-      '· 竹林·竹影深处热点移到画面右上角（以前在正中偏右，容易和别的热点挤在一起）。',
-      '',
-      '【平衡】',
-      '· 金价略微削弱：山洞·深处矿脉的门槛提到镐 tier3（钢镐），每日 1 次，耗时/体力略增；收购价 80 → 55。',
-      '· 石板改成只能捡、不能买卖：以前老潮、盐镇情报贩子、黑市都收石板（300~350），总有玩家跑到山顶捡到石板顺手就卖了，结果解谜材料没了。现在没人肯收，道具说明也写清楚了。',
-      '',
-      '有任何问题欢迎进群反馈：QQ 群 1014679931。',
-    ],
-  },
-  {
-    version: 'v1.05',
-    date: '2026-09-13',
-    approved: true,
-    title: 'v1.05 更新公告',
-    body: [
-      '【界面手感】',
-      '· 底部按钮换成了棱角分明的黑白立体样式，点下去会沉一下，并伴一声清脆的咔哒声。',
-      '· 新增「设置」：音乐 / 音效 / 环境音分开开关；日志栏可设为常驻、3 秒没新日志自动淡出、或直接隐藏。',
-      '· 皮肤包管理入口已放好（敬请期待）。',
-      '· 主界面也打包成了菜单：设置、图鉴都能直接在标题页打开。',
-      '· 图鉴改成账号级：历代存档解锁过的内容都会记住，不开局也能在主界面查看。',
-      '',
-      '【大地图】',
-      '· 地图与场景改成铺满整个画面，左右不留黑边；多余部分上下拖动查看。',
-      '· 滑出画面的热点会整条隐藏，拖回来才出现；从场景返回地图会自动对准你所在的地点。',
-      '· 第一章大地图也会显示当前天气。',
-      '',
-      '【战斗与难度】',
-      '· 出手改成「时间追赶」：攻速 = 出手频率。你点一次算你出手一次，敌人按（敌速 ÷ 我速）攒出手次数——你 6 打它 7：前几轮它先出手，攒满两次的那一轮它打你两下，第二下与你这一击同时结算（你这一下照样打得出去）。攻速越高，对手还手次数越少。',
-      '· 防御效率按难度区分：简单 100% / 普通 90% / 困难 80% / 传奇 70%。',
-      '· 群袭（狼、海盗）有 50% 概率一次来两只；触手哨兵必定两只。',
-      '· 沉没之王的「穿透」实装：无视你一半防御。',
-      '',
-      '【生存与平衡】',
-      '· 夏天穿太厚会中暑（每小时掉血），冬天没保暖照样挨冻。',
-      '· 潜水服保暖改为 +2；工具每高一级采集快 20%；渔网造价与耐久调整。',
-      '· 夜袭改为「打过第一次之后才会有随机夜袭」，强度随时间上涨，第 50 天到顶 5 匹狼。',
-      '· 草药膏、止血绷带、大煎蛋、熏鱼熏肉、精神恢复、河畔撒网等一批数值调整。',
-      '',
-      '【邮箱】',
-      '· 更新公告以后会直接发到游戏邮箱，不用再翻论坛。',
-      '',
-      '【重要修复】',
-      '· 修复：死亡后回标题再"继续上次游戏"，会导致结局按钮全部消失（连累时间流逝与自动存档也停摆）。现在读档 / 从备份继续 / 结局界面点「留在岛上」都会自动清掉本局结算状态，魂点不会重复结算。',
-      '· 修复：山顶祭坛拿过遗物后热点消失，玩家找不到结局 C 的入口。现在凑齐"遗物+石板×3+龙骨"时，祭坛热点会重新亮起并直接给出仪式选项。',
-      '· 存档瘦身：以前存档会把整局日志全存进去（一天天攒到 4800 多条 / 378KB，存档码 940KB），现在只留最近 200 条。同一份存档 706KB → 58KB，也降低了占满浏览器存储导致丢档的风险。',
-      '· 修复：随机事件的触发条件以前用错了判断（写成"满足任意一条"），导致"雾天也漏雨""住了木屋/砖瓦房还漏雨"、河畔非雨天也会涨水。现在条件必须全部满足：漏雨只在雨天/雷暴且住处低于 2 级时出现。',
-    ].join('\n'),
-  },
+
 ];
 
 const ENDINGS = {
+  N:{name:'长夜终醒',cond:'噩梦模式击败噩梦之源',text:'破晓的光穿过最后一道裂隙。岛上的影子，终于重新属于它们自己。',img:'assets/img/enemies/nightmare7.png',lines:['你看清了恐惧的形状，也亲手撕开了它。','那个醒不过来的夜晚，终于结束了。','—— 长夜终醒。']},
   A: { name:'归乡', cond:'远洋船 + 海图 + 补给箱×3', text:'日出时分，你升起帆。孤岛在身后缩成一个小小的黑点。', img:'assets/img/endings/ending_a.png', lines:[    '你曾以为会死在岛上，可你造出了船。',
     '帆吃得满满了，风从故乡的方向吹来。',
     '回头时，那座困住你一百多天的岛，已经小得像一枚邮票。',
     '—— 你回家了。',
   ] },
-  B: { name:'岛主', cond:'击败海盗头目 + 盐镇声望2 + 石墙', text:'篝火从你的营地连到盐镇。人们说，岛上有主了。', img:'assets/img/endings/ending_b.png', lines:[
+  B: { name:'岛主', cond:'击败海盗头目 + 盐镇声望4 + 石墙', text:'篝火从你的营地连到盐镇。人们说，岛上有主了。', img:'assets/img/endings/ending_b.png', lines:[
     '你赶走了海盗，修起了石墙，建起了自己的家。',
     '盐镇的人不再怕你，他们开始叫你"岛主"。',
     '海风里，篝火次第亮起，这条岛从此有了人烟。',
@@ -1322,10 +1503,10 @@ const SKILL_TREES = {
         desc:['砍树额外 +0.5 木材（攒够 1 份就给）'] },
       { id:'g_nature', name:'自然感知', icon:'g_nature', need:2, side:'l', max:1, cost:[30], mutex:'g_wood',
         desc:['遇到美人松的概率 +7%'] },
-      { id:'g_fine',   name:'精细采集', icon:'g_fine', need:4, side:'r', max:1, cost:[60], mutex:'g_rough',
-        desc:['单点产出 +20%，但体力消耗 +15%'] },
-      { id:'g_rough',  name:'粗放采集', icon:'g_rough', need:4, side:'l', max:1, cost:[30], mutex:'g_fine',
-        desc:['体力消耗 -30%，产出 -10%'] },
+      { id:'g_fine',   name:'精细采集', icon:'g_fine', need:4, side:'r', max:2, cost:[60,90], mutex:'g_rough',
+        desc:['单点产出 +20%，但体力消耗 +15%', '单点产出提升至 +30%，体力消耗仍 +15%'] },
+      { id:'g_rough',  name:'粗放采集', icon:'g_rough', need:4, side:'l', max:2, cost:[30,60], mutex:'g_fine',
+        desc:['体力消耗 -20%，产出 -10%', '体力消耗提升至 -30%，产出仍 -10%'] },
     ],
   },
   craft: {
@@ -1339,9 +1520,9 @@ const SKILL_TREES = {
       { id:'c_patch',  name:'修补匠', icon:'c_patch', need:3, side:'r', max:2, cost:[30,70],
         desc:['修补 25% 概率不消耗材料','50% 概率不消耗材料'] },
       { id:'c_line',   name:'流水线', icon:'c_line', need:4, side:'r', max:1, cost:[60], mutex:'c_finework',
-        desc:['有耐久的成品耗材料 -40%、耐久 -20%（食物/药剂这类不受影响）'] },
+        desc:['有耐久的成品耗材料 -40%、耐久上限 -20%（食物/药剂这类不受影响）'] },
       { id:'c_finework', name:'精工细作', icon:'c_finework', need:4, side:'l', max:1, cost:[60], mutex:'c_line',
-        desc:['成品耐久 +30%，耗材料 +30%（只对武器/工具/防具这类有耐久的东西生效）'] },
+        desc:['成品耐久上限 +30%，耗材料 +30%（只对武器/工具/防具这类有耐久的东西生效）'] },
     ],
   },
   combat: {
@@ -1354,31 +1535,39 @@ const SKILL_TREES = {
     // B2 第一批：横扫（时间制）/ 处决、嗜血狂刀 / 复仇 —— 两两成对互斥
     // 攻速口径：每 100 时间单位出手「攻速」次；横扫 CD 按同一套时间单位算（基础 20 秒）
     nodes: [
+      // 作者 2026-09-25：战斗 2 级给一对**互斥**选择 —— 重击 / 必中。
+      //   重击以前是"主干 2 级白送"（代码里写死 combatLv()>=2 就给按钮），现在必须在这里点出来：
+      //   **不学重击就没有重击技能**。两个都带 20 单位时间冷却（和横扫同一套时间单位）。
+      //   老存档（这一版之前开的局、战斗已到 2 级）读档时会自动补上重击，不会凭空少一个技能。
+      { id:'f_heavy', name:'重击', icon:'k_heavy', need:2, side:'l', max:1, cost:[30], mutex:'f_sure',
+        desc:['重击：1.5 倍伤害、命中 −20%，冷却 20 秒'] },
+      { id:'f_sure',  name:'必中', icon:'k_sure',  need:2, side:'r', max:1, cost:[30], mutex:'f_heavy',
+        desc:['必中：必定命中、1.0 倍伤害，冷却 20 秒'] },
       { id:'f_sweep', name:'阔刃横扫', icon:'k_sweep', need:3, side:'r', max:2, cost:[30,70], mutex:'f_vamp',
         req:'双手重武器',
-        desc:['横扫 1.0 倍伤害 · CD 18 秒（需双手重武器）','横扫 1.2 倍伤害 · CD 16 秒'] },
-      { id:'f_exec', name:'处决', icon:'k_exec', need:3, needNode:'f_sweep', side:'r', max:2, cost:[30,70],
+        desc:['横扫 1.0 倍伤害 · CD 18 秒（需双手重武器）；首回合近战先于普通敌人（首领战除外）','横扫 1.2 倍伤害 · CD 16 秒；首回合近战先于普通敌人（首领战除外）'] },
+      { id:'f_exec', name:'处决', icon:'k_exec', need:4, needNode:'f_sweep', side:'r', max:2, cost:[30,70],
         desc:['敌人生命 <20% 时，你的伤害 +50%','敌人生命 <25% 时，你的伤害 +50%'] },
-      { id:'f_vamp', name:'嗜血狂刀', icon:'k_vamp', need:3, side:'l', max:3, cost:[30,70,130], mutex:'f_sweep',
+      { id:'f_vamp', name:'嗜血狂刀', icon:'k_vamp', need:3, side:'l', max:2, cost:[30,70], mutex:'f_sweep',
         req:'双持两把匕首',
-        desc:['造成伤害的 30% 回血（需双持两把匕首）','造成伤害的 40% 回血','造成伤害的 50% 回血'] },
-      { id:'f_revenge', name:'复仇', icon:'k_revenge', need:3, needNode:'f_vamp', side:'l', max:2, cost:[30,70],
+        desc:['造成伤害的 30% 回血（需双持两把匕首）','同样 30% 回血；升级只延长【复仇】链、不再提高吸血比例'] },
+      { id:'f_revenge', name:'复仇', icon:'k_revenge', need:4, needNode:'f_vamp', side:'l', max:2, cost:[30,70],
         desc:['每被打一次，下一次攻击 +20%','下一次攻击 +30%'] },
-      { id:'f_shield', name:'盾墙', icon:'k_shield', need:4, side:'l', max:2, cost:[30,70], mutex:'f_swift',
+      { id:'f_shield', name:'盾墙', icon:'k_shield', need:3, side:'l', max:2, cost:[30,70], mutex:'f_swift',
         req:'盾',
         desc:['格挡率 +15% · 盾耐久消耗 -20%（需盾）','格挡率 +20% · 盾耐久消耗 -35%'] },
-      { id:'f_swift', name:'疾风连击', icon:'k_swift', need:4, side:'r', max:2, cost:[30,70], mutex:'f_shield',
-        desc:['攻速 +1','攻速 +2'] },
+      { id:'f_swift', name:'刀刀暴击', icon:'k_swift', need:3, side:'r', max:2, cost:[30,70], mutex:'f_shield',
+        desc:['会心一击率 +20 个百分点','会心一击率 +30 个百分点'] },
       { id:'f_rage', name:'狂战', icon:'k_rage', need:6, side:'l', max:2, cost:[40,90], mutex:'f_iron',
         desc:['攻击 +15%，但受到伤害 +10%','攻击 +22%，受到伤害 +10%'] },
       { id:'f_iron', name:'铁壁', icon:'k_iron', need:6, side:'r', max:2, cost:[40,90], mutex:'f_rage',
         desc:['受到伤害 -12%，但攻击 -5%','受到伤害 -18%，攻击 -5%'] },
       { id:'f_bow', name:'弓术', icon:'k_bow', need:3, side:'l', max:2, cost:[30,70],
         req:'弓',
-        desc:['弓命中 +5% · 15% 不消耗箭矢','弓命中 +5% · 25% 不消耗箭矢'] },
+        desc:['用弓时暴击效果 +30%（会心倍率 1.5 → 1.8）','用弓时暴击效果 +60%（会心倍率 1.5 → 2.1）'] },
       { id:'f_gun', name:'枪械精通', icon:'k_gun', need:3, side:'r', max:2, cost:[30,70],
         req:'手枪',
-        desc:['手枪命中 +10% · 20% 不消耗源能子弹','手枪命中 +10% · 30% 不消耗子弹'] },
+        desc:['手枪命中 +10% · 20% 不消耗子弹','手枪命中 +10% · 30% 不消耗子弹'] },
     ],
   },
 };
@@ -1399,25 +1588,28 @@ const META_NODES = [
   { id:'startF', name:'战斗心得', desc:'每局开局获得 战斗经验 +30 / +60 / +100', max:3, cost:[30,80,180] },
 ];
 
-// ---------- 神物（作战被动；远古金币换取 或 小概率奇遇获取） ----------
+// ---------- 神物（作战被动；远古金币换取 / 小概率奇遇获取 / 海底神秘鱼人以物换物） ----------
+// ⚠️ 其中「亚特兰蒂斯之种」按作者 2026-09-23 定案，可从商城购买或沉船墓地的神秘鱼人换（见 game.js FISHMAN_DEALS），
+//    原来那条"对岸神秘商人 30 金币换神物"的随机事件已删除，不要再加回来。
 const RELICS = {
   vampire:   { name:'吸血宝石', glyph:'血', desc:'攻击时回复所造成伤害 10% 的生命。' },
   dodge:     { name:'闪避护符', glyph:'闪', desc:'有 10% 概率完全闪避敌人的攻击。' },
-  satchel:   { name:'食之包',   glyph:'囊', desc:'饱食或水分低于 50 时，自动进食饮水。' },
+  satchel:   { name:'食之包',   glyph:'囊', desc:'饱食或水分低于50时自动进食饮水，获得完整食用效果；可远程使用当前章节营地仓库与地窖中的安全食物。' },
   bloodvest: { name:'血色背心', glyph:'胄', desc:'生命上限 +20。' },
   atlantisSeed: { name:'亚特兰蒂斯之种', glyph:'种', desc:'携带此神物，水下无需装备氧气罩（氧气无限）。' },
 };
 
 // ---------- 工具/武器耐久上限（用到 0 会损坏） ----------
 const DURA = {
+  lantern:50,
   axeStone:25, axeIron:50, axeSteel:90,
   pickStone:25, pickIron:50, pickSteel:90, pickBlack:120,
   knifeStone:18, hoe:40, rod:40, net:10,
-  club:8, spear:12, bow:70, divineBow:120, ironSword:70, steelSword:110, blackSword:160, ironDagger:40, ironGreatSword:140,
+  club:8, spear:12, bow:70, divineBow:120, ironSword:70, steelSword:110, blackSword:160, ironDagger:40, steelDagger:80, blackDagger:120, ironGreatSword:140, blackGreatSword:240,
   coralBlade:90, sourceSpear:130, woodShield:40, ironShield:70, steelShield:110,
   shellAmulet:50, beastFang:50, pearlNeck:60, hornAmulet:70,
   diveSuit:50, diveSuit2:200, diveMask:100, pistol:50,
-  grassArmor:40, leatherArmor:60, ironArmor:90, blackArmor:130, coralArmor:110, sourceArmor:150,
+  grassArmor:40, leatherArmor:60, ironArmor:90, divineArmor:110, blackArmor:130, coralArmor:110, sourceArmor:150,
 };
 
 // 图鉴统计口径
@@ -1446,7 +1638,7 @@ const ACHIEVEMENTS = {
   abyssal:    { name:'深潜者',     glyph:'潜', tier:'红', reward:200, desc:'深入亚特兰蒂斯最深处。' },
 };
 
-// ---------- 灵灰台词（身份为「灵灰」时，偶尔会在日志里冒出） ----------
+// ---------- 灵灰台词（身份为「灵灰」时，每天必说一句） ----------
 const LINGHUI_LINES = [
   '灵灰甩了甩尾巴：今天也要加油哦～',
   '灵灰：海风把我头发都吹乱啦。',
@@ -1457,3 +1649,16 @@ const LINGHUI_LINES = [
   '灵灰：今天的鱼汤好香！我闻到啦！',
   '灵灰歪着头：你在做什么呀？让我看看～',
 ];
+
+// 角色演出数据：语音离线随包，默认版画，彩绘皮肤保留原色。
+const MERCHANTS = {
+  "laochao": {"name":"老潮","cell":0,"lines":["海风正好，来看看这趟的新货。","好货配好价，下回靠岸还找你。","真是一次愉快的交易。"]},
+  "grocer": {"name":"杂货商","cell":1,"lines":["粮食和日用都在这儿，慢慢挑。","这些东西带回去，总有用得上的时候。","收好啦，路上留心天气。"]},
+  "smith": {"name":"铁匠","cell":2,"lines":["试试分量，好铁经得住敲打。","趁手的家伙，才不辜负好材料。","成了，带上它，好好活着回来。"]},
+  "informant": {"name":"情报贩子","cell":3,"lines":["消息也有价。你想知道哪一条？","你拿走消息，我收下报酬。","有些秘密，只说给识货的人。"]},
+  "gourmet": {"name":"美食家","cell":4,"lines":["这味道，值得多花一点心思。","记得慢火，别糟蹋了好食材。","好味道，总要留给懂吃的人。"]},
+  "black": {"name":"独眼","cell":5,"lines":["嘘，夜里的买卖，少问来路。","货交给你，咱们两清。","眼光不错，下次还走这条路。"]},
+  "fishman": {"name":"神秘人鱼","cell":6,"lines":["把金锭放下。海会记住这次交换。","深海的赠礼，交给你了。","潮汐带走旧物，也带来新的缘分。"]},
+  "atlTrade": {"name":"远古交易机","cell":7,"lines":["交换协议已就绪。请提交物资。","交易完成。物资已交付。","价值核算完毕。欢迎再次交换。"]}
+};
+const LINGHUI_SPEECH = ["今天也要加油哦。","海风把我头发都吹乱啦。","这里的海，好安静呀。","要不要去海边捡贝壳？我认识好多好看的。","好困，你困不困呀。","那颗星星好亮，像你的眼睛。","今天的鱼汤好香！我闻到啦！","你在做什么呀？让我看看。","我好像，见过这里。"];

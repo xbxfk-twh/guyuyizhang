@@ -10,7 +10,7 @@ const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const ROOT = path.join(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const PORT = 9351;
 const PROFILE = path.join(require('os').tmpdir(), 'guyu_mapcenter_' + process.pid);
-const OUT = path.join(__dirname, '_mapcenter_out');
+const OUT = path.join(__dirname, '_out', 'mapcenter');
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const getJSON = url => new Promise((resolve, reject) => {

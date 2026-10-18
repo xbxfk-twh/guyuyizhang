@@ -1,0 +1,37 @@
+/* Real independent Chrome checks: challenge selection, soul workshop and boss. */
+const {spawn}=require('child_process'),fs=require('fs'),path=require('path'),http=require('http'),os=require('os'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../..'),out=path.join(root,'回归测试/_out'),profile=fs.mkdtempSync(path.join(os.tmpdir(),'guyu-mobile-')),port=9657;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const json=url=>new Promise((res,rej)=>http.get(url,r=>{let s='';r.on('data',x=>s+=x);r.on('end',()=>{try{res(JSON.parse(s));}catch(e){rej(e);}});}).on('error',rej));
+let passed=0,fail=0,ws,ch;const errors=[];
+(async()=>{try{
+ ch=spawn(process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',['--headless=new','--disable-gpu','--no-first-run','--allow-file-access-from-files','--remote-debugging-port='+port,'--user-data-dir='+profile,'about:blank'],{stdio:'ignore',windowsHide:true});
+ let tab;for(let i=0;i<80&&!tab;i++){await sleep(200);try{tab=(await json('http://127.0.0.1:'+port+'/json/list')).find(t=>t.type==='page');}catch{}}
+ assert.ok(tab);ws=new WebSocket(tab.webSocketDebuggerUrl);await new Promise((r,j)=>{ws.onopen=r;ws.onerror=j;});
+ let seq=0;const pending=new Map();ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&pending.has(m.id)){pending.get(m.id)(m);pending.delete(m.id);}if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.exception?.description||m.params.exceptionDetails.text);};
+ const send=(method,params={})=>new Promise((r,j)=>{const id=++seq;pending.set(id,m=>m.error?j(Error(JSON.stringify(m.error))):r(m.result));ws.send(JSON.stringify({id,method,params}));});
+ const ev=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(JSON.stringify(r.exceptionDetails));return r.result?.value;};
+ const waitRoomLayout=async()=>{let last='',stable=0;for(let i=0;i<40;i++){const state=await ev(`(()=>{const imgs=[...document.querySelectorAll('.room-stage img')],sprites=[...document.querySelectorAll('.room-sprite')];if(!imgs.length||sprites.length<=10||imgs.some(e=>!e.complete||!e.naturalWidth))return '';return JSON.stringify(sprites.map(e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height];}));})()`);stable=state&&state===last?stable+1:0;last=state;if(stable>=2)return;await sleep(100);}throw Error('房间图片或布局未稳定');};
+ const check=async(name,expr)=>{const ok=await ev(expr);if(!ok){await shot('mobile-ui-failure.png');console.error(await ev(`JSON.stringify([...document.querySelectorAll('[data-separate], .room-sprite')].map(e=>({name:e.getAttribute('aria-label')||e.title,rect:e.getBoundingClientRect().toJSON(),hit:document.elementFromPoint(e.getBoundingClientRect().x+e.offsetWidth/2,e.getBoundingClientRect().y+e.offsetHeight/2)?.outerHTML.slice(0,180)})))`));}assert.ok(ok,name);passed++;console.log('OK '+name);};
+ const shot=async(name)=>{const r=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(out,name),Buffer.from(r.data,'base64'));};
+ await send('Runtime.enable');await send('Page.enable');
+
+
+ for(const [w,h]of [[667,375],[1366,768]]){
+  await send('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:1,mobile:w<1000});await send('Emulation.setTouchEmulationEnabled',{enabled:w<1000,maxTouchPoints:1});await send('Page.navigate',{url:require('url').pathToFileURL(path.join(root,'孤屿遗章-游戏 - 发布/index.html')).href});await sleep(4500);
+  await ev(`Game.newGame('fisher','normal');Game.S().tut=null;Game.S().capacity=999;Game.S().inv={};Game.S().warehouse={items:[]};for(const id of ['wood','stone','water','berry','axeStone','ironSword','flint','branch','herb','thatch','hide','vine'])Game.addItem(id,ITEMS[id].stack===1?1:8,true);Game.S().warehouse.items=[{id:'wood',qty:8},{id:'water',qty:20},{id:'honey',qty:3,expiry:99999},{id:'stone',qty:20}];UI.begin();document.querySelector('#modal .modal-x')?.click();`);await sleep(3000);
+  const tap=async selector=>{await sleep(380);await ev(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'nearest'})`);await sleep(70);const r=await ev(`document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect().toJSON()`),x=r.x+r.width/2,y=r.y+r.height/2;assert.ok(x>0&&y>0&&x<w&&y<h,selector+' visible');if(w<1000){await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:1}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}else{await send('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});await send('Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});}await sleep(380);};
+
+  await ev(`Game.S().stats.health=30;Game.S().statuses.poison=6;Game.S().buffs={atk:{v:3,until:Game.S().tick+120}};UI.render();`);
+  await check('状态移至顶栏且入口可见 '+w,`(()=>{const b=document.querySelector('[data-buff-info="all"]'),r=b.getBoundingClientRect();return !!b.closest('#topbar')&&r.right<=innerWidth&&r.left>=0&&r.bottom<50;})()`);
+  await check('生命图标及全部属性可访问 '+w,`document.querySelector('.stat-name').getAttribute('aria-label')==='生命'&&document.querySelectorAll('.stat-name').length===6`);
+  await shot('mobile-refresh-hud-'+w+'.png');await tap('[data-buff-info="all"]');
+  await check('状态详情保留中毒与增益效果 '+w,`document.querySelector('#modal').textContent.includes('每小时失去3生命')&&document.querySelector('#modal').textContent.includes('3')&&document.querySelector('#modal').textContent.includes('简易药膏')`);
+  await tap('#modal .modal-x');
+  await check('日志时间不重复天数 '+w,`[...document.querySelectorAll('.logtime')].every(e=>!e.textContent.includes('天'))`);
+  await tap('[data-nav="inv"]');await shot('mobile-refresh-bag-'+w+'.png');await tap('[data-warehouse-open]');await shot('mobile-refresh-warehouse-'+w+'.png');await tap('#modal .modal-x');
+  await ev(`(()=>{const b=[...document.querySelectorAll('.hotspot')].find(e=>e.textContent.includes('进屋'));b?.click();})()`);await sleep(500);
+  await check('室内无无效摆放入口 '+w,`!document.querySelector('#room-arrange,#room-reset')`);
+ }
+ assert.deepEqual(errors,[]);passed++;console.log('OK 无脚本异常');
+}catch(e){fail++;console.error(e.stack);console.error(JSON.stringify(errors));if(ws){try{ws.send(JSON.stringify({id:9999,method:'Page.captureScreenshot',params:{format:'png'}}));}catch{}}}finally{ws?.close();ch?.kill();console.log('通过 '+passed+' 项，失败 '+fail+' 项\nRESULT:'+(fail?'FAIL':'PASS'));process.exitCode=fail?1:0;}})();

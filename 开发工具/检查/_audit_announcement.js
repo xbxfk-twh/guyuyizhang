@@ -61,35 +61,31 @@ ck('★ 回地图自动对准当前所在地 + 不越界（热点仍只钉在地
 ck('第一章大地图显示天气', /mwo\.className = st\.scene === 'atlantis' \? '' : \(st\.weather === 'rain'/.test(UI));
 
 console.log('\n【战斗与难度】');
-ck('出手 = 时间追赶（比例攒出手 + 同时结算）', /C\.accE = Math\.max\(0, Math\.min\(3, \(C\.accE \|\| 0\) \+ _spdE \/ _spdP\)\)/.test(GAME) && /if \(twin\) \{ doEnemyTurn\(\); doPlayerTurn\(\); \}/.test(GAME));
+ck('出手 = 时间追赶（比例攒出手 + 存活才进入最后一击同时结算）', /C\.accE = Math\.max\(0, Math\.min\(3, \(C\.accE \|\| 0\) \+ _spdE \/ _spdP\)\)/.test(GAME) && /if \(twin\) \{ if \(!C\.fled && S\.stats\.hp > 0 && aliveNow\(\)\.length\) \{ doEnemyTurn\(\); doPlayerTurn\(\); \}/.test(GAME));
 ck('防御效率 100/90/80/70', DIFFICULTIES.easy.defEff === 1 && DIFFICULTIES.normal.defEff === 0.9 && DIFFICULTIES.hard.defEff === 0.8 && DIFFICULTIES.legend.defEff === 0.7 && /defPart = myDef \* defEff/.test(GAME));
 ck('群袭 50% 两只 + 触手必两只', /packAlways/.test(DATA) && /enemy\.packAlways \? 2 : \(chance\(0\.5\) \? 2 : 1\)/.test(GAME) && ENEMIES.tentacle.packAlways === 1);
 ck('沉没之王「穿透」实装', /includes\('pierce'\)/.test(GAME) && (ENEMIES.sunkenKing.traits || []).includes('pierce'));
 
 console.log('\n【生存与平衡】');
-ck('夏天中暑 / 冬天过冷（每小时扣血）', /season\.heat && clothWarm >= 4/.test(GAME) && /coldNeed > 0 && warm < coldNeed/.test(GAME));
+ck('冷热统一为体感温度，过冷 / 过热每小时扣血', /function temperatureInfo\(/.test(GAME) && /temp\.state === 'cold' \? 5 : 3/.test(GAME));
 ck('潜水服保暖 +2', ITEMS.diveSuit.warm === 2 && ITEMS.diveSuit2.warm === 2);
 ck('工具每高一级快 20%', /\(1 - \(tt - 1\) \* 0\.2\)/.test(GAME));
 // 作者 2026-09-19：造价略微提高（6藤蔓+3木 → 8藤蔓+4木；耐久仍 10）
-ck('渔网造价 藤蔓8+木材4、耐久 10', RECIPES.find(r => r.id === 'r_net').in.vine === 8 && RECIPES.find(r => r.id === 'r_net').in.wood === 4 && DURA.net === 10);
+ck('渔网造价 藤蔓9+木材4、耐久 10（受 2026-09-22 配方配比调整影响：藤蔓≥5 份 ×1.1）', RECIPES.find(r => r.id === 'r_net').in.vine === 9 && RECIPES.find(r => r.id === 'r_net').in.wood === 4 && DURA.net === 10);
 ck('夜袭：首次之后才有随机 + 50 天 5 匹', /S\.flags\.firstRaidDone \|\| S\.day > raidDay\(\)/.test(GAME) && /1 \+ Math\.floor\(d \/ 12\.5\)/.test(GAME) && /Math\.min\(5, 1 \+ Math\.floor\(d \/ 12\.5\)\)/.test(GAME));
-ck('草药膏 20 / 绷带 10+止血 / 大煎蛋 10', ITEMS.herbPaste.heal === 20 && ITEMS.bandage.heal === 10 && !!ITEMS.bandage.stopBleed && ITEMS.bigOmelette.heal === 10);
+ck('草药膏生命健康各15 / 绷带生命15+止血 / 大煎蛋10', ITEMS.herbPaste.heal === 15 && ITEMS.herbPaste.healthRestore === 15 && ITEMS.bandage.heal === 15 && !ITEMS.bandage.healthRestore && !!ITEMS.bandage.stopBleed && ITEMS.bigOmelette.heal === 10);
 ck('熏鱼/熏肉 需要 2 树枝', RECIPES.find(r => r.id === 'r_smokedfish').in.branch === 2 && RECIPES.find(r => r.id === 'r_smokedmeat').in.branch === 2);
 ck('精神恢复下调（床 6/7/9/10、提神茶 14）', ['bed1','bed2','bed3','bed4'].map(b => FURNITURE.find(f => f.id === b).spirit).join(',') === '6,7,9,10' && ITEMS.tea.spirit === 14);
 ck('河畔撒网 = 竭泽而渔 4 天', /riverNetBan/.test(GAME) && /先前竭泽而渔了/.test(GAME));
 
 console.log('\n【邮箱】');
-ck('v1.05 公告已批准，会进邮箱', (PATCH_NOTES || []).some(n => n.version === 'v1.05' && n.approved === true));
+ck('旧公告已撤下，新版仍待批准', PATCH_NOTES.every(n=>n.version==='v1.10' && !n.approved));
 {
-  Game.newGame('fisher', 'normal');
-  const m = Game.metaState();
-  m.mailbox = (m.mailbox || []).filter(x => !x.notice);
-  m.patchSent = m.patchSent || {}; delete m.patchSent['v1.05'];
-  const got = Game.mailboxList().filter(x => x.notice === 'v1.05');
-  const again = Game.mailboxList().filter(x => x.notice === 'v1.05').length;
-  ck('公告只发一次，点「知道了」能移除', got.length === 1 && again === 1 && (() => { const i = Game.mailboxList().findIndex(x => x.notice === 'v1.05'); return i >= 0 && Game.claimMailbox(i).ok; })());
+  Game.newGame('fisher','normal');const m=Game.metaState();
+  m.mailbox=[{notice:'v1.05'},{item:'namecard',qty:1},{notice:'v1.10'}];
+  const list=Game.mailboxList();
+  ck('旧公告移除但物资邮件保留',list.length===2 && list.some(x=>x.item==='namecard') && list.some(x=>x.notice==='v1.10'));
 }
-
 console.log('\n【重要修复】');
 ck('死亡后继续游戏会清掉结算状态（结局按钮不再消失）', /function continueRun\(\)/.test(GAME) && /if \(S\.ending\) S\.ending = undefined;/.test(GAME) && /Game\.continueRun\(\)/.test(UI));
 ck('山顶祭坛热点会重新亮起 + 可直接举行仪式', /function altarReady\(p\)/.test(GAME) && /ritualReady/.test(UI) && /祭坛 · 举行仪式/.test(UI));
@@ -119,3 +115,5 @@ console.log('\n================ 汇总 ================');
 console.log('通过 ' + ok + ' 项，失败 ' + bad.length + ' 项');
 if (bad.length) { console.log('失败项：'); bad.forEach(b => console.log(' - ' + b)); }
 console.log(bad.length ? 'RESULT:FAIL' : 'RESULT:PASS');
+
+process.exitCode = bad.length ? 1 : 0;

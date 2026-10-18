@@ -94,17 +94,19 @@ console.log('【2】一分钟内再存：必须被节流（官方限制 60 秒�
 }
 
 console.log('【3】换设备：本地是空的，云端有第 7 天 → 应该自动恢复');
+let G2;
 {
   Object.keys(LS).forEach(k => delete LS[k]);              // 模拟"新手机，啥都没有"
   const pack = JSON.parse(CLOUD[0].body);
   const j = JSON.parse(pack.save); j.day = 7; j.scene = 'camp';
   pack.save = JSON.stringify(j); pack.savedAt = Date.now() + 60000;   // 云端更新
   CLOUD[0].body = JSON.stringify(pack);
-  G.cloudInit();
+  // 真正换设备时 JS 运行环境也会重建；不能在仍有活跃 S 的旧实例上模拟，否则保护逻辑会拒绝覆盖。
+  G2 = new Function('localStorage','window','document','console', DATA + '\\n' + GAME + '\\nreturn Game;')(localStorage, window, document, console);
   await tick();
   EQ('云端的"第 7 天"被写回了本地', JSON.parse(localStorage.getItem('guyuyizhang_save')).day, 7);
-  EQ('状态里记下了恢复的进度', G.cloudStatus().applied, 7);
-  P('提示', G.cloudStatus().msg);
+  EQ('状态里记下了恢复的进度', G2.cloudStatus().applied, 7);
+  P('提示', G2.cloudStatus().msg);
 }
 
 console.log('【4】旧云档不能覆盖新本地档');
@@ -113,7 +115,7 @@ console.log('【4】旧云档不能覆盖新本地档');
   const pack = JSON.parse(CLOUD[0].body);
   pack.savedAt = Date.now() - 3600 * 1000;                  // 云端那份是"一小时前"的
   CLOUD[0].body = JSON.stringify(pack);
-  G.cloudInit();
+  G2.cloudInit();
   await tick();
   EQ('本地没被旧档覆盖', localStorage.getItem('guyuyizhang_save'), before);
 }

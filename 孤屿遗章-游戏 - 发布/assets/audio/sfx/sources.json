@@ -1,0 +1,128 @@
+[
+  {
+    "file": "click.mp3",
+    "original": "click_003.ogg",
+    "pack": "interface",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/interface-sounds"
+  },
+  {
+    "file": "pickup.mp3",
+    "original": "handleSmallLeather.ogg",
+    "pack": "rpg",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/rpg-audio"
+  },
+  {
+    "file": "trade.mp3",
+    "original": "handleCoins2.ogg",
+    "pack": "rpg",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/rpg-audio"
+  },
+  {
+    "file": "good.mp3",
+    "original": "confirmation_002.ogg",
+    "pack": "interface",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/interface-sounds"
+  },
+  {
+    "file": "work.mp3",
+    "original": "chop.ogg",
+    "pack": "rpg",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/rpg-audio"
+  },
+  {
+    "file": "build.mp3",
+    "original": "metalPot1.ogg",
+    "pack": "rpg",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/rpg-audio"
+  },
+  {
+    "file": "travel.mp3",
+    "original": "footstep02.ogg",
+    "pack": "rpg",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/rpg-audio"
+  },
+  {
+    "file": "swing.mp3",
+    "original": "knifeSlice.ogg",
+    "pack": "rpg",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/rpg-audio"
+  },
+  {
+    "file": "clash.mp3",
+    "original": "metalClick.ogg",
+    "pack": "rpg",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/rpg-audio"
+  },
+  {
+    "file": "hit.mp3",
+    "original": "impactPunch_medium_002.ogg",
+    "pack": "impact",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/impact-sounds"
+  },
+  {
+    "file": "critical.mp3",
+    "original": "impactPunch_heavy_002.ogg",
+    "pack": "impact",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/impact-sounds"
+  },
+  {
+    "file": "guard.mp3",
+    "original": "impactMetal_medium_001.ogg",
+    "pack": "impact",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/impact-sounds"
+  },
+  {
+    "file": "dodge.mp3",
+    "original": "cloth2.ogg",
+    "pack": "rpg",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/rpg-audio"
+  },
+  {
+    "file": "bow.mp3",
+    "original": "pluck_002.ogg",
+    "pack": "interface",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/interface-sounds"
+  },
+  {
+    "file": "lotteryTick.mp3",
+    "original": "chips-collide-2.ogg",
+    "pack": "casino",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/casino-audio"
+  },
+  {
+    "file": "lotteryStart.mp3",
+    "original": "dice-shake-1.ogg",
+    "pack": "casino",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/casino-audio"
+  },
+  {
+    "file": "lotteryEmpty.mp3",
+    "original": "back_002.ogg",
+    "pack": "interface",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/interface-sounds"
+  },
+  {
+    "file": "lotteryWin.mp3",
+    "original": "confirmation_004.ogg",
+    "pack": "interface",
+    "license": "CC0",
+    "source": "https://kenney.nl/assets/interface-sounds"
+  }
+]

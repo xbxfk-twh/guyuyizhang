@@ -7,6 +7,10 @@ const ROOT = path.join(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const OUT = path.join(__dirname, '..', '..', '文档', '商店价格表.md');
 const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
 const UI = fs.readFileSync(path.join(ROOT, 'js', 'ui.js'), 'utf8');
+const GAME = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
+const sellMatch = GAME.match(/const SELL_SUP = ([\d.]+);/);
+if (!sellMatch) throw new Error('无法从游戏源码读取收购系数');
+const SELL_SUP = Number(sellMatch[1]);
 new Function('console', DATA + '\nObject.assign(globalThis, {ITEMS, LAOCHAO, TOWN, BLACKMARKET});')(console);
 const { ITEMS, LAOCHAO, TOWN, BLACKMARKET } = globalThis;
 
@@ -22,7 +26,7 @@ const ATL_SHOP = grabArray('ATL_SHOP');
 // ---- 与 game.js 完全一致的价格计算 ----
 const round = Math.round;
 const buyPrice = (base, season, fame, jit) => round(round(base * season * fame) * jit / 100);
-const sellPrice = (base, season, jit, winterMul) => round(round(base * season * 0.8 * (winterMul || 1)) * jit / 100);
+const sellPrice = (base, season, jit, winterMul) => { let p=round(base*season*SELL_SUP); if(winterMul&&winterMul!==1)p=round(p*winterMul);return round(p*jit/100); };
 const SEASON = { 春: 0.9, 夏: 0.9, 秋: 1.0, 冬: 1.2 };
 const FAME = { 无: 1.0, 声望1: 0.95, 声望2: 0.9 };
 const JIT = { 最低: 90, 最高: 110 };
@@ -44,15 +48,15 @@ md += '> 由 `开发工具\\生成\\_gen_shops.js` 从 `js/data.js` + `js/ui.js`
 md += '## 一、价格是怎么算出来的\n\n';
 md += '```\n';
 md += '你买进   = 基础价 × 季节系数 × 声望折扣 × 浮动(90~110%)\n';
-md += '你卖出   = 基础价 × 季节系数 × 0.8（商人收购折扣）× 冬季溢价 × 浮动(90~110%)\n';
+md += `你卖出   = 基础价 × 季节系数 × ${SELL_SUP}（商人收购折扣）× 冬季溢价 × 浮动(90~110%)\n`;
 md += '```\n\n';
 md += '| 影响因素 | 取值 | 说明 |\n|---|---|---|\n';
 md += '| **季节** | 春 0.9 ／ 夏 0.9 ／ 秋 1.0 ／ **冬 1.2** | 冬天东西最贵 |\n';
 md += '| **声望折扣**（只影响你买） | 声望 0 → ×1.0 ／ 1 → ×0.95 ／ **≥2 → ×0.9** | 名声大了商人给折扣 |\n';
-md += '| **商人收购折扣** | ×0.8（固定） | 卖东西永远八折，不会因为卖得多继续跌 |\n';
+md += `| **商人收购折扣** | ×${SELL_SUP}（固定） | 不会因为卖得多继续跌 |\n`;
 md += '| **冬季溢价** | 兽皮 ×1.5（只有它标了 winter） | 冬天卖兽皮最划算 |\n';
 md += '| **日浮动** | 90 ~ 110%（按"物品 id + 当天"哈希） | **同一天同一件货看多少就是多少**，换天才变；不是每次打开都跳 |\n\n';
-md += `于是极值区间是：**买入 = 基础价 × 0.729 ~ 1.32**，**卖出 = 基础价 × 0.648 ~ 1.056**（兽皮冬天最高 1.584）。\n\n`;
+md += `于是极值系数区间是：**买入 = 基础价 × 0.729 ~ 1.32**，**卖出 = 基础价 × ${(0.9*SELL_SUP*0.9).toFixed(3)} ~ ${(1.2*SELL_SUP*1.1).toFixed(3)}**（兽皮冬天最高 ${(1.2*SELL_SUP*1.5*1.1).toFixed(3)}，实价按游戏分步取整）。\n\n`;
 
 const shop = (title, list, opts) => {
   opts = opts || {};
@@ -94,7 +98,6 @@ fs.writeFileSync(OUT, md);
 console.log('OK →', OUT, (md.length / 1024).toFixed(1) + ' KB');
 
 // ---- 自检：拿真引擎的 priceOf() 跑一遍，确认所有区间都包得住 ----
-const GAME = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
 const store = {};
 const fakeLS = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
 const all = [];
@@ -114,8 +117,8 @@ for (const day of [1, 16, 31, 46, 60]) {           // 春夏秋冬各抽几天
     for (const it of all) {
       const p = Game.priceOf(it.base, it.sell, it.id);
       const season = (day >= 16 && day <= 30) ? 0.9 : (day >= 31 && day <= 45 ? 1.0 : (day >= 46 ? 1.2 : 0.9));
-      const lo = it.sell ? Math.round(Math.round(it.base * 0.9 * 0.8) * 0.9) : Math.round(Math.round(it.base * 0.9 * 0.9) * 0.9);
-      let hi = it.sell ? Math.round(Math.round(it.base * 1.2 * 0.8 * (it.winter || 1)) * 1.1) : Math.round(Math.round(it.base * 1.2 * 1.0) * 1.1);
+      const lo = it.sell ? sellPrice(it.base,0.9,90,1) : buyPrice(it.base,0.9,0.9,90);
+      let hi = it.sell ? sellPrice(it.base,1.2,110,it.winter||1) : buyPrice(it.base,1.2,1.0,110);
       n++;
       if (p < lo - 1 || p > hi + 1) { bad++; if (bad <= 5) console.log('  区间外:', it.id, 'day', day, 'fame', fame, 'sell', it.sell, '=', p, '区间', lo, '~', hi); }
     }
@@ -123,5 +126,5 @@ for (const day of [1, 16, 31, 46, 60]) {           // 春夏秋冬各抽几天
 }
 console.log('价格区间自检：跑了 ' + n + ' 次，越界 ' + bad + ' 次');
 `;
-new Function('localStorage', 'window', 'document', 'fs', 'ROOT', 'DATA', 'GAME', 'console',
-  DATA + '\n' + GAME + '\n' + check)(fakeLS, {}, {}, fs, ROOT, DATA, GAME, console);
+new Function('localStorage', 'window', 'document', 'fs', 'ROOT', 'DATA', 'GAME', 'console', 'buyPrice', 'sellPrice',
+  DATA + '\n' + GAME + '\n' + check)(fakeLS, {}, {}, fs, ROOT, DATA, GAME, console, buyPrice, sellPrice);

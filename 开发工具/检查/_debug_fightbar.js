@@ -133,7 +133,7 @@ async function main() {
   const shot = async (name, w, h, mobile) => {
     await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: !!mobile });
     await sleep(500);
-    const outDir = path.join(__dirname, '_fightbar_out');
+    const outDir = path.join(__dirname, '_out', 'fightbar');
     fs.mkdirSync(outDir, { recursive: true });
     const r = await send('Page.captureScreenshot', { format: 'png' });
     const f = path.join(outDir, name + '.png');

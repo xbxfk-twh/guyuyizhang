@@ -1,0 +1,15 @@
+// Isolated storage checks: four-tier island warehouse and one-time save migration.
+const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
+let source=['data.js','game.js'].map(f=>fs.readFileSync(path.join(__dirname,'../孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
+source=source.replace('healthValue, pendingLootInfo','arriveAt, fitsInBag, gainItem, healthValue, pendingLootInfo');
+function fresh(){const store={},math=Object.create(Math);math.random=()=>.99;const control={fail:false,autoNotify:true,overlays:[]};
+ const e=new Function('localStorage','window','document','console','Math','setTimeout','clearTimeout',source+'\nreturn {G:Game,ITEMS,RECIPES,DURA,ATLANTIS_FURNITURE};')({getItem:k=>store[k]??null,setItem:(k,v)=>{if(control.fail){control.fail=false;throw Error('quota');}store[k]=String(v);},removeItem:k=>delete store[k]}, {},{cookie:''},{log(){},warn(){}},math,()=>1,()=>{});
+ e.G.bind({onChange(){},onLog(){},onFight(){},onOverlay(cfg){control.overlays.push(cfg);if(control.autoNotify)cfg.onShown?.();},onEnding(){},onSaveFail(){}});e.G.newGame('fisher','normal');e.G.S().tut=null;return {...e,control};}
+let passed=0,failed=0;function check(n,f){try{f();passed++;console.log('OK '+n);}catch(e){failed++;console.error('FAIL '+n+'\n'+e.stack);}}
+
+
+check('岛仓四级15/40/80/120，扩建次数1/2/3/4，独立背包不变',()=>{const {G:g}=fresh();for(const [tier,cap]of [15,40,80,120].entries()){g.S().buildings.storage=tier;g.S().storeExt=0;assert.equal(g.warehouseCapacity(),cap);assert.equal(g.storeExtMax(),tier+1);assert.equal(g.capacity(),23);g.S().storeExt=tier+1;assert.equal(g.warehouseCapacity(),cap+(tier+1)*15);}});
+check('新增储物棚可按真实材料建造，终级可升级且保留库存',()=>{const {G:g,control}=fresh();g.S().capacity=999;g.S().inv={plank:40,nail:20};g.S().buildings.storage=1;g.S().warehouse={items:[{id:'wood',qty:200}]};g.buildChain('storage');assert.equal(g.S().buildings.storage,2);assert.equal(g.warehouseCapacity(),80);assert.equal(g.invCount('plank'),28);g.buildChain('storage');control.overlays.at(-1).choices[0].ok();assert.equal(g.S().buildings.storage,3);assert.equal(g.warehouseCapacity(),120);assert.equal(g.warehouseState().inv.wood,200);assert.equal(g.invCount('plank'),12);});
+check('新增第四次扩建真实扣料，加15格且第五次拒绝',()=>{const {G:g}=fresh();g.S().buildings.storage=3;g.S().storeExt=3;g.S().inv={plank:20,nail:12,ironpart:4};assert.equal(g.buildStoreExt().ok,true);assert.equal(g.S().storeExt,4);assert.equal(g.warehouseCapacity(),180);assert.equal(g.invCount('plank'),0);assert.equal(g.invCount('nail'),0);assert.equal(g.invCount('ironpart'),0);assert.equal(g.buildStoreExt().ok,false);assert.equal(g.S().storeExt,4);});
+check('旧终级仓库迁移一次，保存/重载不再次加级，不删超容库存',()=>{const {G:g}=fresh();delete g.S().storageChainVersion;g.S().buildings.storage=2;g.S().storeExt=3;g.S().warehouse={items:[{id:'ironSword',qty:170}]};g.save();g.load();assert.equal(g.S().buildings.storage,3);assert.equal(g.warehouseCapacity(),165);assert.equal(g.warehouseState().inv.ironSword,170);g.save();g.load();assert.equal(g.S().buildings.storage,3);assert.equal(g.S().storeExt,3);});
+console.log(`通过 ${passed} 项，失败 ${failed} 项\nRESULT:${failed?'FAIL':'PASS'}`);process.exitCode=failed?1:0;

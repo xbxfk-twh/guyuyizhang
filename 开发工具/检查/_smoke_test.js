@@ -1,7 +1,7 @@
 /* 交付前集成冒烟：模拟真实玩法路径，查有没有引入新问题 */
 const fs = require('fs');
 const path = require('path');
-const ROOT = 'C:\\Users\\34297\\Desktop\\孤屿遗章\\孤屿遗章-游戏 - 发布';
+const ROOT = path.join(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
 const GAME = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
 const store = {};
@@ -23,7 +23,8 @@ const unfreeze = () => { Math.random = rnd0; };
 // ---------- A. 一局完整流程 ----------
 sec('A. 一局完整流程（开局→采集→制造→建造→睡觉→存档→读档）');
 {
-  Game.newGame('fisher', 'normal');
+  // 集成流程固定开局食物抽样；不同随机食物种类会占据不同数量的12格背包。
+  freeze(0.99); Game.newGame('fisher', 'normal'); unfreeze();
   let S = Game.S();
   ck('开局成功且有存档', !!S && Game.hasSave());
   ck('开局物品齐全（>=8 种）', Object.keys(S.inv).length >= 8, Object.keys(S.inv).length + ' 种');
@@ -31,11 +32,13 @@ sec('A. 一局完整流程（开局→采集→制造→建造→睡觉→存档
   // 采集：营地附近（先给体力）
   S.stats.stamina = 999;
   const before = JSON.stringify(S.inv);
-  Game.travel('forest');
+  freeze(0.99); Game.travel('forest'); unfreeze();
   ck('能前往树林且场景已切换', Game.S().scene === 'forest', Game.S().scene);
   const pts = Game.pointsOf();
   ck('树林有可交互点位', pts.length > 0, pts.length + ' 个');
 
+  // 玩家先在营地存放杂物，留出制作产物空间；12格新规则不可跳过整理。
+  Game.S().scene='camp';for(const id of Object.keys(Game.S().inv)){if(['wood','branch','flint','stone','thatch'].includes(id))continue;Game.transferWarehouse(id,Game.invCount(id),true);if(Game.capUsed()<=6)break;}Game.S().scene='forest';
   // 制造：给材料造石斧
   Game.addItem('wood', 20, true); Game.addItem('branch', 20, true); Game.addItem('flint', 10, true);
   Game.addItem('stone', 20, true); Game.addItem('thatch', 20, true); Game.addItem('vine', 20, true);
@@ -45,9 +48,12 @@ sec('A. 一局完整流程（开局→采集→制造→建造→睡觉→存档
   else ck('找到石斧配方', false);
 
   // 建造：工作台
-  Game.travel('camp');
+  // 烟雾测试只验制造/建造主流程，返程随机拦路会让工作台断言偶发失败。
+  freeze(0.99); Game.travel('camp'); unfreeze();
   S = Game.S();
-  Game.addItem('plank', 20, true);
+  // 批量给料会占满12格；先按真实存入操作腾出木材堆叠位。
+  Game.transferWarehouse('wood',Math.min(100,Game.invCount('wood')),true);
+  if(!Game.addItem('plank', 4, true))throw Error('集成建造测试未能装入所需木板');
   Game.buildFurniture('wb1');
   ck('能建简易工作台', !!Game.S().furniture.wb1);
 
@@ -200,42 +206,29 @@ sec('E. 图鉴 / 配方 / 引用完整性');
   const accList = ((UI.match(/const ACCENT = \{([^}]*)\}/) || ['',''])[1]).split(',').map(s => s.split(':')[0].trim()).filter(Boolean);
   const accNo = accList.filter(id => !fs.existsSync(path.join(ROOT, 'assets/img/items-accent', id + '.png')));
   ck('ACCENT 名单都有彩色图', accNo.length === 0, accList.length + ' 项' + (accNo.length ? ' 缺:' + accNo.join(',') : ''));
-  ck('公告 v1.06 已批准（会进邮箱）', PATCH_NOTES.some(n => n.version === 'v1.06' && n.approved === true));
-  {
-    const v6 = (PATCH_NOTES.find(n => n.version === 'v1.06') || { body: [] }).body.join('\n');
-    ck('公告含作者确认的 6 节（双持/横扫/意图/图标皮肤/界面/平衡）',
-       ['【双持重做：轮流挥砍 + 攻速对称】', '【新增：横扫（双手重武器专属）】', '【多目标战斗：敌人开始有意图了】',
-        '【图标与皮肤】', '【界面】', '【平衡】'].every(k => v6.includes(k)));
-    ck('公告不含未公开章节（暗改不写公告）',
-       !v6.includes('【重要修复】') && !v6.includes('校准终于校得准') && !v6.includes('【双手武器规则明确了】'));
-  }
+  ck('1.10以前的公告全部撤下',PATCH_NOTES.every(n=>n.version==='v1.10'));
+  ck('新版草稿保持待批准',PATCH_NOTES.every(n=>!n.approved));
 }
-
-// ---------- F. 邮箱发公告 ----------
-sec('F. 邮箱能收到 v1.06 公告且只发一次');
+sec('F. 新版公告投递与旧公告撤下');
 {
-  Game.newGame('fisher', 'normal');
-  const m = Game.metaState();
-  m.mailbox = (m.mailbox || []).filter(x => !x.notice);
-  m.patchSent = m.patchSent || {}; delete m.patchSent['v1.06']; delete m.patchSent['v1.05'];
-  const list = Game.mailboxList();
-  const v6 = list.filter(x => x.notice === 'v1.06');
-  const again = Game.mailboxList().filter(x => x.notice === 'v1.06').length;
-  ck('v1.06 公告进邮箱且只发一次', v6.length === 1 && again === 1, '共 ' + list.length + ' 封邮件，其中 v1.06 ' + v6.length + ' 封');
-  const v5 = list.filter(x => x.notice === 'v1.05').length;
-  ck('v1.05 老公告同时补发一次（老玩家也能看到）', v5 === 1, 'v1.05 ' + v5 + ' 封');
-  const idx = Game.mailboxList().findIndex(x => x.notice === 'v1.06');
-  ck('公告能点「知道了」移除', idx >= 0 && Game.claimMailbox(idx).ok);
+  Game.newGame('fisher','normal');const note=PATCH_NOTES[0],saved=note.approved;note.approved=true;
+  const m=Game.metaState();m.mailbox=[{notice:'v1.05'},{item:'namecard',qty:1}];m.patchSent={};
+  const list=Game.mailboxList();
+  ck('批准公告仅投一次',list.filter(x=>x.notice===note.version).length===1 && Game.mailboxList().filter(x=>x.notice===note.version).length===1);
+  ck('旧公告撤下且物资保留',!list.some(x=>x.notice==='v1.05') && list.some(x=>x.item==='namecard'));
+  const idx=Game.mailboxList().findIndex(x=>x.notice===note.version);ck('新版公告可标记已读',idx>=0 && Game.claimMailbox(idx).ok);
+  note.approved=saved;
 }
-
 // ---------- G. 兑换码 / 神物 ----------
 sec('G. 兑换码与神物');
 {
   Game.newGame('fisher', 'normal');
-  const codes = Object.keys(box.REDEEM_CODES);
+  const codes = Object.keys(box.REDEEM_CODES).filter(c=>!box.REDEEM_CODES[c].retired);
   let oks = 0;
   for (const c of codes) { try { if (Game.redeemCode(c).ok) oks++; } catch (e) {} }
   ck('所有兑换码都能正常兑换', oks === codes.length, oks + '/' + codes.length);
+  const retired=Object.keys(box.REDEEM_CODES).filter(c=>box.REDEEM_CODES[c].retired);
+  ck('下架兑换码不能再兑换',retired.every(c=>!Game.redeemCode(c).ok));
   const RELICS = box.RELICS;
   ck('神物共 5 件', Object.keys(RELICS).length === 5, Object.keys(RELICS).join('、'));
   ck('神物栏能装备/卸下', (() => {
@@ -251,3 +244,4 @@ console.log('\n================ 汇总 ================');
 console.log('通过 ' + ok + ' 项，失败 ' + bad.length + ' 项');
 if (bad.length) { console.log('失败项：'); bad.forEach(b => console.log(' - ' + b)); }
 console.log(bad.length ? 'RESULT:FAIL' : 'RESULT:PASS');
+process.exitCode = bad.length ? 1 : 0;
