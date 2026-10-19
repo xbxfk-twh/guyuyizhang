@@ -34,7 +34,7 @@ const checks = [
   '回归测试/mobile-overhaul.test.js',
   '回归测试/loadout-storage.test.js',
   '回归测试/lottery-simple.test.js',
-  '回归测试/ui-modules.test.js', '回归测试/storage-modules.test.js', '回归测试/session-migrations.test.js', '回归测试/ads.test.js', '回归测试/ad-adapter.test.js',
+  '回归测试/ui-modules.test.js', '回归测试/storage-modules.test.js', '回归测试/session-migrations.test.js', '回归测试/source-isolation.test.js', '回归测试/ads.test.js', '回归测试/ad-adapter.test.js',
   '回归测试/audit.js',
   '回归测试/feedback.test.js',
   '回归测试/release-safety.test.js',

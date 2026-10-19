@@ -3,7 +3,7 @@
    场景热点从来没被查过，所以 2026-09-22 那两条反馈（"热点挤在一起/遮挡"）一直没被测出来。 */
 const fs = require('fs');
 const path = require('path');
-const ROOT = 'C:\\Users\\34297\\Desktop\\孤屿遗章\\孤屿遗章-游戏 - 发布';
+const ROOT = path.resolve(__dirname, '../../孤屿遗章-游戏 - 发布');
 const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
 const box = {};
 new Function('console', 'box', DATA + '\nObject.assign(box,{SCENE_HOTSPOTS:SCENE_HOTSPOTS,SCENES:SCENES});\n')(console, box);
