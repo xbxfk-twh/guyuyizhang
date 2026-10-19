@@ -101,9 +101,12 @@ const SaveRepository = (() => {
     // 主档不在时也要看 cookie 里那份（平台清 localStorage 后靠它救回来）
     function hasSave() { try { return !!(storage.getItem('guyuyizhang_save') || ckGet(CK.save)); } catch(e){ return false; } }
 
+    function parseMeta(raw) {
+      try {const value=JSON.parse(raw);return value&&typeof value==='object'&&!Array.isArray(value)?value:null;} catch {return null;}
+    }
     function metaLoad() {
       let M;
-      const read = (k) => { try { const raw = storage.getItem(k); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } };
+      const read = (k) => { try { const raw = storage.getItem(k); return raw ? parseMeta(raw) : null; } catch (e) { return null; } };
       let rawPrimary = null;
       try { rawPrimary = storage.getItem('guyuyizhang_meta'); } catch (e) {}
       M = read('guyuyizhang_meta');
@@ -116,7 +119,7 @@ const SaveRepository = (() => {
       if (!M) {
         const ckMeta = ckGet(CK.meta);
         if (ckMeta) {
-          try { M = JSON.parse(ckMeta); } catch (e) { M = null; }
+          M = parseMeta(ckMeta);
           if (M) { try { storage.setItem('guyuyizhang_meta', ckMeta); } catch (e) {} }
         }
       }
@@ -156,7 +159,7 @@ const SaveRepository = (() => {
       try {
         if (!transactions.active() && transactions.pending()) throw new Error('上次存储恢复尚未完成');
         const prev = storage.getItem('guyuyizhang_meta');
-        if (prev) storage.setItem('guyuyizhang_meta_bak', prev);   // 滚动备份：永远留下上一份
+        if (prev && parseMeta(prev)) storage.setItem('guyuyizhang_meta_bak', prev);   // 坏主档不能冲掉最后的有效备份
         const json = JSON.stringify(M);
         storage.setItem('guyuyizhang_meta', json);
         if (storage.getItem('guyuyizhang_meta') !== json) throw new Error('账号数据写入校验失败');

@@ -2,6 +2,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const root=path.resolve(__dirname,'../孤屿遗章-游戏 - 发布');
 const Transactions=new Function(fs.readFileSync(path.join(root,'js/storage/transactions.js'),'utf8')+';return SaveTransactions;')();
 const Codec=new Function(fs.readFileSync(path.join(root,'js/storage/codec.js'),'utf8')+';return SaveCodec;')();
+const Repository=new Function(fs.readFileSync(path.join(root,'js/storage/repository.js'),'utf8')+';return SaveRepository;')();
 const journal='guyuyizhang_write_journal',keys=['save','save_bak','savedAt','rev','meta','meta_bak'].map(k=>'guyuyizhang_'+k);
 let passed=0;const check=(name,fn)=>{fn();passed++;console.log('OK '+name);};
 function fixture(){
@@ -22,5 +23,21 @@ check('截断、网址、异版、校验错误及非法结构拒绝，旧码可�
  const pack=d=>btoa(unescape(encodeURIComponent(JSON.stringify(d))));
  for(const code of ['', 'https://example.com','GY-EXAMPLE','<html>', 'broken',pack({v:2,meta:{}}),pack({v:1,meta:[],checksum:'bad'}),pack({meta:{slots:[null]}}),Codec.encode({v:1,meta:{},save:{bad:true}})])assert.equal(Codec.read(code,()=>false).ok,false,code);
  const d={v:1,meta:{},save:null};const code=Codec.encode(d);d.meta.soul=999;assert.equal(Codec.read(pack(d),()=>true).ok,false);assert.ok(Codec.read(pack({meta:{slots:[null,null,null]}}),()=>false).ok);assert.ok(Codec.read(code,()=>true).ok);
+});
+function profileFixture(primary,backup,cookie=''){
+ let meta=null,failWrite=false;const data=new Map();if(primary!==null)data.set('guyuyizhang_meta',primary);if(backup!==null)data.set('guyuyizhang_meta_bak',backup);
+ const storage={getItem:key=>data.get(key)??null,setItem(key,value){if(failWrite&&key==='guyuyizhang_meta')throw Error('quota');data.set(key,value);}};
+ const repo=Repository.create({storage,cookies:{text:cookie},getMeta:()=>meta,setMeta:value=>{meta=value;},isStaging:()=>false,transactions:{active:()=>false,pending:()=>false},migrateSaltMeta(){},migrateRedeemReceipts(){},onFailure(){},push(){}});
+ return {repo,data,fail:()=>failWrite=true};
+}
+check('合法JSON但错误类型的账号主档使用本地备份，不清空账号或崩溃',()=>{
+ for(const invalid of ['[]','"bad"','42','true','null']){const backup=JSON.stringify({soul:77,slots:[null,null,null],identityUnlocks:{beekeeper:1}}),f=profileFixture(invalid,backup);const profile=f.repo.metaLoad();assert.equal(profile.soul,77,invalid);assert.equal(profile.identityUnlocks.beekeeper,1);assert.equal(f.data.get('guyuyizhang_meta_corrupt'),invalid);}
+});
+check('账号从备份恢复后保存失败，坏主档不能覆盖最后一份有效备份',()=>{
+ const backup=JSON.stringify({soul:77,slots:[null,null,null]}),f=profileFixture('[]',backup);assert.equal(f.repo.metaLoad().soul,77);f.fail();assert.equal(f.repo.metaSave().ok,false);assert.equal(f.data.get('guyuyizhang_meta_bak'),backup);assert.equal(f.data.get('guyuyizhang_meta'),'[]');
+});
+check('账号cookie也校验对象类型，坏镜像安全回退，合法旧镜像可恢复',()=>{
+ for(const invalid of ['[]','"bad"','42'])assert.equal(profileFixture(null,null,'guyu_meta='+encodeURIComponent(invalid)).repo.metaLoad().soul,0);
+ assert.equal(profileFixture(null,null,'guyu_meta='+encodeURIComponent('{"soul":88}')).repo.metaLoad().soul,88);
 });
 console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);
