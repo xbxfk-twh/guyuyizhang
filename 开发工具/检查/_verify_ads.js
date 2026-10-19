@@ -1,13 +1,15 @@
 /* 独立 Chrome 配置 + 模拟 Tap 宿主；不连接广告网络、不动玩家存档。 */
 const {spawn}=require('child_process'),fs=require('fs'),path=require('path'),http=require('http'),os=require('os'),assert=require('assert/strict');
 const ROOT=path.resolve(__dirname,'../../孤屿遗章-游戏 - 发布'),out=path.resolve(__dirname,'../../回归测试/_out');
-const CHROME=process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',port=Number(process.env.GUYU_ADS_DEBUG_PORT||9671),profile=path.join(os.tmpdir(),'guyu_ads_'+process.pid);
+const {navigateGame}=require('../../回归测试/helpers/browser');
+const CHROME=process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',profile=fs.mkdtempSync(path.join(os.tmpdir(),'guyu-ads-'));
+let port=Number(process.env.GUYU_ADS_DEBUG_PORT||0);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('data',x=>s+=x);res.on('end',()=>{try{resolve(JSON.parse(s));}catch(e){reject(e);}});}).on('error',reject));
 (async()=>{
  const ch=spawn(CHROME,['--headless=new','--disable-gpu','--no-first-run','--allow-file-access-from-files','--remote-debugging-port='+port,'--user-data-dir='+profile,'about:blank'],{stdio:'ignore',windowsHide:true});
  try{
-  let tab;for(let i=0;i<80&&!tab;i++){await sleep(250);try{tab=(await json(`http://127.0.0.1:${port}/json/list`)).find(x=>x.type==='page');}catch(_){}}
+  let tab;for(let i=0;i<80&&!tab;i++){await sleep(250);try{if(!port)port=Number(fs.readFileSync(path.join(profile,'DevToolsActivePort'),'utf8').split('\n')[0]);tab=(await json(`http://127.0.0.1:${port}/json/list`)).find(x=>x.type==='page');}catch(_){}}
   assert.ok(tab);const ws=new WebSocket(tab.webSocketDebuggerUrl);await new Promise((r,j)=>{ws.onopen=r;ws.onerror=j;});
   let next=0,passed=0;const waiters=new Map();ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&waiters.has(m.id)){waiters.get(m.id)(m);waiters.delete(m.id);}};
   const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++next;waiters.set(id,m=>m.error?reject(Error(JSON.stringify(m.error))):resolve(m.result));ws.send(JSON.stringify({id,method,params}));});
@@ -17,7 +19,8 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
   await send('Page.enable');
   const standaloneHook=await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.GUYU_CHANNEL='standalone';window.sdkCalls=0;window.tap={createRewardedVideoAd:()=>{sdkCalls++;throw Error('removed SDK')},cloud:{save:()=>{sdkCalls++},load:()=>{sdkCalls++}}};`});
   await send('Emulation.setDeviceMetricsOverride',{width:667,height:375,deviceScaleFactor:1,mobile:true});
-  await send('Page.navigate',{url:'file:///'+encodeURI(ROOT.replace(/\\/g,'/')+'/index.html')});await sleep(1400);
+  await navigateGame(send,ev,'Page.navigate',{url:'file:///'+encodeURI(ROOT.replace(/\\/g,'/')+'/index.html')});
+  console.log('独立版启动状态 '+JSON.stringify(await ev(`({ready:document.readyState,language:document.documentElement.lang,channel:window.GUYU_CHANNEL,preference:localStorage.getItem('guyuyizhang_language')})`)));
   check('独立版首次启动默认英文',await ev(`document.documentElement.lang==='en'`));
   await ev(`Game.newGame('fisher','normal');Game.S().tut=null;Game.metaState().batchTipSeen=1;Game.metaState().soul=300;Game.metaState().adWallet={};UI.begin();`);await sleep(2800);
   const openShop=()=>ev(`document.querySelector('#modal .modal-x')?.click();document.querySelector('#nav [data-nav="save"]').click();document.querySelector('[data-savemenu="adshop"]').click();`);
@@ -48,7 +51,7 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
   check('全过程不调用Tap SDK',await ev(`sdkCalls===0&&typeof TapAds==='object'&&!TapAds.enabled()&&!Game.adRewardState().canClaim&&Game.cloudStatus().supported===false`));
   await send('Page.removeScriptToEvaluateOnNewDocument',{identifier:standaloneHook.identifier});
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.GUYU_CHANNEL='taptap';localStorage.removeItem('guyuyizhang_language');window.sdkCalls=0;window.adShows=0;window.tap={createRewardedVideoAd:()=>{sdkCalls++;return {onLoad:()=>{},onError:f=>window.adError=f,onClose:f=>window.adClose=f,load:()=>Promise.resolve(),show:()=>{adShows++;return Promise.resolve()}}}};`});
-  await send('Page.reload');await sleep(1600);
+  await navigateGame(send,ev,'Page.reload');
   check('Tap首次默认中文',await ev(`document.documentElement.lang==='zh-CN'`));
   await ev(`Game.newGame('fisher','normal');Game.S().tut=null;Game.metaState().batchTipSeen=1;Game.metaState().adWallet={};Game.metaState().adRewardDays={};UI.begin();`);await sleep(2800);
   await openShop();await sleep(500);

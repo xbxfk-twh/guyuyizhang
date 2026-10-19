@@ -36,6 +36,10 @@ const language=process.env.GUYU_TEST_LANGUAGE||'zh';
  await sleep(1400);check('场景截图前没有残留弹窗且森林图片已载入',await ev(`!document.querySelector('#modal').classList.contains('open')&&document.querySelector('#scene-img').complete&&document.querySelector('#scene-img').naturalWidth>0`));
  await b.shot('incremental-scene-'+width+'.png');
 
+ // 故意把新文档初始化拖过旧探针的固定1.4秒等待，确认不会误读旧页面。
+ await b.send('Page.addScriptToEvaluateOnNewDocument',{source:"window.__slowBootProbe=true;{const start=Date.now();while(Date.now()-start<2200){}}"});
+ const beforeBoot=Date.now(),reloadURL=await ev('location.href');await b.navigate(reloadURL);const bootElapsed=Date.now()-beforeBoot;
+ check('慢启动和重新导航等待新文档完成，不误读旧页面',bootElapsed>=2200&&await ev("window.__slowBootProbe===true&&document.readyState==='complete'&&typeof Game==='object'"));
  check('无运行异常',b.errors.length===0);
  console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);
  }finally{await b?.close();}})().catch(e=>{console.error(e);console.log('RESULT:FAIL');process.exitCode=1;});

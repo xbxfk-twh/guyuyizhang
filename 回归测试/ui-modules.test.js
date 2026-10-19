@@ -38,4 +38,11 @@ check('静态入口完全按清单顺序加载，包含全部新模块与一致�
  assert.deepEqual(refs,[...manifest.styles,...manifest.scripts].map(x=>x+'?v='+version));for(const file of [...manifest.styles,...manifest.scripts])assert.ok(fs.existsSync(path.join(root,file)),file);
  assert.ok(manifest.scripts.indexOf('js/ui/input/press.js')<manifest.scripts.indexOf('js/ui.js'));
 });
-console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);
+(async()=>{
+ const {waitForGame}=require('./helpers/browser');let reads=0,condition='';
+ await waitForGame(async expression=>{condition=expression;return ++reads>=3;},{timeout:1000,interval:1,previousDocument:'old-document'});
+ check('启动检查等待新文档和模块就绪，不以目标语言作为等待条件',()=>{assert.equal(reads,3);assert.ok(condition.includes("document.readyState==='complete'"));assert.ok(condition.includes('window.__guyuTestNavigation'));assert.ok(condition.includes('old-document'));assert.ok(!condition.includes("lang==='en'"));});
+ await assert.rejects(waitForGame(async()=>false,{timeout:20,interval:1}),/初始化未在时限内完成/);
+ check('初始化始终未完成必须超时报错，不能跳过后续断言',()=>{});
+ console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);
+})().catch(error=>{console.error(error);console.log('RESULT:FAIL');process.exitCode=1;});
