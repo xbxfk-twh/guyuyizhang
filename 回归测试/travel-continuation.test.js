@@ -1,6 +1,6 @@
 /* Nightmare progression, real encounters, boss skills and transactional rewards; memory storage only. */
 const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
-const source=['data.js','game.js'].map(f=>fs.readFileSync(path.join(__dirname,'../孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
+const source=require('./helpers/runtime.js').logicFiles.map(f=>fs.readFileSync(path.join(__dirname,'../孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
 let passed=0,failed=0;
 function engine(store={}){
  const control={random:.99,fail:false,ending:null},math=Object.create(Math);math.random=()=>control.random;

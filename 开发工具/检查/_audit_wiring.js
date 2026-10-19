@@ -17,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const DATA = fs.readFileSync(path.join(ROOT, 'js/data.js'), 'utf8');
-const GAME = fs.readFileSync(path.join(ROOT, 'js/game.js'), 'utf8');
+const GAME = require('../../回归测试/helpers/runtime.js').engineSource(path.join(ROOT, 'js/game.js'));
 const UI = fs.readFileSync(path.join(ROOT, 'js/ui.js'), 'utf8');
 let ok = 0; const bad = [];
 const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —— ' + e : '')); } else { bad.push(l); console.log('  FAIL ' + l + (e ? '  —— ' + e : '')); } };
@@ -195,6 +195,7 @@ console.log('\n⑧ 热点 id → 处理分支 / 弹窗 kind → 渲染分支');
   const kindHandled = new Set();
   for (const m of UI.matchAll(/kind === '([a-zA-Z]+)'/g)) kindHandled.add(m[1]);
   for (const m of UI.matchAll(/case '([a-zA-Z]+)'/g)) kindHandled.add(m[1]);
+  for(const match of UI.matchAll(/panels\.register\('([a-zA-Z]+)'/g))kindHandled.add(match[1]);
   const blank = [...opens].filter(k => !kindHandled.has(k));
   ck('⑧2 每个 showModal 的 kind 都有渲染分支（不会弹出空白面板）',
      blank.length === 0, blank.join(', ') || opens.size + ' 种弹窗都有分支');

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const base = path.resolve(__dirname, '../孤屿遗章-游戏 - 发布/js');
-const source = fs.readFileSync(path.join(base, 'data.js'), 'utf8') + '\n' + fs.readFileSync(path.join(base, 'game.js'), 'utf8');
+const source = fs.readFileSync(path.join(base, 'data.js'), 'utf8') + '\n' + require('./helpers/runtime.js').engineSource(path.join(base, 'game.js'));
 const mem = {};
 const localStorage = { getItem:k => mem[k] || null, setItem:(k,v) => { mem[k] = String(v); }, removeItem:k => { delete mem[k]; } };
 const cookies = {};

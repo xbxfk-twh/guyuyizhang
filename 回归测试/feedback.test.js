@@ -1,7 +1,7 @@
 /* 玩家反馈专项：只使用内存存储和固定随机数，不接触真实存档。 */
 const fs = require('fs'), path = require('path'), assert = require('node:assert/strict');
 const base = path.resolve(__dirname, '../孤屿遗章-游戏 - 发布/js');
-const source = ['data.js','game.js'].map(f => fs.readFileSync(path.join(base,f),'utf8')).join('\n');
+const source = require('./helpers/runtime.js').logicFiles.map(f => fs.readFileSync(path.join(base,f),'utf8')).join('\n');
 const store = {};
 const ls = {getItem:k=>store[k] || null,setItem:(k,v)=>store[k]=String(v),removeItem:k=>delete store[k]};
 const {Game:G, ITEMS,RECIPES,ENEMIES,DURA} = new Function('localStorage','window','document',source+'\nreturn {Game,ITEMS,RECIPES,ENEMIES,DURA};')(ls,{},{});

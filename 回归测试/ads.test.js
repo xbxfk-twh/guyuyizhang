@@ -3,7 +3,7 @@ const root=path.resolve(__dirname,'../孤屿遗章-游戏 - 发布/js');
 let passed=0;function check(name,fn){fn();passed++;console.log('OK '+name);}
 const memory={};let fail=false;
 const storage={getItem:k=>memory[k]||null,setItem:(k,v)=>{if(fail&&k==='guyuyizhang_meta'){fail=false;throw Error('disk full');}memory[k]=String(v);},removeItem:k=>delete memory[k]};
-const source=['data.js','game.js'].map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n');
+const source=require('./helpers/runtime.js').logicFiles.map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n');
 const G=new Function('localStorage','window','document',source+'\nreturn Game;')(storage,{},{});
 G.bind({onChange(){},onLog(){},onFight(){},onEnding(){},onOverlay(){}});
 G.newGame('fisher','normal');G.S().tut=null;
@@ -81,9 +81,9 @@ check('旧零魂码导入不会形成负魂点，正常消费流水保留',()=>{
  G.metaState().soul=0;G.metaState().adWallet={};const old=G.exportCode();G.metaState().soul=60;
  assert.equal(G.exchangeSoulForStars(4).ok,true);assert.equal(G.importCode(old).ok,true);assert.equal(G.metaState().soul,0);assert.equal(G.adCoinBalance(),4);
 });
-check('广告接口已移除，旧true参数不能免费备份或复活',()=>{
- assert.equal(G.claimAdReward,undefined);assert.equal(G.claimAdAction,undefined);assert.equal(G.adRewardState,undefined);
- assert.equal(fs.existsSync(path.join(root,'ads.js')),false);G.newGame('fisher','normal');G.metaState().backupPoints=0;G.metaState().soul=0;
+check('商城广告接口恢复，旧true参数仍不能免费备份或复活',()=>{
+ assert.equal(typeof G.claimAdReward,'function');assert.equal(G.claimAdAction,undefined);assert.equal(typeof G.adRewardState,'function');
+ assert.equal(fs.existsSync(path.join(root,'ads.js')),true);G.newGame('fisher','normal');G.metaState().backupPoints=0;G.metaState().soul=0;
  assert.equal(G.backupSlot(0,true).ok,false);G.S().death='test';G.S().stats.hp=0;assert.equal(G.reviveToday(true).ok,false);
 });
 check('命名牌商城售价3星点，购买寄信可领取，余额不足不扣款',()=>{
@@ -93,4 +93,21 @@ check('命名牌商城售价3星点，购买寄信可领取，余额不足不扣
  const mail=G.mailboxList().find(x=>x.item==='namecard');assert.ok(mail);assert.equal(mail.qty,1);assert.equal(G.claimMailbox(mail.i).ok,true);assert.equal(G.invCount('namecard'),1);
  assert.equal(G.buyAdShop('namecard').ok,false);assert.equal(G.adCoinBalance(),0);assert.equal(G.mailboxList().filter(x=>x.item==='namecard').length,0);
 });
+check('广告奖励每日五次3至6币，旧存档不回退次数或钱包',()=>{
+ G.newGame('fisher','normal');G.metaState().adWallet={};G.metaState().adRewardDays={};
+ const old=G.exportCode(),run=G.S()._runId,day=G.adRewardState().today;
+ assert.equal(G.claimAdReward('wrong',day).ok,false);assert.equal(G.claimAdReward(run,'2000-01-01').ok,false);
+ let amount=0;
+ for(let i=0;i<5;i++){const r=G.claimAdReward(run,day);assert.equal(r.ok,true);assert.ok(r.amount>=3&&r.amount<=6);amount+=r.amount;}
+ assert.equal(G.adCoinBalance(),amount);assert.equal(G.adRewardState().uses,5);assert.equal(G.claimAdReward(run,day).ok,false);
+ assert.equal(G.importCode(old).ok,true);assert.equal(G.adRewardState().uses,5);assert.equal(G.adCoinBalance(),amount);
+});
+check('广告奖励写盘失败不消耗次数且不发币，传奇禁止领取',()=>{
+ G.newGame('fisher','normal');G.metaState().adRewardDays={};const before=JSON.stringify(G.metaState()),info=G.adRewardState();
+ fail=true;assert.equal(G.claimAdReward(G.S()._runId,info.today).ok,false);assert.equal(JSON.stringify(G.metaState()),before);
+ G.newGame('fisher','normal');G.S().difficulty='legend';assert.equal(G.adRewardState().canClaim,false);
+ assert.equal(G.claimAdReward(G.S()._runId,info.today).ok,false);
+});
+const independent=new Function('localStorage','window','document',source+'\nreturn Game;')(storage,{GUYU_CHANNEL:'standalone'},{});
+check('独立版仍用星点且禁止直接领取广告奖励',()=>{assert.equal(independent.adCurrencyName(),'星之点');assert.equal(independent.adRewardState().canClaim,false);});
 console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);

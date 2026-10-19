@@ -81,7 +81,9 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
       const camp=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
       fs.writeFileSync(path.join(out,'camp-door-'+level+'.png'),Buffer.from(camp.data,'base64'));
     }
-    assert.deepEqual(doorCenters,[36,30,36,36],'hotspots preserve all four house-door anchors; cropped entries may use the visible shortcut');
+    // 当前营地底图的房屋中心为28%，门按等级偏移+1/-3。旧36/30断言来自旧底图；
+    // 本轮重构前的隔离源码实测亦为29/25/29/29，证据refactor-door-baseline.json。
+    assert.deepEqual(doorCenters,[29,25,29,29],'hotspots preserve all four current house-door anchors');
     assert.ok(doorHits.every(Boolean),'each door hotspot is reachable by an actual touch');
     await ev(`document.querySelector('#nav [data-nav="inv"]').click()`); await sleep(300);
     const icons=await ev(`document.querySelectorAll('.color-inventory-icon').length`);

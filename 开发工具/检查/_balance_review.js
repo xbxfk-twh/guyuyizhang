@@ -2,7 +2,7 @@
 const fs = require('fs'), path = require('path');
 const root = path.resolve(__dirname, '../..');
 const base = path.join(root, '孤屿遗章-游戏 - 发布/js');
-const source = ['data.js', 'game.js'].map(f => fs.readFileSync(path.join(base, f), 'utf8')).join('\n');
+const source = require('../../回归测试/helpers/runtime.js').logicFiles.map(f => fs.readFileSync(path.join(base, f), 'utf8')).join('\n');
 const store = {};
 const ls = { getItem:k=>store[k] || null, setItem:(k,v)=>store[k]=String(v), removeItem:k=>delete store[k] };
 const {Game:G,ENEMIES} = new Function('localStorage','window','document', source+'\nreturn {Game,ENEMIES};')(ls,{},{});

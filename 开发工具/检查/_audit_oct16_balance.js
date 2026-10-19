@@ -1,6 +1,6 @@
 // Manual tool slots must survive load, gathering and broken-tool replacement.
 const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
-let source=['data.js','game.js'].map(f=>fs.readFileSync(path.join(__dirname,'../../孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
+let source=require('../../回归测试/helpers/runtime.js').logicFiles.map(f=>fs.readFileSync(path.join(__dirname,'../../孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
 source=source.replace('healthValue, pendingLootInfo','HOUR_EFFECTS, triggerRandomEvent, lanternRiskMul, arriveAt, fitsInBag, gainItem, healthValue, pendingLootInfo');
 function fresh(){const store={},math=Object.create(Math);const control={random:.99,fail:false,autoNotify:true,overlays:[]};math.random=()=>control.random;
  const e=new Function('localStorage','window','document','console','Math','setTimeout','clearTimeout',source+'\nreturn {G:Game,ITEMS,RECIPES,DURA,RANDOM_EVENTS,ATLANTIS_FURNITURE,SEASONS,WEATHER,DIFFICULTIES,FURNITURE,BUILDING_CHAINS,ENEMIES,SKILL_TREES};')({getItem:k=>store[k]??null,setItem:(k,v)=>{if(control.fail){control.fail=false;throw Error('quota');}store[k]=String(v);},removeItem:k=>delete store[k]}, {},{cookie:''},{log(){},warn(){}},math,()=>1,()=>{});

@@ -1,0 +1,36 @@
+{
+  "styles": [
+    "css/style.css",
+    "css/panels.css",
+    "css/ui-polish.css"
+  ],
+  "scripts": [
+    "js/i18n.js",
+    "js/data.js",
+    "js/features/food-satchel.js",
+    "js/storage/transactions.js",
+    "js/storage/codec.js",
+    "js/storage/migrations.js",
+    "js/core/session.js",
+    "js/storage/repository.js",
+    "js/game.js",
+    "js/audio.js",
+    "js/battle-effects.js",
+    "js/ads.js",
+    "js/ui/input/press.js",
+    "js/ui/dom.js",
+    "js/ui/panel-registry.js",
+    "js/ui/food-satchel.js",
+    "js/ui.js"
+  ],
+  "logic": [
+    "js/data.js",
+    "js/features/food-satchel.js",
+    "js/storage/transactions.js",
+    "js/storage/codec.js",
+    "js/storage/migrations.js",
+    "js/core/session.js",
+    "js/storage/repository.js",
+    "js/game.js"
+  ]
+}

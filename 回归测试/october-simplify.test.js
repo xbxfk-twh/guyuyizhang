@@ -1,6 +1,6 @@
 /* 本轮行为契约：独立内存存储，不读取玩家存档。 */
 const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
-const source=['data.js','game.js'].map(f=>fs.readFileSync(path.join(__dirname,'../孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
+const source=require('./helpers/runtime.js').logicFiles.map(f=>fs.readFileSync(path.join(__dirname,'../孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
 const store={},storage={getItem:k=>store[k]||null,setItem:(k,v)=>store[k]=String(v),removeItem:k=>delete store[k]};
 const {Game:G,ITEMS,RECIPES,TOWN,PATCH_NOTES,DURA}=new Function('localStorage','window','document',source+'\nreturn {Game,ITEMS,RECIPES,TOWN,PATCH_NOTES,DURA};')(storage,{},{});
 G.bind({onChange(){},onLog(){},onFight(){},onEnding(){},onOverlay(){}});

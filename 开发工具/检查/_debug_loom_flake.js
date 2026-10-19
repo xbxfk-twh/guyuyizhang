@@ -12,7 +12,7 @@ const fakeLS = {
   removeItem: k => { delete store[k]; },
 };
 const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
-const GAME = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
+const GAME = require('../../回归测试/helpers/runtime.js').engineSource(path.join(ROOT, 'js', 'game.js'));
 const PROBE = `
 let bad = 0, firstBad = null;
 for (let i = 0; i < 4000; i++) {

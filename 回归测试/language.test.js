@@ -1,6 +1,7 @@
 const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
 const src=fs.readFileSync(path.join(__dirname,'../孤屿遗章-游戏 - 发布/js/i18n.js'),'utf8');
 function make(channel,stored){const store={};if(stored)store.guyuyizhang_language=stored;const window={GUYU_CHANNEL:channel};const document={readyState:'loading',addEventListener(){},documentElement:{dataset:{}},body:null,querySelectorAll(){return []}};return new Function('window','document','location','localStorage',src+';return Locale;')(window,document,{hostname:'localhost',search:''},{getItem:k=>store[k]??null,setItem:(k,v)=>store[k]=v});}
-assert.equal(make('web').current(),'en');assert.equal(make('taptap').current(),'en');assert.equal(make('taptap','en').current(),'en');assert.equal(make('web','zh').current(),'zh');assert.equal(make('web','bad').current(),'en');
-const en=make('web');assert.equal(en.text('星之点'),'Star Points');assert.equal(en.text('魂点'),'Soul Points');assert.equal(en.text('背包'),'Backpack');assert.equal(en.text('第1天'),'Day 1');assert.equal(make('taptap').text('星之点'),'Star Points');assert.equal(en.text('HAPPY1 / https://example.com / 300 + 30'),'HAPPY1 / https://example.com / 300 + 30');
-console.log('通过 11 项，失败 0 项\nRESULT:PASS');
+assert.equal(make('web').current(),'en');assert.equal(make('taptap').current(),'zh');assert.equal(make('taptap','en').current(),'en');assert.equal(make('web','zh').current(),'zh');assert.equal(make('web','bad').current(),'en');
+const en=make('web');assert.equal(en.text('星之点'),'Star Points');assert.equal(en.text('魂点'),'Soul Points');assert.equal(en.text('背包'),'Backpack');assert.equal(en.text('第1天'),'Day 1');assert.equal(make('taptap').text('星之点'),'星之点');assert.equal(en.text('HAPPY1 / https://example.com / 300 + 30'),'HAPPY1 / https://example.com / 300 + 30');
+assert.equal(make(undefined).current(),'zh');assert.equal(make('standalone').current(),'en');assert.equal(make('taptap','bad').current(),'zh');assert.equal(make('taptap','zh').current(),'zh');
+console.log('通过 15 项，失败 0 项\nRESULT:PASS');

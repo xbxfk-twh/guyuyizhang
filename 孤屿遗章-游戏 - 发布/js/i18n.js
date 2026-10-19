@@ -64,14 +64,37 @@ Object.assign(DICTIONARY, {"备份包含当前进度与账号数据。请整段�
 Object.assign(DICTIONARY, {"已有":"Available:","，请装备到工具栏，或在设置中开启「自动取用工具」。":". Equip it in a tool slot, or enable Automatic tools in Settings."});
 Object.assign(DICTIONARY, {"长按查看采集详情":"Hold to view gathering details","使用工具：":"Tool:","预计耗时：":"Time:","消耗体力：":"Stamina:","基础产出：":"Base yield:","今日剩余：":"Uses left today:","实际产量受季节、天气、难度和工具影响。":"Actual yield depends on season, weather, difficulty and tools.","徒手":"Bare hands"});
 Object.assign(DICTIONARY, {"老松树": "Old Pine", "老松树(割脂)": "Old Pine (Resin)", "羊群(剪毛)": "Sheep (Shearing)", "深水区(捕大鱼)": "Deep Water (Large Fish)", "钢斧": "Steel Axe", "铁斧": "Iron Axe", "石斧": "Stone Axe", "分钟 · 消耗体力：": "minutes · Stamina:"});
+// data.js loads after this file; register its guide copy when the DOM is ready.
+function registerGuideTranslations() {
+  if (typeof GUIDE === 'undefined') return;
+  GUIDE.forEach(page => {
+    if (page.enTitle) DICTIONARY[page.title] = page.enTitle;
+    page.steps.forEach((step, i) => { if (page.enSteps?.[i]) DICTIONARY[step] = page.enSteps[i]; });
+  });
+}
+Object.assign(DICTIONARY, {
+  '伤势久未处理，伤口出现感染。请使用草药膏治疗感染。': 'The untreated wound became infected. Use Herbal Paste to treat the infection.'
+});
 const Locale = (()=>{
   const KEY='guyuyizhang_language', supported=['en','zh'];
   let preference=null;try{preference=localStorage.getItem(KEY);}catch(e){}
-  let language=supported.includes(preference)?preference:'en';
+  const channel=window.GUYU_CHANNEL || (location.hostname==='appassets.androidplatform.net'?'standalone':'taptap');
+  const defaultLanguage=channel==='taptap'?'zh':'en';
+  let language=supported.includes(preference)?preference:defaultLanguage;
   const originals=new WeakMap(), attrs=new WeakMap();
   const escaped=Object.keys(DICTIONARY).filter(Boolean).sort((a,b)=>b.length-a.length).map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
-  const pattern=new RegExp(escaped.join('|'),'g');
+  let pattern=new RegExp(escaped.join('|'),'g');
   function text(value){if(language==='zh'||!/[\u3400-\u9fff]/.test(value))return value;return String(value).replace(pattern,k=>' '+DICTIONARY[k]+' ').replace(/\bDay\s*(\d+)\s*days\b/g,'Day $1').replace(/ +/g,' ').replace(/ ([,.;:!?])/g,'$1').trim();}
+  function syncText(node,value){
+    const raw=String(value??''),owner=node.nodeType===3?node.parentElement:node;
+    const output=owner?.closest('script,style,textarea,input,.tt,[data-no-translate]')?raw:text(raw);
+    const target=node.nodeType===3?node:(node.childNodes.length===1&&node.firstChild.nodeType===3?node.firstChild:null);
+    if(target){originals.set(target,{raw,output});if(target.nodeValue!==output)target.nodeValue=output;}
+    else{if(node.textContent!==output)node.textContent=output;if(node.firstChild?.nodeType===3)originals.set(node.firstChild,{raw,output});}
+  }
+  function syncAttribute(el,key,value){
+    const raw=String(value),output=el.closest('[data-no-translate]')?raw:text(raw),record=attrs.get(el)||{};record[key]={raw,output};attrs.set(el,record);if(el.getAttribute(key)!==output)el.setAttribute(key,output);
+  }
   function visit(root){
     if(!root||root.nodeType!==1)return;
     const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[];let node;
@@ -95,9 +118,12 @@ const Locale = (()=>{
   }
   function set(value){if(!supported.includes(value))return false;language=value;preference=value;try{localStorage.setItem(KEY,value);}catch(e){}apply();return true;}
   function control(){return `<label class="language-control"><span>Language</span><select data-language aria-label="Language"><option value="en" ${language==='en'?'selected':''}>English</option><option value="zh" ${language==='zh'?'selected':''}>中文</option></select></label>`;}
-  let observer=null,queued=false;
-  function start(){if(!supported.includes(preference))language='en';observer=new MutationObserver(()=>{if(queued)return;queued=true;queueMicrotask(()=>{queued=false;apply();});});document.addEventListener('change',e=>{if(e.target.matches('[data-language]'))set(e.target.value);});apply();}
+  let observer=null,queued=false;const pendingRoots=new Set();
+  function start(){registerGuideTranslations();pattern=new RegExp(Object.keys(DICTIONARY).filter(Boolean).sort((a,b)=>b.length-a.length).map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'),'g');if(!supported.includes(preference))language=defaultLanguage;observer=new MutationObserver(records=>{
+      for(const record of records){const root=record.target.nodeType===3?record.target.parentElement:record.target;if(root)pendingRoots.add(root);}
+      if(queued)return;queued=true;queueMicrotask(()=>{queued=false;const roots=[...pendingRoots];pendingRoots.clear();for(const root of roots)if(root.isConnected&&!roots.some(other=>other!==root&&other.contains(root)))visit(root);});
+    });document.addEventListener('change',e=>{if(e.target.matches('[data-language]'))set(e.target.value);});apply();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
-  return {text,set,apply,control,current:()=>language};
+  return {text,set,apply,control,syncText,syncAttribute,translate:visit,current:()=>language};
 })();
 window.Locale=Locale;

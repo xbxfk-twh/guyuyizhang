@@ -1,6 +1,6 @@
 const fs=require('fs'),path=require('path');
 const base=path.resolve(__dirname,'../孤屿遗章-游戏 - 发布/js');
-const source=['data.js','game.js'].map(f=>fs.readFileSync(path.join(base,f),'utf8')).join('\n');
+const source=require('./helpers/runtime.js').logicFiles.map(f=>fs.readFileSync(path.join(base,f),'utf8')).join('\n');
 const store={};
 const ls={getItem:k=>store[k]||null,setItem:(k,v)=>store[k]=String(v),removeItem:k=>delete store[k]};
 const {Game:G,ITEMS}=new Function('localStorage','window','document','console',source+'\nreturn {Game,ITEMS};')(ls,{}, {},{log(){},warn(){}});

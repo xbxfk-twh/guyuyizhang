@@ -1,7 +1,7 @@
 /* 发布安全：故障注入均在内存存储；覆盖真实调用链，不修改玩家数据。 */
 const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'../孤屿遗章-游戏 - 发布/js');
-const source=['data.js','game.js'].map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n');
+const source=require('./helpers/runtime.js').logicFiles.map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n');
 const clone=x=>JSON.parse(JSON.stringify(x));
 const keys=['guyuyizhang_save','guyuyizhang_save_bak','guyuyizhang_savedAt','guyuyizhang_rev','guyuyizhang_meta','guyuyizhang_meta_bak'];
 function engine(store={},window={}) {

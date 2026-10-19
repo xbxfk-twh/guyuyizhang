@@ -34,7 +34,7 @@ const checks = [
   '回归测试/mobile-overhaul.test.js',
   '回归测试/loadout-storage.test.js',
   '回归测试/lottery-simple.test.js',
-  '回归测试/ads.test.js',
+  '回归测试/ui-modules.test.js', '回归测试/storage-modules.test.js', '回归测试/session-migrations.test.js', '回归测试/ads.test.js', '回归测试/ad-adapter.test.js',
   '回归测试/audit.js',
   '回归测试/feedback.test.js',
   '回归测试/release-safety.test.js',
@@ -77,7 +77,7 @@ if (args.includes('--browser')) checks.push('开发工具/检查/_verify_town_go
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_room_batch.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_trade_lottery.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_simplify.js');
-if (args.includes('--browser')) checks.push('开发工具/检查/_verify_ads.js');
+if (args.includes('--browser')) checks.push('开发工具/检查/_verify_ads.js','开发工具/检查/_verify_incremental_ui.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_nightmare_ui.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_mobile_overhaul_ui.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_battle_board.js', '开发工具/检查/_verify_travel_danger.js');

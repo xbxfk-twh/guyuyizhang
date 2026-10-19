@@ -15,7 +15,7 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
   const check=(name,value)=>{assert.ok(value,name);passed++;console.log('OK '+name);};
 
   await send('Page.enable');
-  await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.sdkCalls=0;window.tap={createRewardedVideoAd:()=>{sdkCalls++;throw Error('removed SDK')},cloud:{save:()=>{sdkCalls++},load:()=>{sdkCalls++}}};`});
+  const standaloneHook=await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.GUYU_CHANNEL='standalone';window.sdkCalls=0;window.tap={createRewardedVideoAd:()=>{sdkCalls++;throw Error('removed SDK')},cloud:{save:()=>{sdkCalls++},load:()=>{sdkCalls++}}};`});
   await send('Emulation.setDeviceMetricsOverride',{width:667,height:375,deviceScaleFactor:1,mobile:true});
   await send('Page.navigate',{url:'file:///'+encodeURI(ROOT.replace(/\\/g,'/')+'/index.html')});await sleep(1400);
   check('独立版首次启动默认英文',await ev(`document.documentElement.lang==='en'`));
@@ -45,7 +45,26 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
   check('备份页无广告免费备份入口',await ev(`!document.querySelector('[data-adbackup]')&&!document.querySelector('#watch-reward-ad')`));
   await ev(`document.querySelector('#modal .modal-x').click();Game.S().stats.hp=0;Game.die('test');`);
   check('死亡页无广告复活入口',await ev(`!document.querySelector('#end-adrevive')`));
-  check('全过程不调用Tap SDK',await ev(`sdkCalls===0&&typeof TapAds==='undefined'&&Game.adRewardState===undefined&&Game.cloudStatus().supported===false`));
+  check('全过程不调用Tap SDK',await ev(`sdkCalls===0&&typeof TapAds==='object'&&!TapAds.enabled()&&!Game.adRewardState().canClaim&&Game.cloudStatus().supported===false`));
+  await send('Page.removeScriptToEvaluateOnNewDocument',{identifier:standaloneHook.identifier});
+  await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.GUYU_CHANNEL='taptap';localStorage.removeItem('guyuyizhang_language');window.sdkCalls=0;window.adShows=0;window.tap={createRewardedVideoAd:()=>{sdkCalls++;return {onLoad:()=>{},onError:f=>window.adError=f,onClose:f=>window.adClose=f,load:()=>Promise.resolve(),show:()=>{adShows++;return Promise.resolve()}}}};`});
+  await send('Page.reload');await sleep(1600);
+  check('Tap首次默认中文',await ev(`document.documentElement.lang==='zh-CN'`));
+  await ev(`Game.newGame('fisher','normal');Game.S().tut=null;Game.metaState().batchTipSeen=1;Game.metaState().adWallet={};Game.metaState().adRewardDays={};UI.begin();`);await sleep(2800);
+  await openShop();await sleep(500);
+  check('Tap商城显示广告币及真实帮助文字',await ev(`Game.adCurrencyName()==='广告币'&&document.querySelector('[data-soulexchange]').textContent==='换广告币'&&document.querySelector('.shop-title').textContent.includes('15 魂点兑换 1 广告币')&&!document.querySelector('.shop-title').textContent.includes('currency')`));
+  for(const [width,height,mobile] of [[667,375,true],[844,390,true],[1366,768,false]]){
+   await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile});await openShop();await sleep(700);
+   check('Tap广告入口与全部商品一屏可见 '+width,await ev(`(()=>{const es=[...document.querySelectorAll('#watch-reward-ad,[data-adbuy]')];return es.length===7&&es.every(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight&&e.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2))})})()`));
+   const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync(path.join(out,'tap-shop-'+width+'.png'),Buffer.from(shot.data,'base64'));
+  }
+  await tap('#watch-reward-ad');
+  check('播放期间暂停且禁止弹窗操作',await ev(`adShows===1&&Game.timeFrozen()&&document.querySelector('#modal .modal-content').inert`));
+  await ev(`adClose({isEnded:false})`);await sleep(600);
+  check('提前关闭不发奖且解除操作锁',await ev(`Game.adCoinBalance()===0&&Game.adRewardState().uses===0&&!document.querySelector('#modal .modal-content').inert`));
+  await tap('#watch-reward-ad');await ev(`adClose({isEnded:true});adClose({isEnded:true})`);await sleep(600);
+  check('完整观看仅发一份3至6币并更新次数',await ev(`Game.adCoinBalance()>=3&&Game.adCoinBalance()<=6&&Game.adRewardState().uses===1&&document.querySelector('#watch-reward-ad').textContent.includes('1/5')&&!document.querySelector('#modal .modal-content').inert`));
+  check('Tap全过程只创建一个SDK实例',await ev(`sdkCalls===1&&adShows===2`));
   ws.close();console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);
  }finally{ch.kill();}
 })().catch(e=>{console.error(e);console.log('RESULT:FAIL');process.exitCode=1;});

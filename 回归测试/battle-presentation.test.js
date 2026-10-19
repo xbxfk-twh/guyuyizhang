@@ -1,7 +1,7 @@
 /* Same-seed paired engines: runtime effects must not change combat or saves. */
 const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
 const dir=path.join(__dirname,'../孤屿遗章-游戏 - 发布/js');
-const data=fs.readFileSync(path.join(dir,'data.js'),'utf8'),game=fs.readFileSync(path.join(dir,'game.js'),'utf8');
+const data=fs.readFileSync(path.join(dir,'data.js'),'utf8'),game=require('./helpers/runtime.js').engineSource(path.join(dir,'game.js'));
 // Control is the exact current engine with only presentation bookkeeping removed.
 const control=game.replace('const events=[];combatEvents.set(C,events);','const events=[];')
  .replace(/fx\((?:e|tg|null),[^;]+\);/g,'');

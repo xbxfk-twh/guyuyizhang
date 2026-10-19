@@ -1,6 +1,5 @@
-/* 升版本号：改 index.html 的 BUILD_VER 与其后所有 ?v= 缓存参数（当前 9 个：
-   data/game/audio/ads/battle-effects/ui + style/panels/ui-polish 三张 css）；打包自动读取此版本。
-   用法：node 开发工具\生成\_bump_version.js v1.10
+/* 升版本号：index.html的BUILD_VER及runtime-manifest.json中所有静态入口缓存参数同步。
+   用法：node 开发工具/生成/_bump_version.js v1.13
 */
 const fs = require('fs');
 const path = require('path');

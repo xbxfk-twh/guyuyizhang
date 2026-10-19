@@ -37,7 +37,7 @@ for (const sc of SCENES) {
   }
 }
 // 鱼人兑换（在 game.js 里）
-const GAME = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
+const GAME = require('../../回归测试/helpers/runtime.js').engineSource(path.join(ROOT, 'js', 'game.js'));
 const fm = GAME.match(/FISHMAN_DEALS\s*=\s*\[([\s\S]*?)\n\s*\];/);
 const fishDeals = fm ? fm[1] : '';
 for (const m of fishDeals.matchAll(/relic:'(\w+)'/g)) add(m[1], '神秘鱼人兑换');

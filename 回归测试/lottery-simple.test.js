@@ -1,6 +1,6 @@
 /* 独立内存存储；测试内暴露只读随机函数，用于分布检查。 */
 const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
-let source=['data.js','game.js'].map(f=>fs.readFileSync(path.join(__dirname,'../孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
+let source=require('./helpers/runtime.js').logicFiles.map(f=>fs.readFileSync(path.join(__dirname,'../孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
 source=source.replace('lotteryState, lotteryValue, lotteryChance, lotteryOffer,','lotteryRandom, lotteryState, lotteryValue, lotteryChance, lotteryOffer,');
 const memory={},storage={getItem:k=>memory[k] || null,setItem:(k,v)=>memory[k]=String(v),removeItem:k=>delete memory[k]};
 const {Game:G,ITEMS,RECIPES}=new Function('localStorage','window','document',source+'\nreturn {Game,ITEMS,RECIPES};')(storage,{},{});

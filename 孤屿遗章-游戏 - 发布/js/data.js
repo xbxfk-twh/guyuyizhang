@@ -1279,19 +1279,23 @@ const GUIDE = [
     "enTitle": "Crafting and Hold Actions",
     "steps": [
       "制作页先选工位与分类，再查看配方材料；缺少工位、图纸或材料时，按钮会提示原因。",
-      "高炉需先建砖熔炉，备齐石砖12、铁件4即可建造。削木板每批消耗4木材：基础产出2木板（30分钟），装备铁斧或钢斧产出3木板（20分钟）；砖熔炉可成批烧砖。营地建造里的船坞升级会提供船只，地图上的地点则用于出海探索。",
+      "高炉需先建砖熔炉，准备石砖12、铁件4，并满足建造页的制造等级和家具位要求；不需要高炉图纸。削木板每批消耗4木材：基础产出2木板（30分钟），使用铁斧或钢斧产出3木板（20分钟）；砖熔炉可成批烧砖。营地建造里的船坞负责升级船只，地图上的地点用于出海探索。",
       "轻点制作按钮制作一份，长按打开批量制作并选择次数。晾晒等需等待的配方一次只能挂一批，完成后先收取。",
       "商人界面的购买、出售、贝壳和金币兑换按钮，轻点操作一份，长按选择批量数量；图纸等物品按实际可买数量处理。",
       "长按食之包卡面，选择优先食物、优先饮料和禁食物品，每类最多3种；点已选物品可取消。优先物品用完会自动选择其他安全物品，禁食始终生效。地窖物品长按可批量存入或丢弃。",
-      "潮生丹和渊息丹各有制作上限，但服用不限次数。查看物品说明区分回复生命、恢复健康和提高上限的效果。"
+      "潮生丹和渊息丹各有制作上限，但服用不限次数。查看物品说明区分回复生命、恢复健康和提高上限的效果。",
+      "自动取用工具默认关闭，可在设置开启；开启后会选背包或当前营地仓库中等级最高的可用工具，不填工具槽，野外不借仓。关闭时使用已装备工具。钢工具的价值还包括采集更快、更省体力和更长耐久。",
+      "食之包需要装备才会生效，每游戏小时检查一次：饱食或水分低于50时，各补一份合规物品，不会立即补满。可取用背包与对应区域仓库；岛上有地窖时也可取用地窖，地窖并非必需。岛海库存不互通。"
     ],
     "enSteps": [
       "Choose a crafting station and category, then check recipe costs. Disabled actions explain missing stations, blueprints or materials.",
-      "A Blast Furnace requires a Brick Furnace, 12 Stone Bricks and 4 Iron Parts. Planks cost 4 Wood per batch: 2 Planks in 30 minutes normally, or 3 in 20 minutes with an equipped Iron or Steel Axe; a Brick Furnace unlocks bulk brick firing. Upgrade your dock under Camp Construction for boats; map destinations are used for sailing and exploration.",
+      "A Blast Furnace needs a Brick Furnace, 12 Stone Bricks, 4 Iron Parts, and the crafting level and furniture space shown in construction; no furnace blueprint is needed. Planks cost 4 Wood per batch: 2 in 30 minutes normally, or 3 in 20 minutes with an Iron or Steel Axe. A Brick Furnace unlocks bulk brick firing. Upgrade boats under Camp Construction; map destinations are for sailing and exploration.",
       "Tap Craft for one batch; hold it to choose multiple batches. Drying recipes can run only one batch at a time; collect it before starting another.",
       "At merchants, tap buy, sell or currency exchange for one unit; hold for a quantity selector. Blueprints follow their purchase limits.",
       "Hold the Food Satchel card to select up to three preferred foods, drinks or excluded items per category. Tap selected items to remove them. When preferences run out, other safe items are used; exclusions always apply. Hold cellar items for bulk storage or discard.",
-      "Vital Tide Pills and Abyss Breath Pills have crafting limits but no consumption limit. Read item details to distinguish healing, wellness recovery and maximum-stat bonuses."
+      "Vital Tide Pills and Abyss Breath Pills have crafting limits but no consumption limit. Read item details to distinguish healing, wellness recovery and maximum-stat bonuses.",
+      "Auto Tools is off by default and can be enabled in Settings. It selects the highest usable tier from your bag or the current camp warehouse without filling tool slots. Outside camp it cannot borrow stored tools. With it off, equipped tools are used. Steel tools also gather faster, save stamina and last longer.",
+      "Equip the Food Satchel to activate it. Once per game hour, hunger or thirst below 50 triggers one eligible item each, rather than an instant refill. It uses your bag and the matching regional warehouse, plus an island cellar if built; a cellar is optional. Island and underwater stock remain separate."
     ]
   },
   {
@@ -1334,7 +1338,7 @@ const GUIDE = [
     "title": "探索与照明等级",
     "enTitle": "Exploration and Light",
     "steps": [
-      "打开地图选择目的地，再点击场景中的采集热点。留意出发前的体力消耗、工具要求和危险程度。",
+      "打开地图选择目的地，再点击场景中的采集热点。轻点直接采集；长按查看实际工具、耗时、体力、基础产出与当日剩余次数，预览不消耗资源。留意出发前的工具要求和危险程度。",
       "升级瞭望台逐步开放新的探索区域；升级工具和武器后，再去采石场深层、山洞、荒漠与山顶。",
       "部分热点有次数、工具等级、照明或前置事件要求。点灰色入口查看缺少条件，不必反复尝试。",
       "黑暗地区先准备照明。照明不够会挡住部分探索入口；所需等级看热点提示，别只看是否携带火把。",
@@ -1342,7 +1346,7 @@ const GUIDE = [
       "出远门前补吃喝、修工具、清背包，准备衣物应对寒热。可在设置调整场景滑动与日志显示。"
     ],
     "enSteps": [
-      "Choose a destination on the map, then use gathering hotspots in the scene. Check travel stamina, required tools and danger before leaving.",
+      "Choose a destination on the map, then use gathering hotspots. Tap to gather, or hold to preview the actual tool, time, stamina, base yield and daily uses left without spending resources. Check tool requirements and danger before leaving.",
       "Upgrade the watchtower to open more areas. Improve tools and weapons before exploring deeper quarries, caves, deserts and the peak.",
       "Some hotspots require remaining uses, tool tiers, light or earlier events. Tap disabled entries to read their requirements.",
       "Prepare lighting for dark places. Insufficient light blocks some actions; check the required light level, not just whether you carry a torch.",
@@ -1392,15 +1396,15 @@ const GUIDE = [
     "steps": [
       "菜单→图鉴可查看已发现的物品与怪物。物品条目可点开，查看攻击、防御、速度、耐久、食用效果等数值。",
       "怪物图鉴可查看生命、攻击、防御、速度、特性与掉落；遇到陌生敌人前，先了解它擅长什么。",
-      "背包的物品详情也能查说明；装备→属性查看人物数值，场景状态标记可帮助了解温度和异常状态。",
-      "菜单可保存进度、使用备份与读档，并导出存档码。换设备前先导出并妥善保存，不要随意卸载或清除游戏数据。",
+      "生命与健康不同：简易药膏恢复20健康；草药膏恢复15生命、15健康并治疗感染；解毒剂解除中毒并恢复10健康，但不治疗感染。点击状态查看当前异常及其效果，带伤睡觉仍会结算。",
+      "菜单可保存进度、使用备份与读档，并导出存档码或下载文本文件。导入可粘贴或选文件，先预览再确认覆盖；取消不会替换进度。换设备前先备份，不要随意卸载或清除游戏数据。",
       "遇到不明白的操作，先看按钮旁的问号、灰色提示和日志；攻略也可从邮箱的攻略页打开，两处内容相同。"
     ],
     "enSteps": [
       "Open Collection from the menu to inspect discovered items and enemies. Tap items for attack, defense, speed, durability and use effects.",
       "Enemy entries show health, attack, defense, speed, traits and drops. Learn unfamiliar enemies before taking risks.",
-      "Item details also show descriptions. Equipment Attributes show character stats; scene status indicators help explain temperature and ailments.",
-      "The menu offers saving, backups and save-code export. Export and keep a code before switching devices; avoid uninstalling or clearing game data without a backup.",
+      "HP and wellness are different. Simple Salve restores 20 wellness; Herbal Paste restores 15 HP and 15 wellness and cures infection. Antidote removes poison and restores 10 wellness, but does not cure infection. Tap Status to inspect ailments; they still progress during sleep.",
+      "The menu offers saving, backups and save-code or text-file export. Paste a code or choose a file to import, preview it, then confirm replacement; cancel keeps your current progress. Back up before switching devices, uninstalling or clearing data.",
       "Check question-mark help, disabled-action explanations and the log when unsure. The Guide tab in Mail uses the same pages as the menu guide."
     ]
   }

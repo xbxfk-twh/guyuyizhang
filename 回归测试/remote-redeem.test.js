@@ -1,5 +1,5 @@
 const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
-const source=['data.js','game.js'].map(f=>fs.readFileSync(path.join(__dirname,'../孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
+const source=require('./helpers/runtime.js').logicFiles.map(f=>fs.readFileSync(path.join(__dirname,'../孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
 function fresh(){const store={},control={fail:false,calls:[],mode:'ok',claimed:null};
  const win={crypto:require('node:crypto').webcrypto};
  win.fetch=async(url,options)=>{const b=JSON.parse(options.body);control.calls.push(b);if(control.mode==='offline')throw Error('offline');

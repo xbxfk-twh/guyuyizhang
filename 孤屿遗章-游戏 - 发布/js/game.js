@@ -4,54 +4,30 @@
    ============================================================ */
 
 const Game = (() => {
+  const LOG_KEEP = 200;
   let S = null;            // 全局状态
-  let persisting = false;
+  const foodSatchel=FoodSatchel.create({getState:()=>S,ITEMS,warehouseSite,cellarBuilt,supplyCount,foodLots,nowTick,supplyRecords,supplyRecordsAll,supplyContainer,supplySites,invCount,hasRelic,save,change,log,takeSupply,applyFoodEffects});
+  const migrations=StateMigrations.create({getState:()=>S,ITEMS,DIFFICULTIES,WEATHER,DURA,LOG_KEEP,SKILL_TRUNK_COST,costMul,log,combatLv,nodeLv,trainingCount,durList,autoToolkit,reconcileLotteryInputs,reconcileNightmareSouls,settleStoredFood,supplyRecordsAll,addItem,
+    migrateFoodChoices:()=>foodSatchel.migrateSatchelChoices()});
   let staging = false;
-  const WRITE_JOURNAL = 'guyuyizhang_write_journal';
-  const WRITE_KEYS = ['guyuyizhang_save','guyuyizhang_save_bak','guyuyizhang_savedAt','guyuyizhang_rev','guyuyizhang_meta','guyuyizhang_meta_bak'];
-  function restoreWrittenKeys(values) {
-    for (const key of WRITE_KEYS) {
-      if (values[key] === null) localStorage.removeItem(key);
-      else if (typeof values[key] === 'string') localStorage.setItem(key, values[key]);
-    }
-  }
-  function recoverPendingWrite() {
-    try {
-      const raw = localStorage.getItem(WRITE_JOURNAL);
-      if (!raw) return;
-      const journal = JSON.parse(raw);
-      if (journal && journal.version === 1 && journal.before) restoreWrittenKeys(journal.before);
-      localStorage.removeItem(WRITE_JOURNAL);
-    } catch (e) { console.warn('未完成的存档写入尚未恢复', e); }
-  }
-  // 主档与账号数据一起修改时先落恢复日志；任一步失败，恢复旧值而不收费/吞物。
-  function persistPair(nextS, nextM, normalize) {
-    const previousS = S, previousM = M, before = {};
-    let started = false;
-    try {
-      if (localStorage.getItem(WRITE_JOURNAL)) throw new Error('上次存储恢复尚未完成');
-      for (const key of WRITE_KEYS) before[key] = localStorage.getItem(key);
-      localStorage.setItem(WRITE_JOURNAL, JSON.stringify({version:1,before})); started = true;
-      persisting = true; S = nextS; M = nextM;
-      migrateSaltMeta(M);
-      if (normalize && S) { normalizeState(); S._rev = parseInt(before.guyuyizhang_rev || '0',10) || 0; }
-      if (!normalize && S) {reconcileLotteryInputs();reconcileNightmareSouls();}
-      const sr = S ? save() : {ok:true};
-      if (!sr.ok) throw new Error(sr.reason);
-      if (!metaSave().ok) throw new Error('账号数据写入失败');
-      localStorage.removeItem(WRITE_JOURNAL);
-      persisting = false;
-      if (S) ckMirror(CK.save, CK.saveAt, localStorage.getItem('guyuyizhang_save'));
-      ckMirror(CK.meta, CK.metaAt, localStorage.getItem('guyuyizhang_meta'));
-      cloudPush(false);
-      return {ok:true};
-    } catch (e) {
-      S = previousS; M = previousM; persisting = false;
-      if (started) { try { restoreWrittenKeys(before); localStorage.removeItem(WRITE_JOURNAL); } catch (restoreError) { console.warn('保留恢复日志供下次启动恢复', restoreError); } }
-      if (typeof onSaveFail === 'function') onSaveFail(e);
-      return {ok:false, reason:'存储写入失败，未完成操作；请先导出备份，再重试。'};
-    }
-  }
+  const saveTransactions=SaveTransactions.create({
+    storage:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value),removeItem:key=>localStorage.removeItem(key)},
+    getPair:()=>({save:S,meta:M}),setPair:(save,meta)=>{S=save;M=meta;},
+    migrateMeta:()=>migrateSaltMeta(M),normalize:revision=>{normalizeState();S._rev=revision;},
+    reconcile:()=>{reconcileLotteryInputs();reconcileNightmareSouls();},saveRun:()=>save(),saveMeta:()=>metaSave(),
+    mirror:()=>{if(S)ckMirror(CK.save,CK.saveAt,localStorage.getItem('guyuyizhang_save'));ckMirror(CK.meta,CK.metaAt,localStorage.getItem('guyuyizhang_meta'));},
+    push:()=>cloudPush(false),onFailure:error=>{if(typeof onSaveFail==='function')onSaveFail(error);}
+  });
+  const repository=SaveRepository.create({
+    storage:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value),removeItem:key=>localStorage.removeItem(key)},
+    cookies:{get text(){return document.cookie;},set text(value){document.cookie=value;}},
+    getState:()=>S,setState:value=>{S=value;},getMeta:()=>M,setMeta:value=>{M=value;},isStaging:()=>staging,
+    transactions:saveTransactions,LOG_KEEP,validSave,normalizeState,migrateSaltMeta,migrateRedeemReceipts,
+    onConflict:revision=>{if(typeof onSaveConflict==='function')onSaveConflict(revision);},
+    onFailure:error=>{if(typeof onSaveFail==='function')onSaveFail(error);},push:()=>cloudPush(false)
+  });
+  function recoverPendingWrite(){saveTransactions.recover();}
+  function persistPair(nextS,nextM,normalize){return saveTransactions.commit(nextS,nextM,normalize);}
   let onLog = null;        // 文本回调（ui 注册）
   let onChange = null;     // 状态刷新回调（ui 注册）
   let onFight = null;      // 战斗界面回调
@@ -67,7 +43,7 @@ const Game = (() => {
 
   // 界面上的日志是 DOM 里最近 80 条；S.log 只是为了存档留个尾巴，绝不能无限长
   // （曾经一天天攒到 4810 条 / 378KB，把存档码顶到 940KB，逼近 localStorage 上限有掉档风险）
-  const LOG_KEEP = 200;
+
   function log(text, cls) {
     if (onLog) onLog(text, cls);
     if (S && text) {
@@ -876,101 +852,12 @@ function change() {
     }
     return r;
   }
-  function satchelSites() {
-    return warehouseSite() === 'sea'
-      ? ['sea']
-      : ['island', ...(cellarBuilt() ? ['cellar'] : [])];
-  }
-  function satchelEligible(id, kind) {
-    const it=ITEMS[id];
-    if(!it||!['food','drink'].includes(it.cat)||['fish','meat','rot'].includes(id)||it.negChance||it.negPoison)return false;
-    return kind==='food'?it.cat==='food'&&it.food>0:kind==='drink'?(it.cat==='drink'||it.water>0):kind==='blocked'&&(it.food>0||it.water>0);
-  }
-  function satchelSelections(kind) {
-    if(!['food','drink','blocked'].includes(kind))return [];
-    return [...new Set(Array.isArray(S?.satchelChoices?.[kind])?S.satchelChoices[kind]:[])].filter(id=>satchelEligible(id,kind)).slice(0,3);
-  }
-  function setSatchelSelections(kind, ids) {
-    if(!S||!['food','drink','blocked'].includes(kind)||!Array.isArray(ids)||ids.some(id=>!satchelEligible(id,kind)))return {ok:false,reason:'请选择有效的食物或饮料。'};
-    const selected=[...new Set(ids)];
-    if(selected.length>3)return {ok:false,reason:'最多选择3种。'};
-    const previous=S.satchelChoices;
-    S.satchelChoices={...previous,[kind]:selected};S.satchelEmptyNotices={};
-    const r=save();if(r?.ok===false){S.satchelChoices=previous;return r;}change();return {ok:true};
-  }
-  function toggleSatchelSelection(kind, id) {
-    const ids=satchelSelections(kind);
-    return setSatchelSelections(kind,ids.includes(id)?ids.filter(k=>k!==id):[...ids,id]);
-  }
-  function satchelPick(kind) {
-      const site=satchelSites(),blocked=satchelSelections('blocked');
-      const has = k=>!!(ITEMS[k]&&k!=='rot'&&!ITEMS[k].negChance&&!ITEMS[k].negPoison&&!['fish','meat'].includes(k)&&supplyCount(k,site)>0&&!blocked.includes(k));
-      const val = (k) => kind === 'food' ? (ITEMS[k].food || 0) : (ITEMS[k].water || 0);
-      // 食之包挑食规则（作者 2026-09-22 定案，通用、不硬编码某一件）：
-      //   「普通口粮」= 只有饱食/水分、没有额外收益（治疗/体力/精神/增益）的食物。
-      //   先吃普通口粮里「快坏的那份」（省得眼睁睁放烂），同档再按饱食值从小到大。
-      //   「增益食物」= 有额外收益（治疗/体力/精神/增益）的食物，
-      //   排在普通口粮之后；只剩它们时仍会吃（饿肚子更危险），按附加价值从低到高吃。
-      //   蜂蜜因体力+7自然靠后；蛋、肉、鱼、野菜虽可烹饪，仍属于正常口粮。
-      const extraGain = (k) => { const it = ITEMS[k] || {};
-        return (it.heal || 0) + (it.sta || 0) + (it.spirit || 0) * 2 + (it.buffStat ? 10 : 0); };
-      const precious = (k) => extraGain(k);
-      // 还差多久坏（分钟）：普通口粮里快坏的先吃，避免浪费。
-      const spoilIn = k=>Math.min(...foodLots(k).filter(x=>x.exp>nowTick()).map(x=>x.exp),...(site?supplyRecords(k,site).map(x=>x.expiry??Infinity):[]),Infinity)-nowTick();
-      const okFood = (k) => has(k) && ITEMS[k].cat === 'food' && val(k) > 0;
-      const okDrink = (k) => has(k) && (ITEMS[k].cat === 'drink' || val(k) > 0);
-      const eligible=kind==='food'?okFood:okDrink;
-      const all=[...new Set([...Object.keys(S.inv),...supplyRecordsAll(site).map(x=>x.id)])].filter(eligible);
-      const preferred=satchelSelections(kind).find(id=>all.includes(id));
-      if(preferred)return preferred;
-      if (kind === 'food') {
-        const foods = all.filter(okFood).sort((a, b) => {
-          const pa = precious(a), pb = precious(b);
-          if (pa !== pb) return pa - pb;          // 普通口粮(0)先吃，珍贵材料后吃
-          if (pa === 0) {
-            const ea = spoilIn(a), eb = spoilIn(b);
-            if (ea !== eb) return ea - eb;        // 都是普通口粮：快坏的那份先吃
-          }
-          return val(a) - val(b);                 // 同档：饱食值小的先吃（小份先用掉）
-        });
-        return foods[0] || null;
-      }
-      // 喝：**淡水优先**（作者 2026-09-19：口渴了当然先喝淡水），没有淡水才喝别的饮品；
-      //     只剩带水分的食物时挑水分最多的那份。
-      if (all.includes('water')) return 'water';
-      const drinks = all.filter(k => has(k) && ITEMS[k].cat === 'drink' && val(k) > 0)
-        .sort((a, b) => (a === 'water' ? -1 : b === 'water' ? 1 : val(a) - val(b)));
-      if (drinks.length) return drinks[0];
-      const juicy = all.filter(okDrink).sort((a, b) => val(b) - val(a));
-      return juicy[0] || null;
-    }
-  function satchelNext(kind) {
-    const id=satchelPick(kind);if(!id)return null;
-    const lots=ITEMS[id]?.spoil?foodLots(id).filter(x=>x.exp>nowTick()):null;
-    const bagExp=lots?(lots[0]?.exp??Infinity):(invCount(id)>0?-Infinity:Infinity);
-    const rows=supplyRecords(id,satchelSites()).slice().sort((a,b)=>(a.expiry??Infinity)-(b.expiry??Infinity)), rec=rows[0];
-    const site=rec&&(bagExp===Infinity||(rec.expiry??Infinity)<bagExp)?satchelSites().find(x=>supplyContainer(x)?.items?.includes(rec)):'bag';
-    return {id,site:site||'bag',name:ITEMS[id].name,count:supplyCount(id,satchelSites())};
-  }
-  function satchelStatus() {
-    const equipped=hasRelic('satchel'),food=satchelNext('food'),drink=satchelNext('drink');
-    return {equipped,food,drink,sites:supplySites(satchelSites()),reason:!equipped?'未装备食之包':!food&&!drink?'没有符合设置的食物或饮水':'饱食或水分低于50时，每游戏小时检查一次'};
-  }
-  function satchelEmptyNotice(kind) {
-    S.satchelEmptyNotices=S.satchelEmptyNotices||{};
-    if(!S.satchelEmptyNotices[kind]){log('食之包：没有符合设置的'+(kind==='food'?'食物':'饮水')+'，请检查禁食和指定物品。','warn');S.satchelEmptyNotices[kind]=true;}
-  }
-  function satchelAvailable() {
-    const inv = {};
-    for (const id of new Set([
-      ...Object.keys(S.inv),
-      ...supplyRecordsAll(satchelSites()).map((x) => x.id)
-    ])) {
-      const n = supplyCount(id, satchelSites());
-      if (n) inv[id] = n;
-    }
-    return inv;
-  }
+  function satchelEligible(id,kind) { return foodSatchel.satchelEligible(id,kind); }
+  function satchelSelections(kind) { return foodSatchel.satchelSelections(kind); }
+  function setSatchelSelections(kind,ids) { return foodSatchel.setSatchelSelections(kind,ids); }
+  function toggleSatchelSelection(kind,id) { return foodSatchel.toggleSatchelSelection(kind,id); }
+  function satchelStatus() { return foodSatchel.satchelStatus(); }
+  function satchelAvailable() { return foodSatchel.satchelAvailable(); }
   function discardItems(id, qty, fromWarehouse = false) {
     if (S.combat || S.death || S.ending)
       return { ok: false, reason: '现在不能丢弃物品。' };
@@ -1146,7 +1033,7 @@ function change() {
     const bad=S.statuses.poison>0 || S.statuses.bleed>0 || S.statuses.fear>0 || (S.statuses.nauseaUntil||0)>(S.tick||0);
     if(bad)S.stats.health=Math.max(0,healthValue()-1);
     S.healthNeglect=healthValue()<40?(S.healthNeglect||0)+1:0;
-    if(!S.statuses.infection && S.healthNeglect>=6 && chance(.08)){S.statuses.infection=1;S.infectionHours=0;log('伤势久未处理，伤口出现感染。请使用草药膏或解毒剂治疗。','danger');}
+    if(!S.statuses.infection && S.healthNeglect>=6 && chance(.08)){S.statuses.infection=1;S.infectionHours=0;log('伤势久未处理，伤口出现感染。请使用草药膏治疗感染。','danger');}
     if(S.statuses.infection){S.infectionHours=(S.infectionHours||0)+1;applyHarm(S.statuses.infection>=2?4:2);if(S.infectionHours>=24 && S.infectionHours%6===0 && S.statuses.infection===1 && chance(.15)){S.statuses.infection=2;log('感染恶化了！尽快处理伤口。','danger');}if(S.stats.hp<=0){die('感染耗尽了你的生命。');return true;}}
     return false;
   }
@@ -1165,16 +1052,7 @@ function change() {
     // ⚠️ 作者 2026-09-19：自动吃的东西可以自己指定（玩家反馈"它总是吃超级大蛋，很心疼"）。
     //    没指定偏好时，改成"挑够用的里面最省的那份"，不再无脑拿第一件（背包顺序里超级大蛋常排前面）。
 
-    if (hasRelic('satchel')) {
-      if (S.stats.hunger < 50) {
-        const f = satchelPick('food');if(!f)satchelEmptyNotice('food');
-        if (f && takeSupply(f,1,satchelSites())) {applyFoodEffects(f);if(S.satchelEmptyNotices)delete S.satchelEmptyNotices.food;log(`食之包自动喂了你：${ITEMS[f].name}。`, 'good');}
-      }
-      if (S.stats.thirst < 50) {
-        const d = satchelPick('drink');if(!d)satchelEmptyNotice('drink');
-        if (d && takeSupply(d,1,satchelSites())) {applyFoodEffects(d);if(S.satchelEmptyNotices)delete S.satchelEmptyNotices.drink;log(`食之包自动喂了你：${ITEMS[d].name}。`, 'good');}
-      }
-    }
+    foodSatchel.hourly();
     const mb = metaBonus();
     const diffMul = (DIFFICULTIES[S.difficulty] && DIFFICULTIES[S.difficulty].drainMul) || 1;   // 简单/普通：饥渴消耗更慢
     S.stats.hunger = Math.max(0, S.stats.hunger - (S.difficulty === 'dev' ? 0 : 2 * (1 - mb.cons) * diffMul));
@@ -1226,12 +1104,11 @@ function change() {
   // 看背包/装备/技能/图鉴这些界面时不该被时间推着走（也免得边翻东西边掉饱食度）。
   // 由 ui.js 在开关这些弹窗时调用 setTimeFreeze()；营地面板/制造/交易/耕地那些"要花时间的操作"
   // 不在此列（它们本身就是主动消耗时间的行为）。
-  let _timeFrozen = false;
-  let _hostSuspended = false; // APK后台暂停，不写入玩家存档，也不覆盖面板暂停状态。
-  function setHostSuspended(on) { _hostSuspended = !!on; }
-  function hostSuspended() { return _hostSuspended; }
-  function setTimeFreeze(on) { _timeFrozen = !!on; }
-  function timeFrozen() { return _timeFrozen; }
+  const session=GameSession.create();
+  function setHostSuspended(on){session.setPaused('host',on);}
+  function hostSuspended(){return session.isPaused('host');}
+  function setTimeFreeze(on){session.setPaused('panel',on);}
+  function timeFrozen(){return session.isPaused('panel');}
 
   function lanternActive(scene = S && S.scene) {
     return !!S && scene !== 'sea' && scene !== 'atlantis' && (S.toolkit || []).includes('lantern') && hasItem('lantern');
@@ -1247,8 +1124,8 @@ function change() {
 
   function addMin(m) {
     // 冻结期间不推进任何时间（连 tick 都不加，免得晾晒/保鲜的计时被偷偷推进）
-    if (_timeFrozen) return false;
-    if (_hostSuspended) return false;
+    if (timeFrozen()) return false;
+    if (hostSuspended()) return false;
     const startTick = S.tick || 0;
     wearLantern(m);
     S.tick = startTick + m;
@@ -1692,110 +1569,18 @@ function change() {
   // 为什么：手机 WebView 里"清缓存、平台升级"有时只清 localStorage，
   // 而 cookie 往往能留下来（网页游戏最老牌的兜底）。两边都写，读的时候取"更新的那份"。
   // ⚠️ 单个 cookie 约 4KB 上限：只镜像主存档与账号数据，太长（比如带满三个备份槽的导出码）就跳过。
-  const CK = { save: 'guyu_save', saveAt: 'guyu_saveAt', meta: 'guyu_meta', metaAt: 'guyu_metaAt' };
-  function ckSet(k, v, days) {
-    try { document.cookie = k + '=' + encodeURIComponent(v) + '; expires=' + new Date(Date.now() + days * 864e5).toUTCString() + '; path=/; SameSite=Lax'; } catch (e) {}
-  }
-  function ckGet(k) {
-    try { const m = document.cookie.match(new RegExp('(?:^|;\\s*)' + k + '=([^;]*)')); return m ? decodeURIComponent(m[1]) : null; } catch (e) { return null; }
-  }
-  function ckMirror(k, atKey, json) {
-    if (!json || json.length > 3600) return false;   // 超长就不写，免得整个 cookie 被浏览器丢掉
-    ckSet(k, json, 180); ckSet(atKey, String(Date.now()), 180);
-    return true;
-  }
-  function save() {
-    try {
-      if (!persisting && localStorage.getItem(WRITE_JOURNAL)) throw new Error('上次存储恢复尚未完成');
-      const copy = JSON.parse(JSON.stringify(S));
-      copy._snap = undefined;   // 不保存临时快照；持久化日出点在 dawnCheckpoint
-      copy._dirty = undefined; copy._savedAt = undefined;   // 这两个只是运行时状态，不写进存档
-      if (copy.log && copy.log.length > LOG_KEEP) copy.log.length = LOG_KEEP;   // 老存档也会在下次保存时瘦下来
-      // ---- 存档加固 ①：多标签页/被后台恢复的旧页面不许用旧进度覆盖更新的存档 ----
-      try {
-        const revNow = parseInt(localStorage.getItem('guyuyizhang_rev') || '0', 10) || 0;
-        if (revNow > (S._rev || 0)) {
-          if (typeof onSaveConflict === 'function') onSaveConflict(revNow);
-          return { ok:false, reason:'other-tab' };
-        }
-      } catch (e) {}
-      const prev = localStorage.getItem('guyuyizhang_save');
-      if (prev) localStorage.setItem('guyuyizhang_save_bak', prev);   // 滚动备份：始终保留上一份
-      const json = JSON.stringify(copy);
-      localStorage.setItem('guyuyizhang_save', json);
-      // ---- 存档加固 ②：写完读回来验一遍，确认真的落盘了（配额满/被系统限制时会写不进去） ----
-      const back = localStorage.getItem('guyuyizhang_save');
-      if (back !== json) throw new Error('verify failed');
-      S._rev = (S._rev || 0) + 1;
-      try { localStorage.setItem('guyuyizhang_rev', String(S._rev)); } catch (e) {}
-      // ---- 存档加固 ③：留一份"上次保存时间"，面板里能看到，别再无声无息 ----
-      try { localStorage.setItem('guyuyizhang_savedAt', String(Date.now())); } catch (e) {}
-      S._savedAt = Date.now(); S._dirty = false;
-      if (!persisting) ckMirror(CK.save, CK.saveAt, json);
-      try { if (!persisting) cloudPush(false); } catch (e) {}
-      return { ok:true, size: json.length };
-    } catch (e) {
-      console.warn('save failed', e);
-      if (typeof onSaveFail === 'function') onSaveFail(e);
-      return { ok:false, reason:(e && e.name) || 'error' };
-    }
-  }
+  const CK=SaveRepository.keys;
+  function ckGet(key){return repository.cookieGet(key);}
+  function ckMirror(key,atKey,json){return repository.mirror(key,atKey,json);}
+  function save(){return repository.save();}
+  function load(retried=false){return repository.load(retried);}
+  function hasSave(){return repository.hasSave();}
   // 安全模式用：把"上次保存前的滚动备份"当主档读回来
   // （save() 每次写入前都会把旧档滚到 guyuyizhang_save_bak，所以最多退回几步）
   function restoreBackupSave() {
     try { return restoreLocalSave('bak'); }
     catch (e) { return {ok:false,reason:'备份存档暂时无法读取'}; }
   }
-  function load(loadRetried = false) {
-    const previousS = S;
-    try {
-      let raw = localStorage.getItem('guyuyizhang_save');
-      // —— cookie 兜底①：localStorage 被清空（平台清缓存/WebView 换存储）时用 cookie 里那份 ——
-      const ckRaw = loadRetried ? null : ckGet(CK.save);
-      // 本地主档只要完整，就以它为准。cookie 的时间戳可能因设备时钟变化而更晚，
-      // 不能让一份旧镜像无提示地覆盖玩家数十天的进度。
-      if (raw) {
-        const original = raw;
-        try { if (!validSave(JSON.parse(raw))) raw = null; } catch (e) { raw = null; }
-        if (!raw) try { localStorage.setItem('guyuyizhang_save_corrupt', original); } catch (e) {}
-      }
-      // 主档损坏时，先试本地滚动备份；它通常只差一次保存，比可能滞后的 cookie 更可靠。
-      if (!raw) {
-        const bak = localStorage.getItem('guyuyizhang_save_bak');
-        if (bak) try { if (validSave(JSON.parse(bak))) raw = bak; } catch (e) {}
-      }
-      if (!raw && ckRaw) {
-        try { if (validSave(JSON.parse(ckRaw))) raw = ckRaw; } catch (e) {}
-      }
-      if (raw && raw !== localStorage.getItem('guyuyizhang_save')) try { localStorage.setItem('guyuyizhang_save', raw); } catch (e) {}
-      if (!raw) return false;
-      S = JSON.parse(raw);
-      if (!validSave(S)) throw new Error('bad save');
-      normalizeState();
-      S._rev = (() => { try { return parseInt(localStorage.getItem('guyuyizhang_rev') || '0', 10) || 0; } catch (e) { return 0; } })();
-      return true;
-    } catch(e) {
-      console.warn('load failed, try backup', e);
-      // 主档解析失败时把原始串留底，别让后面的保存把它冲掉
-      try { const broken = localStorage.getItem('guyuyizhang_save'); if (broken) localStorage.setItem('guyuyizhang_save_corrupt', broken); } catch (e0) {}
-      // 主档坏了 → 把 _bak 挪到主档位，再把**整条正常读档流程重走一遍**：这样救回来的这份能拿到
-      // 和正常读档完全一样的待遇（补字段 / 技能迁移 / 耐久对齐 / 对齐存档版本号）。
-      // ⚠️ 以前这里只 JSON.parse(bak) 就 return true，S._rev 是空的 → 之后每一次 save() 都会被
-      //    "另一个标签页有更新进度"那道守卫拒掉，玩家看到的就是"进度存不进去 / 覆盖不上"。
-      // 只重试一次，免得 _bak 也坏掉时反复递归。
-      if (!loadRetried) {
-        loadRetried = true;
-        try {
-          const bak = localStorage.getItem('guyuyizhang_save_bak');
-          if (bak) { localStorage.setItem('guyuyizhang_save', bak); const ok=load(true); if(!ok)S=previousS; return ok; }
-        } catch (e2) {}
-      }
-      S = previousS; return false;
-    }
-  }
-  // 主档不在时也要看 cookie 里那份（平台清 localStorage 后靠它救回来）
-  function hasSave() { try { return !!(localStorage.getItem('guyuyizhang_save') || ckGet(CK.save)); } catch(e){ return false; } }
-
   // ---------- 新游戏 ----------
   function newGame(identity, difficulty) {
     if (!DIFFICULTIES[difficulty] || !IDENTITIES[identity]) return {ok:false,reason:'无效职业或难度。'};
@@ -5805,94 +5590,16 @@ function change() {
     if (retainedUpgrade) incoming.soul = Math.min(Number(incoming.soul) || 0,Number(local.soul) || 0);
     for (const key of ['runs','totalSoul']) incoming[key] = Math.max(Number(incoming[key]) || 0,Number(local[key]) || 0);
   }
-  function metaLoad() {
-    const read = (k) => { try { const raw = localStorage.getItem(k); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } };
-    let rawPrimary = null;
-    try { rawPrimary = localStorage.getItem('guyuyizhang_meta'); } catch (e) {}
-    M = read('guyuyizhang_meta');
-    if (!M && rawPrimary) {
-      try { localStorage.setItem('guyuyizhang_meta_corrupt', rawPrimary); } catch (_) {}
-    }
-    // 本地滚动备份比可能滞后的 cookie 更可靠，主档损坏时优先使用。
-    if (!M) M = read('guyuyizhang_meta_bak');
-    // cookie 兜底：平台清掉 localStorage 后，账号数据（魂点 / 历代遗章 / 图鉴）靠这一份救回来
-    if (!M) {
-      const ckMeta = ckGet(CK.meta);
-      if (ckMeta) {
-        try { M = JSON.parse(ckMeta); } catch (e) { M = null; }
-        if (M) { try { localStorage.setItem('guyuyizhang_meta', ckMeta); } catch (e) {} }
-      }
-    }
-    if (!M && rawPrimary) {   // 主档坏了：先把原始串留底，别让它被后面的写入覆盖掉
-      try { localStorage.setItem('guyuyizhang_meta_corrupt', rawPrimary); } catch (e) {}
-    }
-    if (!M) {
-      M = read('guyuyizhang_meta_bak');   // 主档读不出来（换包/写入中断）时用备份
-      if (M) { try { console.warn('meta 主档损坏，已从备份恢复'); } catch (e) {} }
-    }
-    if (!M) {
-      M = {};
-    }
-    if (M.soul === undefined) M.soul = 0;
-    if (!M.nodes) M.nodes = {};
-    if (M.runs === undefined) M.runs = 0;
-    if (M.totalSoul === undefined) M.totalSoul = 0;
-    if (!(M.backupPoints >= 0)) M.backupPoints = 3;
-    if (!Array.isArray(M.slots)) M.slots = [null, null, null];
-    while (M.slots.length < 3) M.slots.push(null);
-    if (M.slots.length >= 4) M.extraSlotUnlocked = 1;
-    if (M.extraSlotUnlocked && M.slots.length < 4) M.slots.push(null);
-    if (!M.seenMon) M.seenMon = {};
-    if (!M.seenItems) M.seenItems = {};
-    if (!M.mailbox) M.mailbox = [];
-    if (!M.redeemed) M.redeemed = {};
-    if (!M.ach) M.ach = {};
-    if (!M.settledRuns || typeof M.settledRuns !== 'object') M.settledRuns = {};
-    migrateSaltMeta(M);
-    migrateRedeemReceipts(M);
-    return M;
-  }
-  function metaSave() {
-    if (staging) return {ok:true};
-    try {
-      if (!persisting && localStorage.getItem(WRITE_JOURNAL)) throw new Error('上次存储恢复尚未完成');
-      const prev = localStorage.getItem('guyuyizhang_meta');
-      if (prev) localStorage.setItem('guyuyizhang_meta_bak', prev);   // 滚动备份：永远留下上一份
-      const json = JSON.stringify(M);
-      localStorage.setItem('guyuyizhang_meta', json);
-      if (localStorage.getItem('guyuyizhang_meta') !== json) throw new Error('账号数据写入校验失败');
-      if (!persisting) ckMirror(CK.meta, CK.metaAt, json);
-      try { if (!persisting) cloudPush(false); } catch (e) {}
-      return {ok:true};
-    } catch (e) {
-      if (!persisting && typeof onSaveFail === 'function') onSaveFail(e);
-      return {ok:false, reason:(e && e.name) || 'error'};
-    }
-  }
-  function metaReload() { M = null; return metaLoad(); }   // 强制重新读盘（导入存档码 / 自检用）
+  function metaLoad(){return repository.metaLoad();}
+  function metaSave(){return repository.metaSave();}
+  function metaReload(){return repository.metaReload();}
 
   // Retired platform methods remain inert for old tooling; saves stay local.
   function cloudStatus() { return {supported:false,msg:'本地存档已启用；请导出存档码作设备外备份。',at:0,applied:0,uuid:null,diag:'local-only',pending:false}; }
   function cloudPush() { return false; }
   function cloudInit() { return false; }
   // 存档码：把「历代遗章 + 已解锁存档槽」打包，兼容旧版三个槽。
-  function codeChecksum(data) {
-    const text=JSON.stringify({v:data.v,t:data.t||'',meta:data.meta,save:data.save||null});
-    let hash=2166136261;for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}
-    return (hash>>>0).toString(16).padStart(8,'0');
-  }
-  function readSaveCode(code) {
-    const text=String(code||'').replace(/\s+/g,'');
-    if(!text)return {ok:false,reason:'请先粘贴存档码'};
-    if(/^https?:|^GY-/i.test(text) || text.startsWith('<'))return {ok:false,reason:'这是网址或兑换码，请使用「导出存档码」生成的备份。'};
-    let data;try{data=JSON.parse(decodeURIComponent(escape(atob(text))));}catch(e){return {ok:false,reason:'存档码无法解析（可能复制不完整）；请重新复制整段或选择备份文件。'};}
-    if(!data || !data.meta || typeof data.meta!=='object')return {ok:false,reason:'存档码内容不认识'};
-    if(data.v!==undefined && data.v!==1)return {ok:false,reason:'存档格式版本不支持，请先更新游戏。'};
-    if(data.checksum!==undefined && data.checksum!==codeChecksum(data))return {ok:false,reason:'存档完整性校验失败，未覆盖原档；请重新导出或使用另一份备份。'};
-    if(Array.isArray(data.meta) || (data.meta.slots && (!Array.isArray(data.meta.slots)||![3,4].includes(data.meta.slots.length))))return {ok:false,reason:'账号数据格式不完整'};
-    if(data.save && !validSave(data.save))return {ok:false,reason:'当前进度不完整，未覆盖原档'};
-    return {ok:true,data};
-  }
+  function readSaveCode(code){return SaveCodec.read(code,validSave);}
   function inspectCode(code) {
     const parsed=readSaveCode(code);if(!parsed.ok)return parsed;
     const d=parsed.data;return {ok:true,currentGame:!!d.save,day:d.save?.day||0,difficulty:d.save?.difficulty||'',
@@ -5904,8 +5611,7 @@ function change() {
       const current = S ? JSON.parse(JSON.stringify(S)) : JSON.parse(localStorage.getItem('guyuyizhang_save') || 'null');
       if (current) { delete current._snap; delete current._dirty; delete current._savedAt; }
       const payload = { v: 1, t: (typeof window !== 'undefined' && window.BUILD_VER) || '', meta: M, save:current };
-      payload.checksum=codeChecksum(payload);
-      return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+      return SaveCodec.encode(payload);
     } catch (e) { return ''; }
   }
   function importCode(code) {
@@ -6608,11 +6314,16 @@ function change() {
     {id:'namecard',item:'namecard',cost:3},
     {id:'satchel',relic:'satchel',cost:7}, {id:'atlantisSeed',relic:'atlantisSeed',cost:7}
   ];
+  function adCurrencyName() {
+    const channel=typeof window!=='undefined'&&window.GUYU_CHANNEL;
+    const standalone=channel?channel!=='taptap':typeof location!=='undefined'&&location.hostname==='appassets.androidplatform.net';
+    return standalone?'星之点':'广告币';
+  }
   function adShopState() { return {coins:adCoinBalance(), goods:AD_SHOP.map(x=>({...x}))}; }
   function buyAdShop(id) {
     const goods=AD_SHOP.find(x=>x.id===id);
     if (!goods) return {ok:false,reason:'该商品不存在。'};
-    if (adCoinBalance()<goods.cost) return {ok:false,reason:`星之点不足（需 ${goods.cost}）。`};
+    if (adCoinBalance()<goods.cost) return {ok:false,reason:`${adCurrencyName()}不足（需 ${goods.cost}）。`};
     const meta=JSON.parse(JSON.stringify(metaState())), receipt=walletId();
     walletEntry(meta,receipt,-goods.cost);
     meta.mailbox.push({item:goods.item || null,relic:goods.relic || null,qty:1,shopReceipt:receipt,title:'商城购买',date:todayKey()});
@@ -6622,13 +6333,13 @@ function change() {
     return {ok:true,msg:`${(ITEMS[id] || RELICS[id]).name}已存入邮箱。`};
   }
   function exchangeAdCoins(qty) {
-    if (!Number.isSafeInteger(qty) || qty<1 || qty>adCoinBalance() || !Number.isSafeInteger(qty*15) || !Number.isSafeInteger((metaState().soul || 0)+qty*15)) return {ok:false,reason:'请选择有效的星之点数量。'};
+    if (!Number.isSafeInteger(qty) || qty<1 || qty>adCoinBalance() || !Number.isSafeInteger(qty*15) || !Number.isSafeInteger((metaState().soul || 0)+qty*15)) return {ok:false,reason:`请选择有效的${adCurrencyName()}数量。`};
     const meta=JSON.parse(JSON.stringify(metaState()));
     walletEntry(meta,walletId(),-qty,qty*15); meta.soul=(meta.soul || 0)+qty*15;
     const result=persistPair(S ? JSON.parse(JSON.stringify(S)) : null,meta,false);
     if (!result.ok) return result;
     if (S) change();
-    return {ok:true,msg:`${qty} 星之点已兑换 ${qty*15} 魂点。`};
+    return {ok:true,msg:`${qty} ${adCurrencyName()}已兑换 ${qty*15} 魂点。`};
   }
   function exchangeSoulForStars(qty) {
     if (!Number.isSafeInteger(qty) || qty < 1 || !Number.isSafeInteger(qty * 15)) return {ok:false,reason:'请选择有效的兑换数量。'};
@@ -6640,7 +6351,28 @@ function change() {
     const result = persistPair(S ? JSON.parse(JSON.stringify(S)) : null,meta,false);
     if (!result.ok) return result;
     if (S) change();
-    return {ok:true,msg:`${cost} 魂点已兑换 ${qty} 星之点。`};
+    return {ok:true,msg:`${cost} 魂点已兑换 ${qty} ${adCurrencyName()}。`};
+  }
+  function adRewardState() {
+    const today = todayKey(), m = metaState();
+    const uses = Math.max(0, Math.min(5, Math.floor(Number((m.adRewardDays || {})[today]) || 0)));
+    const reason = adCurrencyName() !== '广告币' ? '当前渠道不支持广告奖励。' : !S || S.death || S.ending ? '请在正在进行的游戏中领取。'
+      : S.difficulty === 'legend' ? '传奇难度不领取广告物资。' : uses >= 5 ? '今天已领取 5 次，明天再来。' : '';
+    return {today, uses, limit:5, min:3, max:6, canClaim:!reason, reason};
+  }
+  function claimAdReward(runId, requestDay) {
+    const info = adRewardState();
+    if (!info.canClaim) return {ok:false, reason:info.reason};
+    if (S._runId !== runId || info.today !== requestDay) return {ok:false, reason:'游戏或日期已变化，请重新观看后领取。'};
+    const next = JSON.parse(JSON.stringify(S)), meta = JSON.parse(JSON.stringify(metaState()));
+    const amount=rnd(info.min,info.max);
+    meta.adRewardDays = meta.adRewardDays || {};
+    meta.adRewardDays[info.today] = info.uses + 1;
+    walletEntry(meta,`video:${info.today}:${info.uses+1}`,amount);
+    const result = persistPair(next, meta, false);
+    if (!result.ok) return result;
+    log(`完整观看视频，获得 ${amount} 广告币。`, 'good'); change();
+    return {ok:true, amount};
   }
   function dailySign() {
     const m = metaState();
@@ -6736,197 +6468,9 @@ function change() {
   // ① 补缺失字段（老格式/备份槽里的档可能缺）② 跑技能迁移 ③ 耐久对齐实例数组
   // ④ 对齐存档版本号并【立刻写回主存档】——不然标题页「继续上次游戏」还是上一局，
   //    而且 save() 会以为"另一个标签页有更新进度"拒绝写入（玩家反馈"覆盖不行"）。
-  function validSave(data) {
-    return !!(data && typeof data === 'object' && !Array.isArray(data) && Number.isInteger(data.day) && data.day > 0
-      && data.stats && Number.isFinite(data.stats.hp) && (data.inv === undefined || (data.inv && typeof data.inv === 'object' && !Array.isArray(data.inv)))
-      && DIFFICULTIES[data.difficulty]);
-  }
-  // 海盐并入盐：直接合并数量，不走背包容量检查；删除旧键使重复读档不会重复加料。
-  function migrateSaltMap(map, discovered=false) {
-    if (!map || typeof map !== 'object' || !Object.prototype.hasOwnProperty.call(map,'seasalt')) return;
-    if (discovered) { if (map.seasalt) map.salt = 1; }
-    else {
-      const qty = Math.max(0, Number(map.seasalt) || 0);
-      if (qty > 0) map.salt = (Number(map.salt) || 0) + qty;
-    }
-    delete map.seasalt;
-  }
-  function migrateSaltState(state, visited=new Set()) {
-    if (!state || typeof state !== 'object' || visited.has(state)) return;
-    visited.add(state);
-    const hadSalt = state.inv && state.inv.seasalt > 0;
-    for (const key of ['inv','furnPending','sold']) migrateSaltMap(state[key]);
-    migrateSaltMap(state.seen,true);
-    if (hadSalt) { state.seen = state.seen || {}; state.seen.salt = 1; }
-    if (state.dawnCheckpoint) migrateSaltState(state.dawnCheckpoint.state,visited);
-    for (const snapshot of Object.values(state._snap || {})) migrateSaltState(snapshot,visited);
-  }
-  function migrateSaltMeta(meta) {
-    if (!meta || typeof meta !== 'object') return;
-    migrateSaltMap(meta.seenItems,true);
-    for (const slot of meta.slots || []) if (slot) migrateSaltState(slot.data);
-    for (const mail of meta.mailbox || []) if (mail && mail.item === 'seasalt') mail.item = 'salt';
-  }
-  // 兼容旧档代收字段：一次迁入背包，允许超载，不再过期或暂存。
-  function migratePendingLoot() {
-    if(!S)return;
-    const counts={...(S.furnPending||{})},batchCounts={};
-    migrateSaltMap(counts);
-    for(const b of S.pendingLootBatches||[]){const id=b.id==='seasalt'?'salt':b.id;if(ITEMS[id]&&Number.isSafeInteger(b.qty)&&b.qty>0)batchCounts[id]=(batchCounts[id]||0)+b.qty;}
-    for(const [id,n]of Object.entries(batchCounts))counts[id]=Math.max(Number(counts[id])||0,n);
-    S.furnPending={};S.pendingLootBatches=[];
-    S.seen=S.seen||{};S.furniture=S.furniture||{};
-    for(const [id,n]of Object.entries(counts))if(ITEMS[id]&&Number.isSafeInteger(n)&&n>0)addItem(id,n,true,true);
-  }
-  function migrateSkills() {
-    if (S.tree) return;                       // 已经迁移过（新存档在 newGame 里就有 S.tree）→ 幂等
-    const who = { gather:'采集', craft:'制造', combat:'战斗' };
-    for (const k of ['gather','craft','combat']) {
-      const old = Math.min(5, (S.skill && S.skill[k]) || 0);
-      if (!old) continue;
-      let newTo = 0;
-      // 这条历史迁移按当时的完整费用表折算；不能套用新的首点优惠，避免旧档补偿缩水。
-      for (let i = 0; i < Math.min(old, SKILL_TRUNK_COST.length); i++) newTo += Math.round((SKILL_TRUNK_COST[i] || 0) * costMul(k));
-      const back = Math.round(newTo * 2);
-      S.exp = S.exp || {}; S.exp[k] = Math.round(((S.exp[k] || 0) + back) * 10) / 10;
-      S.skill[k] = 0;
-      log(`【技能改版】${who[k]}技能旧等级 ${old} 已折算成 ${back} 点${who[k]}经验——打开「技能」自己重新加点。`, 'good');
-    }
-    S.tree = { gather:{}, craft:{}, combat:{} };
-    S.skillPicks = { gather:[], craft:[], combat:[] };
-  }
-  // 仅在读档/恢复/导入边界运行。发行版本未写进存档，按原有字段标记识别旧格式。
-  function migrateSatchelChoices() {
-    if(S.satchelChoices)return;
-    const blocked=Object.keys(S.satchelRules||{}).filter(id=>S.satchelRules[id]?.blocked&&satchelEligible(id,'blocked'));
-    S.satchelChoices={
-      food:[S.satchelPref?.food].filter(id=>satchelEligible(id,'food')),
-      drink:[S.satchelPref?.drink].filter(id=>satchelEligible(id,'drink')),
-      blocked:blocked.slice(0,3)
-    };
-    if(blocked.length>3)log('食之包禁食最多3种，请长按卡面确认禁食选择。','warn');
-  }
-  function migrateLegacyState() {
-    migrateSatchelChoices();
-    if (!S.blueprintKnowledgeVersion) {
-      S.learnedBlueprints = S.learnedBlueprints || {};
-      const ids = new Set([
-        ...Object.keys(S.inv), ...Object.keys(S.seen),
-        ...(S.warehouse?.items || []).map(x => x.id),
-        ...(S.atlantis?.camp?.warehouse?.items || []).map(x => x.id)
-      ]);
-      for (const id of ids) if (ITEMS[id]?.cat === 'bp') S.learnedBlueprints[id] = true;
-      S.blueprintKnowledgeVersion = 1;
-    }
-    // 原终级仓库移到新链的tier 3，不能把已有容量退回中级。
-    if ((Number(S.storageChainVersion) || 0) < 2) {
-      if (S.buildings.storage >= 2) S.buildings.storage = 3;
-      S.storageChainVersion = 2;
-    }
-    if (S.inventoryBaseSlots === undefined || S.inventoryBaseSlots === 12) S.inventoryBaseSlots = 15;
-    if (S.capacity === 12) S.capacity = 15;
-    migrateSaltState(S);
-    // 保留旧工作台拆分时已经获得的裁缝台使用权。
-    if (S.tailorGift === undefined) S.tailorGift = (S.furniture.wb1 || S.furniture.wb2 || S.furniture.wb3) ? 1 : 0;
-    migrateSkills();
-    if (S.migCombat2 === undefined) {
-      S.migCombat2 = 1;
-      if (combatLv() >= 2 && nodeLv('combat', 'f_heavy') === 0 && nodeLv('combat', 'f_sure') === 0 && S.tree && S.tree.combat) {
-        S.tree.combat.f_heavy = 1;
-      }
-    }
-    if (S.buildings.cellar === undefined || (S.furniture.cellar && S.buildings.cellar < 0)) S.buildings.cellar = S.furniture.cellar ? 0 : -1;
-    // 祭坛C是章节，其他已结算结局仍保留唯一性。
-    if (S.flags.settledEnding === 'C') delete S.flags.settledEnding;
-    if (!S.flags.settledEnding) {
-      for (const k of ['A','B','S','S2']) if (S.flags['settled_' + k]) { S.flags.settledEnding = k; break; }
-    }
-    // 旧守卫可能提前消耗一次性核心点标记，退回尚未取得核心的点。
-    const corePoints = ['atl_dcore_coral','atl_dcore_trench','atl_dcore_wreck','atl_dcore_abyss'];
-    const flagged = corePoints.filter(id => S.flags['pt_' + id]);
-    let extra = flagged.length - Math.min(4, S.inv.deepCore || 0);
-    for (const id of flagged) {
-      if (extra <= 0) break;
-      delete S.flags['pt_' + id]; extra--;
-    }
-  }
-  // 当前格式的缺省值与数据校验，不与历史奖励/改名混写。
-  function fillStateDefaults() {
-    const defaults={
-      skill:{craft:0,gather:0,combat:0}, toolkit:[null,null,null], toolDurs:{},
-      equipIdx:{weapon:0,weapon2:0,armor:0,cloth:0,accessory:0}, flags:{}, log:[],
-      seen:{}, killCount:{}, sold:{}, pointUses:{}, crops:[], diary:[], dur:{}, inv:{}, furniture:{},
-      exp:{gather:0,craft:0,combat:0},
-      buildings:{house:0,fire:0,storage:0,wall:0,watch:0,dock:0,farm:0},
-      equipment:{weapon:null,weapon2:null,armor:null,cloth:null,accessory:null},
-      statuses:{bleed:0,poison:0,cold:false,fear:0},
-      stats:{hp:100,stamina:100,hunger:100,thirst:100,spirit:100},
-      relicEquip:[null,null,null], weaponNames:{}, cellar:{items:[]}, satchelPref:{food:'',drink:''},
-      settings:{roadAmbush:true}, foodExp:{}, relics:[], furnPending:{},
-      laochao:{nextVisit:Math.max(5,S.day+1),arrived:false,arrivedDay:0,done:{},accepted:{}}
-    };
-    for(const [key,value]of Object.entries(defaults))if(!S[key])S[key]=value;
-    for(const key of ['farmExt','houseExt','gatherCount','craftCount','missStreak'])if(S[key]===undefined)S[key]=0;
-    if (S.coopExt === undefined) S.coopExt = 0;
-    if (S.storeExt === undefined) S.storeExt = 0;
-    if (S.pistolCalibrated === undefined) S.pistolCalibrated = false;
-    if(S.atlantis===undefined)S.atlantis=null;
-    if(S.settings.roadAmbush===undefined)S.settings.roadAmbush=true;
-    S.settings.autoTools=S.settings.autoTools===true;
-    if(!S.gatherRemainders || typeof S.gatherRemainders!=='object' || Array.isArray(S.gatherRemainders))S.gatherRemainders={};
-    for(const key of Object.keys(S.gatherRemainders))if(!Number.isFinite(S.gatherRemainders[key]) || Math.abs(S.gatherRemainders[key])>0.500001)delete S.gatherRemainders[key];
-    if(S.stats.health===undefined)S.stats.health=100;
-    for(const key of ['stamina','hunger','thirst','spirit'])if(!Number.isFinite(S.stats[key]))S.stats[key]=100;
-    if(S.log.length>LOG_KEEP)S.log.length=LOG_KEEP;
-    if(!WEATHER[S.weather])S.weather='sun';
-    if(!['craft','gather','combat'].includes(S.bookFocus))S.bookFocus='';
-    const objects={lottery:{meter:0,day:0,uses:0},livestock:{pen:[],coop:[],autoFeed:true},traps:{placed:0},permMade:{},permUsed:{},training:{run:0,lift:0,lastDay:0}};
-    for(const [key,value]of Object.entries(objects))if(!S[key]||typeof S[key]!=='object')S[key]=value;
-    for(const key of ['pen','coop'])if(!Array.isArray(S.livestock[key]))S.livestock[key]=[];
-    if(S.livestock.autoFeed===undefined)S.livestock.autoFeed=true;
-    S.rainWater=Math.max(0,Math.min(20,Math.floor(Number(S.rainWater)||0)));
-    S.hiveHoney=Math.max(0,Math.min(12,Math.floor(Number(S.hiveHoney)||0)));
-    S.training.run=trainingCount('run');
-    S.training.lift=trainingCount('lift');
-    S.training.lastDay=Math.max(0,Math.floor(Number(S.training.lastDay)||0));
-  }
-  function normalizeLoadedSession() {
-    // 退出后继续游戏不能绕过死亡结算；活着的存档恢复正常操作。
-    if(S.death||(Number(S.stats.hp)||0)<=0){
-      S.stats.hp=0;S.death=S.death||'你在上一局倒下了。';S.ending='D';
-    }else{
-      if(S.ending)S.ending=undefined;
-      if(S.death)S.death=undefined;
-    }
-  }
-  function normalizeState() {
-    fillStateDefaults();
-    migrateLegacyState();
-    normalizeLoadedSession();
-    for(const id in ITEMS)if(DURA[id]!==undefined)durList(id);
-    autoToolkit();
-    reconcileLotteryInputs();
-    reconcileNightmareSouls();
-    migratePendingLoot();
-    settleStoredFood();
-    applyBalanceMigrations();
-  }
-  // 平衡迁移集中在读档边界。后续版本追加条目，不在玩法入口散布旧字段判断。
-  function applyBalanceMigrations() {
-    const migrations=[function initialBalanceRevision(){
-      let shells=0;
-      if(S.learnedBlueprints?.bpFurnace || (S.inv.bpFurnace||0)>0 || S.furniture.fr3 || supplyRecordsAll(['island','cellar','sea']).some(x=>x.id==='bpFurnace'))shells=200;
-      if(shells){S.inv.beibi=(S.inv.beibi||0)+shells;log('高炉图纸已改为收藏品，返还200贝壳币。','good');}
-      for(const [kind,refund]of [['gather',8],['craft',12]])if((S.skill[kind]||0)>0){S.exp[kind]=(S.exp[kind]||0)+refund;log((kind==='gather'?'采集':'制造')+'首个主干点费用调整，返还'+refund+'经验。','good');}
-    }];
-    let version=Math.max(0,Math.floor(Number(S.balanceMigrationVersion)||0));
-    while(version<migrations.length){migrations[version]();S.balanceMigrationVersion=++version;}
-  }
-  function normalizeAfterLoad() {
-    normalizeState();
-    try { S._rev = parseInt(localStorage.getItem('guyuyizhang_rev') || '0', 10) || 0; } catch (e) { S._rev = 0; }
-    return save();
-  }
+  function validSave(data){return migrations.validSave(data);}
+  function migrateSaltMeta(meta){return migrations.migrateMeta(meta);}
+  function normalizeState(){return migrations.normalize();}
 
   // 配方材料配比调整（木材 ×0.8 / 其它 ×1.1）：放在模块末尾执行 —— 必须等 RECIPES 与
   // WOOD_MATS 等声明都初始化完；函数内部有幂等保护，重复调用不会二次打折。
@@ -6973,7 +6517,7 @@ function change() {
     takeCombatEvents, wallBlockBonus, wallDurMul, swiftBonus, rageAtkMul, rageTakenMul, ironTakenMul, ironAtkMul, ammoSaveChance, rangedAcc, combatAccuracy, combatActionInfo,
     cloudStatus, cloudPush, cloudInit,   // 旧平台接口兼容：本地版本始终返回未启用
     hasItem, invCount, addItem, removeItem, capacity, fertilize,
-    lotteryState, lotteryValue, lotteryChance, lotteryOffer, lotteryDeposit, lotteryDraw, lotteryPools, adCoinBalance, adShopState, buyAdShop, exchangeAdCoins, exchangeSoulForStars,
+    lotteryState, lotteryValue, lotteryChance, lotteryOffer, lotteryDeposit, lotteryDraw, lotteryPools, adCoinBalance, adCurrencyName, adRewardState, claimAdReward, adShopState, buyAdShop, exchangeAdCoins, exchangeSoulForStars,
     sweepInfo, activeBuffs, pointEnergy, staminaCost, foodFreshness,
     playerAtk, playerAtkAvg, rangedAtk, playerDef, warmth, weatherTemperature, environmentTemperature, temperatureInfo, maxStam, combatLv, expLevel, charStats, combatSpeed, train, trainingHp, trainingAtk,
     isNight, isDusk, seasonInfo, seasonOnDay, winterJustStarted, fmtTime,

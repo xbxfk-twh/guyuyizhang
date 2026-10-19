@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const ROOT = path.join(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
-const GAME = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
+const GAME = require('../../回归测试/helpers/runtime.js').engineSource(path.join(ROOT, 'js', 'game.js'));
 
 // ---- 假的本地文件系统 + 假的云 ----
 // ⚠️ 两种文件 API 都要测：TapTap 真机是【回调风格】writeFile({filePath,data,encoding,success,fail})，

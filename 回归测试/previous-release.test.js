@@ -6,7 +6,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
  print(json.dumps([z.read('guyuyizhang/js/'+n).decode('utf-8-sig') for n in ['data.js','game.js']],ensure_ascii=False))`,archive],{encoding:'utf8',windowsHide:true,maxBuffer:8*1024*1024});
 assert.equal(raw.status,0,raw.stderr);
 const oldSource=JSON.parse(raw.stdout).join('\n');
-const currentSource=['data.js','game.js'].map(f=>fs.readFileSync(path.join(root,'孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
+const currentSource=require('./helpers/runtime.js').logicFiles.map(f=>fs.readFileSync(path.join(root,'孤屿遗章-游戏 - 发布/js',f),'utf8')).join('\n');
 const copy=x=>JSON.parse(JSON.stringify(x));
 function create(source,store){const ls={getItem:k=>store[k]||null,setItem:(k,v)=>store[k]=String(v),removeItem:k=>delete store[k]};const g=new Function('localStorage','window','document','console',source+'\nreturn Game;')(ls,{},{cookie:''},{log(){},warn(){}});g.bind({onChange(){},onLog(){},onOverlay(){},onEnding(){},onFight(){}});return g;}
 let pass=0;

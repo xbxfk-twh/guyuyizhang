@@ -1,6 +1,6 @@
 /* 10 月改动：内存存档，不接触玩家真实进度。 */
 const fs = require('fs'), path = require('path'), assert = require('node:assert/strict');
-const source = ['data.js','game.js'].map(f => fs.readFileSync(path.resolve(__dirname, '../孤屿遗章-游戏 - 发布/js', f), 'utf8')).join('\n');
+const source = require('./helpers/runtime.js').logicFiles.map(f => fs.readFileSync(path.resolve(__dirname, '../孤屿遗章-游戏 - 发布/js', f), 'utf8')).join('\n');
 const memory = {};
 const storage = {getItem:k=>memory[k] || null,setItem:(k,v)=>{memory[k]=String(v);},removeItem:k=>{delete memory[k];}};
 const {Game:G, ITEMS, RECIPES, DURA, TOWN, SCENES, SEASONAL_COMMISSIONS} = new Function('localStorage','window','document',source+'\nreturn {Game,ITEMS,RECIPES,DURA,TOWN,SCENES,SEASONAL_COMMISSIONS};')(storage,{},{});

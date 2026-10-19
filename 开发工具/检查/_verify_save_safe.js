@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const ROOT = path.join(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
-const GAME = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
+const GAME = require('../../回归测试/helpers/runtime.js').engineSource(path.join(ROOT, 'js', 'game.js'));
 
 const store = {};
 const jar = {};   // 极简 cookie 罐：够 ckSet/ckGet 用

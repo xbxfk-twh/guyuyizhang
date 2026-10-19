@@ -1,0 +1,59 @@
+name: Verify game source
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Core regression
+        run: node 回归测试/run.js
+      - name: Packaging validation tests
+        run: python -X utf8 回归测试/test_release.py
+      - name: Validate source manifest without packaging
+        run: python -X utf8 开发工具/打包/_pack.py --check
+      - name: Find isolated test browser
+        shell: pwsh
+        run: |
+          $candidates = @('C:\Program Files\Google\Chrome\Application\chrome.exe', 'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe')
+          $testChrome = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+          if (-not $testChrome) { throw 'Chrome missing from runner; browser checks must not be skipped.' }
+          "CHROME_PATH=$testChrome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Incremental UI and real input
+        run: node 回归测试/run.js --browser --only=_verify_incremental_ui
+      - name: Android host lifecycle
+        run: node 回归测试/run.js --browser --only=_verify_android_host
+      - name: Language defaults and switching
+        run: node 回归测试/run.js --browser --only=_verify_language
+      - name: Advertising adapter and shop
+        run: node 回归测试/run.js --browser --only=_verify_ads
+      - name: Retain verification evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: verification-${{ github.run_id }}
+          path: |
+            回归测试/_out/*.log
+            回归测试/_out/incremental-*.png
+          if-no-files-found: warn
+          retention-days: 14

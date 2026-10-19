@@ -203,6 +203,13 @@ const errors = [];
         '英文分页和操作说明已翻译 ' + w,
         `document.querySelector('.guide-page').textContent.includes('Inventory and Storage')&&!/[\u3400-\u9fff]/.test(document.querySelector('.guide-page').textContent)`
       );
+      for (const i of [2, 5, 8]) {
+        await ev(`var select=document.querySelector('[data-guide-page]');select.value='${i}';select.dispatchEvent(new Event('change',{bubbles:true}))`);
+        await sleep(100);
+        await check('新增攻略知识中英一致 ' + i + ' ' + w,
+          `(()=>{const text=document.querySelector('.guide-page').textContent;return GUIDE[${i}].enSteps.every(s=>text.includes(s));})()`);
+        if(i===2)await shot('guide-tools-en-'+w+'.png');
+      }
       await ev(
         `Locale.set('zh');UI.handleBack();document.querySelector('[data-nav="craft"]').click();document.querySelector('[data-station="med"]').click()`
       );

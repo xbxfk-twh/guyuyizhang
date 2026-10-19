@@ -1,7 +1,7 @@
 const fs=require('fs'),path=require('path');
 const base=path.resolve(__dirname,'../孤屿遗章-游戏 - 发布/js');
 const DATA=fs.readFileSync(path.join(base,'data.js'),'utf8');
-const GAME=fs.readFileSync(path.join(base,'game.js'),'utf8');
+const GAME=require('./helpers/runtime.js').engineSource(path.join(base,'game.js'));
 const ROOT=path.join(__dirname,'..','孤屿遗章-游戏 - 发布');
 const UI=fs.readFileSync(path.join(base,'ui.js'),'utf8');
 const source=DATA+'\n'+GAME;

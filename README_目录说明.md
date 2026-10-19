@@ -96,7 +96,7 @@ node 开发工具/生成/_gen_dps_doc.js
 
 ## 发布流程
 
-作者明确要求打包时才执行。版本由 index.html 的 BUILD_VER 唯一定义，九处资源缓存参数必须与完整构建号一致（六个 JS、三张 CSS）。
+作者明确要求打包时才执行。版本由 index.html 的 BUILD_VER 唯一定义；资源顺序和数量来自游戏目录的 runtime-manifest.json，所有缓存参数必须与完整构建号一致。新增脚本后运行 node 开发工具/生成/_sync_runtime.js 更新静态入口，测试与打包共用清单，不再维护固定的缓存引用数量。
 
 ```powershell
 # 示例版本；必须使用作者本次决定的实际版本

@@ -12,7 +12,7 @@ const fakeLS = {
   removeItem: k => { delete store[k]; },
 };
 const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
-const GAME = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
+const GAME = require('./helpers/runtime.js').engineSource(path.join(ROOT, 'js', 'game.js'));
 const CHECKS = fs.readFileSync(path.join(__dirname, 'checks.js'), 'utf8');
 try {
   const failures = new Function('localStorage', 'window', 'document', 'fs', 'ROOT', 'DATA', 'GAME', 'console',

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname, '../孤屿遗章-游戏 - 发布/js');
-const source = fs.readFileSync(path.join(root, 'data.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'game.js'), 'utf8');
+const source = fs.readFileSync(path.join(root, 'data.js'), 'utf8') + '\n' + require('./helpers/runtime.js').engineSource(path.join(root, 'game.js'));
 const memory = {};
 let failMetaWriteOnce = false;
 const localStorage = {getItem:k=>memory[k]??null,setItem:(k,v)=>{if(k==='guyuyizhang_meta'&&failMetaWriteOnce){failMetaWriteOnce=false;throw Error('simulated write failure')}memory[k]=String(v)},removeItem:k=>{delete memory[k]}};

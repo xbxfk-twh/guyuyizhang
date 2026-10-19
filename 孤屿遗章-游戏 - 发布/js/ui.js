@@ -77,6 +77,10 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   const $ = (sel) => document.querySelector(sel);
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
   const S = () => Game.S();
+  const dom=StableDOM.create({locale:Locale,onAdopt:PressInput.adopt,onDispose:PressInput.dispose});
+  const panels=GamePanels.create();
+  const satchelPanels=FoodSatchelView.create({Game,ITEMS,itemIcon,esc,open:showModal,toast:centerToast});
+  panels.register('satchelSettings',satchelPanels.menu);panels.register('satchelfood',satchelPanels.picker);
 
   function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function inlineHelp(text) {
@@ -138,40 +142,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     if (old && old !== v) setTimeout(() => centerToast('已更新到新版本(' + v + ')，存档保留，欢迎回来！'), 900);
     localStorage.setItem('guyuyizhang_build', v);
   } catch(e){} })();
-  function bindPress(el2, onTap, onLong) {
-    // 轻点 = 单次交易；长按 460ms = 批量。手机端要点：
-    //  · 手指滑动超过 12px（其实是在滚列表）就取消长按，避免误弹批量窗
-    //  · 系统打断（pointercancel，比如页面滚动被接管）不触发任何操作
-    //  · 按钮禁用 / 置灰时不响应
-    let timer = null, firedLong = false, startPt = null;
-    const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
-    const dead = () => el2.disabled || el2.classList.contains('lockedb');
-    const start = (e) => {
-      if (dead()) return;
-      firedLong = false; startPt = { x: e.clientX, y: e.clientY };
-      clear();
-      timer = setTimeout(() => { timer = null; firedLong = true; onLong && onLong(startPt); }, 460);
-    };
-    const moved = (e) => {
-      if (!timer || !startPt) return;
-      if (Math.hypot(e.clientX - startPt.x, e.clientY - startPt.y) > 12) clear();
-    };
-    const end = (e) => {
-      const wasLong = firedLong;
-      clear();
-      const far = startPt && Math.hypot(e.clientX - startPt.x, e.clientY - startPt.y) > 12;
-      firedLong = false; startPt = null;
-      if (!wasLong && !far && !dead()) onTap && onTap();
-    };
-    const abort = () => { clear(); firedLong = true; startPt = null; };   // 交给后来真正触发的事件去决定
-    el2.addEventListener('pointerdown', start);
-    el2.addEventListener('pointermove', moved);
-    el2.addEventListener('pointerup', end);
-    el2.addEventListener('pointercancel', abort);
-    el2.addEventListener('pointerleave', abort);
-    el2.addEventListener('contextmenu', e => e.preventDefault());
-    el2.addEventListener('click',e=>{if(e.detail===0&&!dead())onTap&&onTap();});
-  }
+  function bindPress(el2,onTap,onLong) { PressInput.bind(el2,onTap,onLong); }
   function bindWarehouseCard(button,id,dir) {
     button.style.touchAction='none';
     const remember=()=>{inventoryDualScroll=[...document.querySelectorAll('.inventory-pane .work-scroll')].map(e=>e.scrollTop);};
@@ -434,9 +405,9 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     if (!o) return;
     const st = S();
     // 只在营地显示当前目标；设置里可以整个关掉（作者 2026-09-19）
-    if (!st || st.scene !== 'camp' || !showObjective) { o.innerHTML = ''; return; }
+    if (!st || st.scene !== 'camp' || !showObjective) { dom.html(o,''); return; }
     const obj = Game.currentObjective();
-    o.innerHTML = obj ? `<span class="obj-mark">◈</span> 当前目标：${esc(obj)}` : '';
+    dom.html(o,obj ? `<span class="obj-mark">◈</span> 当前目标：${esc(obj)}` : '');
   }
 
   // ---------- 主渲染 ----------
@@ -503,7 +474,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     document.body.classList.toggle('in-room', roomView);
     document.body.classList.toggle('room-fullcolor', roomView && skinOn('seasons'));
     const back = $('#btn-backmap');
-    if (back) back.textContent = roomView ? '← 返回营地' : view === 'map' ? '← 返回场景' : '← 返回地图';
+    if (back) dom.text(back,roomView ? '← 返回营地' : view === 'map' ? '← 返回场景' : '← 返回地图');
     renderTut(st);
     renderTopbar();
     renderObjective();
@@ -583,19 +554,19 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     const st = S();
     const w = WEATHER[st.weather].name;
     const se = Game.seasonInfo();
-    $('#top-day').textContent = `第 ${st.day} 天`;
+    dom.text($('#top-day'),`第 ${st.day} 天`);
     // 冻结期间在时间前标个 ⏸：让玩家知道"不是卡住了，是看面板时时间停住了"
-    $('#top-time').textContent = (Game.timeFrozen && Game.timeFrozen() ? '⏸ ' : '') + Game.fmtTime();
-    $('#top-season').textContent = `${se.name}季`;
-    $('#top-weather').textContent = `${WEATHER[st.weather].glyph || ''} ${w}`;
-    $('#top-temperature').textContent = `${Game.weatherTemperature()}℃`;
+    dom.text($('#top-time'),(Game.timeFrozen && Game.timeFrozen() ? '⏸ ' : '') + Game.fmtTime());
+    dom.text($('#top-season'),`${se.name}季`);
+    dom.text($('#top-weather'),`${WEATHER[st.weather].glyph || ''} ${w}`);
+    dom.text($('#top-temperature'),`${Game.weatherTemperature()}℃`);
     const bars = { health: Game.healthValue(), hp: st.stats.hp, stamina: st.stats.stamina, hunger: st.stats.hunger, thirst: st.stats.thirst, spirit: st.stats.spirit };
     const mSt = Game.maxStam();
     for (const k in bars) {
       const fill = $(`#bar-${k}`);
       if (fill) fill.style.width = (k === 'stamina' ? (bars[k] / mSt) : k === 'hp' ? (bars[k] / Game.hpMax()) : bars[k] / 100) * 100 + '%';
       const num = $(`#num-${k}`);
-      if (num) num.textContent = k === 'hp' ? `${Math.round(bars[k])}/${Game.hpMax()}` : Math.round(bars[k]);
+      if (num) dom.text(num,k === 'hp' ? `${Math.round(bars[k])}/${Game.hpMax()}` : Math.round(bars[k]));
       // 饱食 / 水分 / 生命 严格 <30 → 变红（数值与进度条都变红）；恢复 ≥30 自动复原。两套皮肤都可读。
       const low = (k === 'hunger' || k === 'thirst' || k === 'hp') && bars[k] < 30 || k==='health' && bars[k]<40;
       if (fill) { fill.classList.toggle('bar-low', low); if (fill.parentElement) fill.parentElement.classList.toggle('low-border', low); }
@@ -604,11 +575,11 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     const capEl = $('#cap');
     if (capEl) {
       const over = Game.capUsed() > Game.capacity();
-      capEl.textContent = `${Game.capUsed()}/${Game.capacity()} 格${over ? ' ⚠' : ''}`;
+      dom.text(capEl,`${Game.capUsed()}/${Game.capacity()} 格${over ? ' ⚠' : ''}`);
       capEl.classList.toggle('num-low', over);
       capEl.title = over ? `带了过多的物品，移动体力消耗增加${Game.loadPenalty().percent}%。物品仍保留，可存入仓库或丢弃以减轻负重。` : '';
     }
-    const mcnt = $('#mail-count'); if (mcnt) mcnt.textContent = (Game.mailboxCount() > 0 ? Game.mailboxCount() : '');
+    const mcnt = $('#mail-count'); if (mcnt) dom.text(mcnt,(Game.mailboxCount() > 0 ? Game.mailboxCount() : ''));
     // 状态徽标
     const sts = [];
     if (st.statuses.bleed) sts.push('流血');
@@ -632,7 +603,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     const tempHint = temp.state === 'normal' ? '体温舒适' : temp.grace ? `还有 ${temp.grace} 分钟换衣缓冲` : `命中 -10 个百分点，每小时 -${temp.state === 'cold' ? 5 : 3} 生命`;
     const brief={流血:'每小时失去5生命，并降低健康。止血绷带可以止血。',中毒:'每小时失去3生命，并降低健康。解毒剂可以解毒。',恐惧:'降低命中。持续恐惧会降低健康，防御可抵挡梦魇恐吓。'};
     const badges=sts.map(full=>{let name=full.split('：')[0].split('+')[0],text=full;if(full.startsWith('温度：')){name=temp.state==='cold'?'寒冷':temp.state==='heat'?'炎热':'适宜';text=tempHint;}if(name==='健康')text=`健康${Game.healthValue()}/100。实际受伤或持续负面状态降低健康；低于40且久未治疗可能感染。简易药膏+20健康；草药膏+15健康并治疗感染；解毒剂+10健康并解毒。`;if(brief[name])text=brief[name];return {name,text,danger:/流血|中毒|寒冷|炎热|恐惧|水压|缺氧|精神|反胃|感染/.test(name)};});
-    $('#status-badges').innerHTML=badges.slice().sort((a,b)=>Number(b.danger)-Number(a.danger)).slice(0,window.innerWidth<900?1:2).map((b,i)=>`<button type="button" class="badge ${b.danger?'danger':''}" data-buff-info="${i}">${esc(b.name)}</button>`).join('')+'<button type="button" class="badge" data-buff-info="all">状态</button>';
+    dom.html($('#status-badges'),badges.slice().sort((a,b)=>Number(b.danger)-Number(a.danger)).slice(0,window.innerWidth<900?1:2).map((b,i)=>`<button type="button" class="badge ${b.danger?'danger':''}" data-buff-info="${i}">${esc(b.name)}</button>`).join('')+'<button type="button" class="badge" data-buff-info="all">状态</button>');
     $('#status-badges').querySelectorAll('[data-buff-info]').forEach(b=>bindPress(b,()=>{modalOpenedAt=Date.now();showBuffInfo('当前状态',badges.map(v=>v.name+'：'+v.text).join('\n\n'));}));
 
   }
@@ -842,7 +813,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     const st = S();
     const m = $('#main');
     if (!mapBuilt || !$('#map-img')) {
-      m.innerHTML = `
+      dom.dispose(m);m.innerHTML = `
         <div id="map-wrap" class="stage">
           <div id="stage-inner">
             <img id="map-img" src="${mapImagePath(st.scene)}" data-art="${mapImagePath(st.scene)}" data-base-art="${baseMapImagePath(st.scene)}" alt="全景地图" draggable="false" loading="eager" fetchpriority="high">
@@ -901,7 +872,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   function renderBuildings(st) {
     const wrap = $('#map-buildings');
     if (!wrap) return;
-    wrap.innerHTML = '';
+    const target=wrap, fragment=document.createDocumentFragment();
     const b = st.buildings;
     const rows = [];
     // 地图上的营地底图已画好帐篷+箱子：只额外叠加 瞭望台/船坞/耕地，避免重复
@@ -910,13 +881,14 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     // 耕地不在营地/地图上显示田块
     const cur = new Set(rows.map(r => r.img));
     for (const r of rows) {
-      const p = el('div', 'build-plate', '');
+      const p = el('div', 'build-plate', '');p.dataset.building=r.img;
       p.style.left = r.x + '%'; p.style.top = r.y + '%';
       const isNew = !prevMapBuilds.has(r.img);
       p.innerHTML = `<img class="build-sprite${isNew ? ' build-new' : ''}" style="width:${r.w}px" src="assets/img/${r.img}.png" alt="" draggable="false" onerror="this.style.display='none'"><span class="build-label">${r.label}</span>`;
-      wrap.appendChild(p);
+      fragment.appendChild(p);
     }
     prevMapBuilds = cur;
+    dom.reconcile(target,fragment);
   }
   // 营地场景：建造后显现的建筑精灵（尺寸按背景实际宽度百分比，随放大一起缩放）
   function renderCampBuildings(st) {
@@ -925,7 +897,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     if (!wrap) return;
     const stage = $('#scene-wrap');
     const stageW = Math.max(600, wrap.clientWidth || (stage ? stage.offsetWidth : 900));
-    wrap.innerHTML = '';
+    const target=wrap, fragment=document.createDocumentFragment();
     const b = st.buildings, P = CAMP_BUILD_POS;
     const rows = [];
     // 住处：帐篷→草房→木屋→砖瓦房，升级时旧图自动消失
@@ -944,10 +916,10 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     if (b.dock >= 1) rows.push(['build/dock', P.dock, Math.round(stageW * 0.15)]);
     // 耕地不再在营地场景显示田块（改由耕地弹窗管理）
     if(Game.cellarBuilt())rows.push(['build/cellar-v2',P.cellar,Math.round(stageW*.14)]);
-    if(b.wall>0){const perimeter=el('img','camp-perimeter'+(skinOn('seasons')?'':' muted'),'');perimeter.src=`assets/img/build/camp-wall-${b.wall}-v2.png`;perimeter.alt=BUILDING_CHAINS.wall[b.wall].name;perimeter.dataset.wallTier=b.wall;wrap.appendChild(perimeter);}
+    if(b.wall>0){const perimeter=el('img','camp-perimeter'+(skinOn('seasons')?'':' muted'),'');perimeter.src=`assets/img/build/camp-wall-${b.wall}-v2.png`;perimeter.alt=BUILDING_CHAINS.wall[b.wall].name;perimeter.dataset.wallTier=b.wall;perimeter.dataset.building='perimeter';fragment.appendChild(perimeter);}
     const cur = new Set(rows.map(r => r[0]));
     for (const [img, pos, w] of rows) {
-      const p = el('div', 'build-plate', '');
+      const p = el('div', 'build-plate', '');p.dataset.building=img;
       p.style.left = pos[0] + '%'; p.style.top = pos[1] + '%';
       // 按"深度"排叠放次序：y 越大 = 站得越靠画面下方 = 越近，画在越前面。
       // 玩家反馈"篝火被仓库挡住"——原来大家都用 CSS 的 z-index:4，谁在 DOM 里靠后谁就盖住别人，
@@ -962,15 +934,16 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       if(refined)p.classList.add('camp-art-refined');
       const src = refined ? `assets/img/map-pack/buildings/${refined}.webp` : img==='build/storage-shed'?`assets/img/build/storage-shed${skinOn('seasons')?'-colored':''}.png`:art ? `assets/img/map-pack/buildings/${art}.webp` : `assets/img/${img}.png`;
       p.innerHTML = `<img class="build-sprite${skinOn('seasons') ? '' : ' muted'}${isNew ? ' build-new' : ''}" style="width:${w}px" src="${src}" alt="" draggable="false" onerror="this.style.display='none'">`;
-      wrap.appendChild(p);
+      fragment.appendChild(p);
     }
     prevCampBuilds = cur;
+    dom.reconcile(target,fragment);
   }
   // 营地场景：建造后显现的建筑精灵（尺寸按背景实际宽度百分比，随放大一起缩放）
   function refreshMapArrows(st) {
     const wrap = $('#map-arrows');
     if (!wrap) return;
-    wrap.innerHTML = '';
+    const target=wrap, fragment=document.createDocumentFragment();
     if (st.scene === 'atlantis') {
       const sc = Game.sceneOf('atlantis');
       for (const [zid, pos] of Object.entries(atlantisVisualArrows())) {
@@ -983,7 +956,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
             { label:'出发', ok:() => {  view = 'scene'; Game.travel('camp'); } },
             { label:'取 消', ok:() => { view = 'map'; render(); } },
           ]});
-          wrap.appendChild(ha); continue;
+          ha.dataset.arrow=ha.dataset.zone || pos.label;fragment.appendChild(ha); continue;
         }
         const z = sc.zones[zid]; if (!z) continue;
         const here = (st.zone === zid);
@@ -1005,10 +978,9 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
           }
           startAtlantisTravel(zid);
         };
-        wrap.appendChild(a);
+        a.dataset.arrow=a.dataset.zone || a.dataset.scene || a.textContent;fragment.appendChild(a);
       }
-      fitMapArrowsInView();
-      return;
+      dom.reconcile(target,fragment);fitMapArrowsInView(); return;
     }
     const watch = st.buildings.watch;
     for (const [id, pos] of Object.entries(MAP_ARROWS)) {
@@ -1041,9 +1013,9 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
           addLog(why, 'warn'); centerToast(why);
         };
       }
-      wrap.appendChild(a);
+      a.dataset.arrow=a.dataset.zone || a.dataset.scene || a.textContent;fragment.appendChild(a);
     }
-    fitMapArrowsInView();
+    dom.reconcile(target,fragment);fitMapArrowsInView();
   }
 
   // ---------- 舞台自适应：画面区多大，舞台就多大（铺满整个红框，左右不留黑边） ----------
@@ -1308,7 +1280,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
           return `<button class="zone-btn ${active ? 'active' : ''} ${lock ? 'locked' : ''}" data-zone="${zid}">${z.name}${lock ? ' 🔒' : ''}</button>`;
         }).join('') + `</div>`;
       }
-      m.innerHTML = `
+      dom.dispose(m);m.innerHTML = `
         <div id="scene-wrap" class="stage">
           <div id="stage-inner">
             <img id="scene-img" src="${initialSceneImage}" data-art="${initialSceneImage}" data-base-art="${baseSceneImage}" alt="${sc.name}" draggable="false" loading="eager" fetchpriority="high">
@@ -1354,7 +1326,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       const phase = Game.isNight() ? '☾' : Game.isDusk() ? '◐' : '☀';
       const sym = ['rain','snow','fog','storm'].includes(st.weather) ? WEATHER[st.weather].glyph : phase;
       const danger = Math.min(5, sc.danger + (Game.isNight() && sc.id !== 'camp' ? 1 : 0));
-      nameEl.innerHTML = `${sym} ${esc(sc.name)}${sc.zones ? ' · ' + esc((sc.zones[zoneKey] || {}).name || '') : ''} <span class="name-danger">${'●'.repeat(danger)}</span>`;
+      dom.html(nameEl,`${sym} ${esc(sc.name)}${sc.zones ? ' · ' + esc((sc.zones[zoneKey] || {}).name || '') : ''} <span class="name-danger">${'●'.repeat(danger)}</span>`);
     }
     const img = $('#scene-img');
     if (img) {
@@ -1379,16 +1351,17 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     const stage = $('#scene-wrap'); const stageW = Math.max(600, wrap.clientWidth || (stage ? stage.offsetWidth : 900));
     const sz = Math.round(stageW * 0.11);
     const camp = (st.atlantis && st.atlantis.camp && st.atlantis.camp.furniture) || {};
-    wrap.innerHTML = '';
+    const target=wrap, fragment=document.createDocumentFragment();
     for (const fid in ATLANTIS_BUILD_POS) {
       if (!camp[fid] || (fid==='seaStorage1' && camp.seaStorage2)) continue;
       const p = ATLANTIS_BUILD_POS[fid];
-      const d = el('div', 'build-plate', '');
+      const d = el('div', 'build-plate', '');d.dataset.building=fid;
       d.style.left = p.x + '%'; d.style.top = p.y + '%';
       const art = { seaStorage1:0, seaStorage2:1, pearlWork:12, sourceForge:13, repairBench:14 }[fid];
       d.innerHTML = `<img class="build-sprite${skinOn('seasons') ? '' : ' muted'}" src="assets/img/map-pack/buildings/facility-${art}.webp" style="width:${sz}px" onerror="this.style.display='none'">`;
-      wrap.appendChild(d);
+      fragment.appendChild(d);
     }
+    dom.reconcile(target,fragment);
   }
   const ATL_SHOP = [ { id:'deepCoral', base:10 }, { id:'pearlGranule', base:6 }, { id:'sourceOre', base:40 }, { id:'sourceBar', base:260 }, { id:'anctDevice', base:120 }, { id:'atlantisCore', base:300 } ];
   // 遗失的交易机 · 售卖的亚特兰蒂斯装备图纸（按阶递增）
@@ -1577,7 +1550,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     }
     if(sc.id==='atlantis' && zk==='sanctum' && Game.nightmareInfo().active && Game.nightmareInfo().bossReady) list.push({id:'nightmareBoss',x:78,y:37,glyph:'◉',label:'噩梦之源'});
     if (sc.id === 'peak' && st.flags.ended_C) { const act = st.atlantis && st.atlantis.stoneActive; list.push({ id: act ? 'portal_go' : 'portal_make', x:88, y:26, glyph:'◈', label: act ? '传送石 · 前往亚克兰蒂斯' : '传送石 · 需解密' }); }
-    wrap.innerHTML = '';
+    const target=wrap, fragment=document.createDocumentFragment();
     const pts = Game.pointsOf();
     for (const h of list) {
       if (sc.id === 'camp' && st.buildings.house >= 0 && ['sleep','craft','furn','smoke'].includes(h.id)) continue;
@@ -1586,7 +1559,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       if (h.needFurn && !h.needFurn.some(f => st.furniture[f])) continue;
       if (h.needFlag && !st.flags[h.needFlag]) continue;
       if (sc.id === 'river' && ((h.point === 'river_water' && Game.seasonInfo().name === '冬') || (h.point === 'river_snow' && Game.seasonInfo().name !== '冬'))) continue;
-      const d = el('div', 'hotspot ' + (h.point ? 'point' : ''), '');
+      const d = el('div', 'hotspot ' + (h.point ? 'point' : ''), '');d.dataset.hotspot=h.id || h.point;
       // 房屋图的门随等级改变位置：草屋门偏左，帐篷、木屋和砖瓦房门偏右。
       const hx = sc.id === 'camp' && h.id === 'room' ? (CAMP_BUILD_POS.house[0]+(st.buildings.house===1?-3:1)) : h.x;
       const hy = h.y;
@@ -1664,8 +1637,9 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
         const preview=()=>showModal('buffInfo',{title:p.name,text:pointWorkSummary(p)});
         bindPress(d,collect,preview);d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();if(e.shiftKey)preview();else collect();}};
       }}
-      wrap.appendChild(d);
+      fragment.appendChild(d);
     }
+    dom.reconcile(target,fragment);
   }
 
   // ---------- 行动面板 ----------
@@ -1686,7 +1660,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     const st = S();
     const box = $('#scene-actions');
     if (!box) return;
-    box.innerHTML = '';
+    const fragment=document.createDocumentFragment();
     const acts = [];
     if (st.scene === 'camp' && !roomView) {
       if (Game.laochaoAvailable()) acts.push({ label:'与老潮交易', cls:'trade', fn:() => showModal('laochao') });
@@ -1713,9 +1687,10 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       b.innerHTML = `<span class="act-name">${esc(a.label)}</span>`;
       if (a.disabled) b.classList.add('disabled');
       b.onclick = () => { if (a.disabled) { centerToast(a.reason || '条件不足'); return; } if (a.anim) withAnimation(a.anim.t, a.anim.l || a.label, a.fn); else a.fn(); };
-      box.appendChild(b);
+      b.dataset.viewKey=a.label;fragment.appendChild(b);
     }
     box.style.display = acts.length ? '' : 'none';
+    dom.reconcile(box,fragment);
   }
 
   function sceneActions() {
@@ -2181,13 +2156,13 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     }).join('');
     let stage = main.querySelector('.room-stage');
     if (!stage || stage.dataset.roomStyle !== roomStyle) {
-      main.innerHTML = `<div id="scene-wrap" class="stage room-stage" data-room-style="${roomStyle}"><div id="stage-inner"><img id="scene-img" class="room-scene-art" src="${src}" alt="${esc(house.name)}室内" draggable="false"><div id="hotspots" class="ready"></div><div id="camp-buildings"></div></div><div id="scene-name"></div></div>`;
+      dom.dispose(main);main.innerHTML = `<div id="scene-wrap" class="stage room-stage" data-room-style="${roomStyle}"><div id="stage-inner"><img id="scene-img" class="room-scene-art" src="${src}" alt="${esc(house.name)}室内" draggable="false"><div id="hotspots" class="ready"></div><div id="camp-buildings"></div></div><div id="scene-name"></div></div>`;
       stage = main.querySelector('.room-stage');
       fitStage();
     }
     const hotspots = stage.querySelector('#hotspots');
     if (hotspots.dataset.sprites !== sprites) {
-      hotspots.innerHTML = `${sprites}<button id="room-exit" title="返回营地" aria-label="返回营地" type="button">⌂ 出门</button>`;
+      dom.html(hotspots,`${sprites}<button id="room-exit" title="返回营地" aria-label="返回营地" type="button">⌂ 出门</button>`);
       hotspots.dataset.sprites = sprites;
       hotspots.querySelectorAll('.room-sprite').forEach(b=>b.onclick=()=>runRoomAction(b.dataset.roomact));
 
@@ -2966,7 +2941,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       else try{AudioFX.setCombat(true);}catch(e){}
       const art=$('#scene-img') || $('#map-img');
       m.classList.add('open'); document.body.classList.add('modal-open');
-      m.innerHTML=`<section class="modal-content combat-modal battle-board ${en.nightmare?'nightmare-fight':''}" style="--night-depth:${en.nightmare||0}" role="dialog" aria-modal="true" aria-label="战斗">
+      dom.dispose(m);m.innerHTML=`<section class="modal-content combat-modal battle-board ${en.nightmare?'nightmare-fight':''}" style="--night-depth:${en.nightmare||0}" role="dialog" aria-modal="true" aria-label="战斗">
         <header class="battle-header"><div class="hp-line player-health"><span>生命</span><div class="hp-bar"><div id="php" class="hp-fill me"></div></div><span id="php-txt"></span></div><span id="battle-stamina"></span><b>${esc(en.name)}${en.boss?' · 首领':''}</b><span id="battle-round"></span><span id="battle-buffs"></span><span id="fight-status"></span><span id="battle-summary" role="status"></span></header>
         <div class="battle-field">${art?`<img class="battle-backdrop" src="${esc(art.currentSrc||art.src)}" alt="">`:''}<aside class="battle-journal"><header><b>战斗日志</b></header><div id="fight-log" class="fight-log" role="log"></div></aside><div id="fight-targets"></div><div id="battle-floats" aria-live="polite"></div><div id="battle-impact" class="battle-impact" aria-hidden="true"></div></div>
         <div id="fight-btns" class="fight-btns"></div><aside id="battle-panel" hidden></aside>
@@ -2993,7 +2968,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       $('#fight-btns').querySelectorAll('button').forEach(b=>b.disabled=true);
       const seq=fightSeq;
       setTimeout(()=>{if(seq!==fightSeq)return;try{AudioFX.play(C.win?'good':'danger');}catch(e){}
-        document.querySelector('#battle-buff-info')?.remove();battleView=null;m.classList.remove('open');document.body.classList.remove('modal-open');m.innerHTML='';render();
+        document.querySelector('#battle-buff-info')?.remove();battleView=null;m.classList.remove('open');document.body.classList.remove('modal-open');dom.dispose(m);m.innerHTML='';render();
         if(finishedView.ending){pendingPanels=[];showEnding(finishedView.ending.id,finishedView.ending.reason);}
         else showNextPendingPanel();
       },1000);
@@ -3143,23 +3118,25 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     return '<div class="modal-title">全流程攻略</div>'+guideContent()+'<div class="modal-actions"><button id="modal-close">关闭</button></div>';
   }
 
-  function satchelSettingsModal() {
-    return `<div class="satchel-menu"><button data-satchel="food">选食物</button><button data-satchel="drink">选饮料</button><button data-satchel="blocked">选禁食</button></div>`;
-  }
-  function satchelSelectionModal(kind) {
-    const selected=Game.satchelSelections(kind),available=Game.satchelAvailable();
-    const names={food:'选食物',drink:'选饮料',blocked:'选禁食'};
-    const ids=Object.keys(ITEMS).filter(id=>Game.satchelEligible(id,kind));
-    ids.sort((a,b)=>Number((available[b]||0)>0)-Number((available[a]||0)>0));
-    return `<div class="satchel-picker"><div class="modal-title">${names[kind]} <span class="satchel-count">${selected.length}/3</span></div>
-      <div class="satchel-choices">${ids.map(id=>{const picked=selected.includes(id);return `<button class="satchel-choice ${picked?'is-selected':''}" data-satchelpick="${kind}:${id}" aria-pressed="${picked}" ${!picked&&selected.length===3?'disabled':''}>${itemIcon(id)}<span>${esc(ITEMS[id].name)}</span><small>×${available[id]||0}</small></button>`;}).join('')}</div>
-      <div class="modal-actions"><button id="modal-back">返 回</button></div></div>`;
+  function adAvailable() { return typeof TapAds!=='undefined' && TapAds.supported() && !TapAds.busy(); }
+  function watchAd(action, done) {
+    if (!adAvailable()) { done({ok:false,reason:'广告暂不可用，请在 TapTap 内打开游戏后重试。'}); return; }
+    const frozen=Game.timeFrozen(), panels=[document.querySelector('#modal .modal-content')].filter(Boolean);
+    panels.forEach(p=>p.inert=true); Game.setTimeFreeze(true);
+    let applied;
+    TapAds.onReward(()=>{applied=action();});
+    TapAds.showRewardedVideo(result=>{
+      panels.forEach(p=>p.inert=false); Game.setTimeFreeze(frozen);
+      done(result.ok && applied ? applied : {ok:false,reason:result.reason || '奖励未能领取，请稍后再试。'});
+    });
   }
   function adShopModal() {
-    const shop=Game.adShopState(), soul=Game.metaState().soul || 0;
-    return `<div class="modal-title shop-title"><b>售物柜</b><div class="shop-tools"><div class="cabinet-exchange"><div class="cabinet-controls"><input id="star-exchange-qty" aria-label="兑换数量" type="number" min="1" max="${Math.max(shop.coins,Math.floor(soul/15),1)}" value="1"><button data-soulexchange ${soul<15?'disabled':''}>换星之点</button><button data-adexchange ${shop.coins<1?'disabled':''}>换魂点</button></div></div><span>◇ ${shop.coins} · 魂点 ${soul}</span>${inlineHelp('15 魂点兑换 1 星之点；1 星之点兑换 15 魂点。输入兑换数量再选择方向。星之点跨局保留，商品寄到邮箱；传奇档不能领取物资。')}</div></div>
-      <div class="shop-cabinet">${shop.goods.map(g=>{const item=ITEMS[g.id] || RELICS[g.id];return `<button class="cabinet-cell cabinet-product" data-adbuy="${g.id}" aria-label="购买${esc(item.name)}，${g.cost}星之点，发到邮箱" ${shop.coins<g.cost?'disabled':''}><span class="cabinet-item">${itemIcon(g.id)}<b>${esc(item.name)}</b></span><small class="cabinet-price">◇ ${g.cost}</small></button>`;}).join('')}
-      ${Array.from({length:Math.max(0,12-shop.goods.length)},()=>'<div class="cabinet-cell cabinet-empty" aria-hidden="true"></div>').join('')}</div>`;
+    const shop=Game.adShopState(), soul=Game.metaState().soul || 0,currency=Game.adCurrencyName();
+    const reward=Game.adRewardState(), tapShop=typeof TapAds!=='undefined' && TapAds.enabled();
+    const video=tapShop ? `<button id="watch-reward-ad" class="cabinet-cell" ${!reward.canClaim || !adAvailable()?'disabled':''}><b>看广告领币</b><small>3～6 广告币 · ${reward.uses}/${reward.limit}</small><small>${reward.reason || (!adAvailable()?'请在 TapTap 内观看':'')}</small></button>` : '';
+    return `<div class="modal-title shop-title"><b>售物柜</b><div class="shop-tools"><div class="cabinet-exchange"><div class="cabinet-controls"><input id="star-exchange-qty" aria-label="兑换数量" type="number" min="1" max="${Math.max(shop.coins,Math.floor(soul/15),1)}" value="1"><button data-soulexchange ${soul<15?'disabled':''}>换${currency}</button><button data-adexchange ${shop.coins<1?'disabled':''}>换魂点</button></div></div><span>◇ ${shop.coins} · 魂点 ${soul}</span>${inlineHelp(`15 魂点兑换 1 ${currency}；1 ${currency}兑换 15 魂点。输入兑换数量再选择方向。${currency}跨局保留，商品寄到邮箱；传奇档不能领取物资。`)}</div></div>
+      <div class="shop-cabinet">${shop.goods.map(g=>{const item=ITEMS[g.id] || RELICS[g.id];return `<button class="cabinet-cell cabinet-product" data-adbuy="${g.id}" aria-label="购买${esc(item.name)}，${g.cost}${currency}，发到邮箱" ${shop.coins<g.cost?'disabled':''}><span class="cabinet-item">${itemIcon(g.id)}<b>${esc(item.name)}</b></span><small class="cabinet-price">◇ ${g.cost}</small></button>`;}).join('')}
+      ${video}${Array.from({length:Math.max(0,12-shop.goods.length-(tapShop?1:0))},()=>'<div class="cabinet-cell cabinet-empty" aria-hidden="true"></div>').join('')}</div>`;
   }
   function mailboxModal() {
     const tabs = [['mail','邮箱'],['code','兑换码'],['event','活动'],['guide','攻略']];
@@ -3344,8 +3321,6 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   // ⚠️ 刻意【不包含】：camp（营地里有睡觉/休息，本来就该花时间）、craft（制造要耗时间）、
   //    laochao/town/black/atlTrade（买卖）、farm（种收）、sleeppick、grind、repair、naming 等
   //    —— 这些面板里的操作本身就是"主动消耗时间"，冻住它们等于把功能关掉。
-  const TIME_FREEZE_PANELS = ['transferHelp','bookFocus','cellar','cellarDeposit','batchn','batch','satchelSettings','satchelfood','autoHelp','warehouseAuto','lootExpiry','equipPick','buffInfo','warehouse','loot','nightmareInfusion', 'separator', 'inv', 'equip', 'skill', 'skilltree', 'collection', 'itemInfo', 'lottery', 'lotteryPick', 'lotteryPool', 'lotteryResult', 'diary', 'mailbox', 'adshop', 'guide', 'share', 'settings',
-    'savemenu', 'backup', 'rescue', 'heirloom', 'codex', 'crafthelp', 'comhelp', 'devpw'];
   // ⛔ 不要用原生 confirm() / alert() / prompt()。
   //    iPhone 上的 WKWebView 宿主，如果宿主没有实现 runJavaScriptConfirmPanel，
   //    原生 confirm() 会**永远不返回**——点击回调直接卡在那里，表现就是"点了没反应"，
@@ -3366,35 +3341,41 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     const ids=Object.keys(S().weaponNames||{}).filter(id=>Game.invCount(id)>0&&ITEMS[id]&&ITEMS[id].cat==='weapon'&&id!=='divineBow'&&Game.durOf(id)===0);
     return ids.map(id=>{ const cost=Game.repairMatOf(id); return cost?`<div class="recipe-row"><b>${esc(Game.wNameOf(id))} · 已损坏</b><span class="rcost">修复到上限 · ${ITEMS[cost[0]].name}×${cost[1]}</span><button class="mini-btn" data-repair-broken="${id}">修复</button></div>`:''; }).join('');
   }
+  function prepareMerchant(root) {
+      // 交易数据与按钮保持原有绑定；仅将同一货架的相邻行编排成双列卡片。
+      root.querySelectorAll('.trade-grid,.merchant-goods .help-item').forEach(row=>{
+        if (!row.querySelector('button')) { if(row.classList.contains('trade-grid')) row.classList.add('trade-heading'); return; }
+        let grid=row.previousElementSibling;
+        if (!grid || !grid.classList.contains('trade-cards')) { grid=document.createElement('div'); grid.className='trade-cards'; row.before(grid); }
+        grid.appendChild(row); row.classList.add('trade-card');
+        const button=row.querySelector('button');row.dataset.viewKey=[...button.attributes].filter(a=>a.name.startsWith('data-')&&!['data-reason','data-count','data-qty'].includes(a.name)).map(a=>a.name+'='+a.value).join('|');
+      });
+  }
   function showModal(kind, cfg) {
     if(kind==='loot')kind='inv';
     if(restoreCombatView())return;
     const m = $('#modal');
-    modalOpenedAt = Date.now();   // 记下"刚打开"的时刻，配合防点击穿透（见文件末尾的捕获监听）
+    const openedNow = Date.now();   // 记下"刚打开"的时刻，配合防点击穿透（见文件末尾的捕获监听）
     const wasOpen = m.classList.contains('open');
     const samePanel = wasOpen && modal && modal.kind === kind;
-    const warehouseScroll = samePanel && kind === 'warehouse'
-      ? [...m.querySelectorAll('.inventory-pane .work-scroll, .inventory-pane .inventory-categories')].map(el => el.scrollTop) : null;
-    const scrollSelectors = ['.modal-content', '.work-side', '.work-scroll', '#trade-body'];
-    const previousCategory = m.dataset.category || '';
-    const category = kind === 'warehouse'?warehouseCat:kind === 'craft' ? craftTab : kind === 'inv' ? invCat : kind === 'equip' ? equipTab : '';
-    const prevScroll = samePanel ? scrollSelectors.map(selector => {
-      const el = m.querySelector(selector);
-      return el ? el.scrollTop : 0;
-    }) : [];
+    if(!samePanel)modalOpenedAt=openedNow;
+    const previousCategory=m.dataset.category || '';
+    const category=kind==='warehouse'?warehouseCat:kind==='craft'?craftTab:kind==='inv'?invCat:kind==='equip'?equipTab:'';
     m.dataset.category = category;
     clearTimeout(lotteryTimer); lotteryTimer=null;
+    if(!samePanel)panels.get(modal?.kind).dispose?.();
     modal = { kind, cfg };
     if(kind==='lootExpiry'){lootExpiryQueued=false;cfg.onShown?.();}
     maybeBatchTip(kind);
     // 开管理面板 → 冻结时间；并重绘一次顶栏，让时间前的 ⏸ 标记立刻出现（否则要等下次渲染才看得到）
     if (Game.setTimeFreeze) {
       const wasFrozen = Game.timeFrozen && Game.timeFrozen();
-      Game.setTimeFreeze(TIME_FREEZE_PANELS.indexOf(kind) >= 0);
+      Game.setTimeFreeze(!!panels.get(kind).freeze);
       if (wasFrozen !== Game.timeFrozen() && document.getElementById('top-time')) render();
     }
     let html = '';
-    if (kind === 'camp') html = campModal(cfg?.building);
+    if(panels.get(kind).render)html=panels.get(kind).render(cfg);
+    else if (kind === 'camp') html = campModal(cfg?.building);
     else if (kind === 'livestock') html = livestockModal(cfg);
     else if (kind === 'camphelp') html = renderCampHelp((cfg && cfg.mode) || 'build');
     else if (kind === 'craft') html = renderCraft();
@@ -3452,8 +3433,6 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     else if (kind === 'rescue') html = rescueModal();
     else if (kind === 'skill') html = skillModal();
     else if (kind === 'skilltree') html = skillTreeModal(cfg && cfg.kind);
-    else if (kind === 'satchelSettings') html = satchelSettingsModal();
-    else if (kind === 'satchelfood') html = satchelSelectionModal(['food','drink','blocked'].includes(cfg?.pick)?cfg.pick:'food');
     else if (kind === 'batch') html = batchModal(cfg);
     else if (kind === 'batchn') html = batchnModal(cfg);
     else if (kind === 'comhelp') html = comHelpModal();
@@ -3489,42 +3468,27 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       const person=MERCHANTS[merchantId], col=person.cell%3, row=Math.floor(person.cell/3);
       html=`<div class="merchant-layout"><aside class="merchant-person"><div class="merchant-portrait${skinOn('seasons')?' art-colored':''}" style="background-position:${col*50}% ${row*50}%" role="button" tabindex="0" data-voice="${merchantId}" aria-label="听${esc(person.name)}说话"></div><b>${esc(person.name)}</b><p id="merchant-line" aria-live="polite">${esc(person.lines[merchantLine])}</p></aside><section class="merchant-goods">${html}</section></div>`;
     } else if (kind!=='batchn' && kind!=='overlay') { activeMerchant=null; AudioFX.stopVoice(); }
-    const workPanel = ['cellar','warehouse','craft', 'inv', 'equip'].includes(kind);
+    const workPanel = !!panels.get(kind).work;
     m.classList.toggle('work-open', workPanel);
     // winter-modal 这个类只用来给「冬季来临」在横屏手机上压紧排版（见 css/ui-polish.css）：
     // 4 条提醒 + 两个按钮要塞进 375px 高，默认的 .help-item 内边距会让第 4 条藏进内滚动里。
-    m.innerHTML = `<div class="modal-content${workPanel ? ' work-modal' : ''}${kind==='overlay' && (cfg?.compact || (cfg?.text?.length<160 && cfg?.choices?.length<=2))?' compact-prompt':''}${['inv','warehouse','cellar'].includes(kind)?' inventory-modal':''}${kind==='warehouse'?' warehouse-dual-modal':''}${['inv','equip','craft'].includes(kind)?' player-panel-modal':''}${merchantId ? ' merchant-modal' : ''}${['lottery','lotteryPick','lotteryPool','lotteryResult'].includes(kind) ? ' lottery-modal' : ''}${kind === 'equipPick' ? ' equipment-pick-modal' : ''}${kind === 'settings' ? ' set-wide' : ''}${kind === 'nightmareInfusion' ? ' infusion-modal' : ''}${kind === 'adshop' ? ' cabinet-modal' : ''}${kind === 'winter' ? ' winter-modal' : ''}${kind === 'guide' ? ' guide-modal' : ''}" role="dialog" aria-modal="true">${html}</div>`;
+    const panelMarkup = `<div class="modal-content${workPanel ? ' work-modal' : ''}${kind==='overlay' && (cfg?.compact || (cfg?.text?.length<160 && cfg?.choices?.length<=2))?' compact-prompt':''}${['inv','warehouse','cellar'].includes(kind)?' inventory-modal':''}${kind==='warehouse'?' warehouse-dual-modal':''}${['inv','equip','craft'].includes(kind)?' player-panel-modal':''}${merchantId ? ' merchant-modal' : ''}${['lottery','lotteryPick','lotteryPool','lotteryResult'].includes(kind) ? ' lottery-modal' : ''}${kind === 'equipPick' ? ' equipment-pick-modal' : ''}${kind === 'settings' ? ' set-wide' : ''}${kind === 'nightmareInfusion' ? ' infusion-modal' : ''}${kind === 'adshop' ? ' cabinet-modal' : ''}${kind === 'winter' ? ' winter-modal' : ''}${kind === 'guide' ? ' guide-modal' : ''}" role="dialog" aria-modal="true">${html}</div>`;
+    // 关闭按钮属于面板外壳，必须在比较之前加入，避免每次重建。
+    const withClose=(!cfg || !cfg.requiredChoice)?panelMarkup.replace('aria-modal="true">','aria-modal="true"><button class="modal-x" aria-label="关闭">×</button>'):panelMarkup;
+    if(samePanel)dom.html(m,withClose,merchantId?prepareMerchant:undefined);
+    else {dom.dispose(m);m.innerHTML=withClose;if(merchantId)prepareMerchant(m);}
     const mcx = m.querySelector('.modal-content');
     // A transfer updates this open window; it must not replay the opening animation.
-    if (samePanel && (kind === 'warehouse' || cfg?.guidePageChange)) mcx.style.animation = 'none';
+
     if (merchantId) {
-      // 交易数据与按钮保持原有绑定；仅将同一货架的相邻行编排成双列卡片。
-      m.querySelectorAll('.trade-grid,.merchant-goods .help-item').forEach(row=>{
-        if (!row.querySelector('button')) { if(row.classList.contains('trade-grid')) row.classList.add('trade-heading'); return; }
-        let grid=row.previousElementSibling;
-        if (!grid || !grid.classList.contains('trade-cards')) { grid=document.createElement('div'); grid.className='trade-cards'; row.before(grid); }
-        grid.appendChild(row); row.classList.add('trade-card');
-      });
       m.querySelectorAll('.merchant-portrait[data-voice]').forEach(b=>b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click();}});
     m.querySelectorAll('[data-voice]').forEach(b=>b.onclick=()=>AudioFX.playVoice(b.dataset.voice,merchantLine));
     }
     if (!cfg || !cfg.requiredChoice) {
-      mcx.insertAdjacentHTML('afterbegin', '<button class="modal-x" aria-label="关闭">×</button>');
       mcx.querySelector('.modal-x').onclick = closeModal;
     }
     m.classList.add('open'); document.body.classList.add('modal-open');
-    if (warehouseScroll) {
-      m.querySelectorAll('.inventory-pane .work-scroll, .inventory-pane .inventory-categories').forEach((el, i) => {
-        el.scrollTop = warehouseScroll[i] || 0;
-      });
-    }
-    if (samePanel && !warehouseScroll && !cfg?.guidePageChange) requestAnimationFrame(() => {
-      if (m.querySelector('.modal-content') !== mcx) return;
-      scrollSelectors.forEach((selector, i) => {
-        const el = m.querySelector(selector);
-        if (el && (selector === '.work-side' || previousCategory === category)) el.scrollTop = prevScroll[i];
-      });
-    });
+    if(samePanel && previousCategory!==category)m.querySelectorAll('.work-scroll').forEach(node=>{node.scrollTop=0;});
     if (kind === 'rune') bindRune();
     if (kind === 'winter') {
       // 「去河畔采雪」：顺手把玩家送到河畔（能不能去由 travel 自己判，失败会 toast 说明原因）
@@ -3534,12 +3498,18 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     bindModal(kind, cfg);
   }
   function bindModal(kind, cfg) {
-    const m = $('#modal');
+    const m = $('#modal');panels.get(kind).bind?.(m,cfg);
+    const watch=m.querySelector('#watch-reward-ad');
+    if(watch)watch.onclick=()=>{
+      const info=Game.adRewardState(),run=S()?._runId;
+      if(!info.canClaim){centerToast(info.reason);return;}
+      watchAd(()=>Game.claimAdReward(run,info.today),r=>{showModal('adshop');centerToast(r.ok?`获得 ${r.amount} 广告币。`:r.reason);});
+    };
     m.querySelectorAll('[data-adbuy]').forEach(b=>b.onclick=()=>{const r=Game.buyAdShop(b.dataset.adbuy);centerToast(r.msg || r.reason);showModal('adshop');});
     m.querySelectorAll('[data-adexchange]').forEach(b=>b.onclick=()=>{const r=Game.exchangeAdCoins(Number(m.querySelector('#star-exchange-qty').value));centerToast(r.msg || r.reason);showModal('adshop');});
     m.querySelectorAll('[data-soulexchange]').forEach(b=>b.onclick=()=>{const r=Game.exchangeSoulForStars(Number(m.querySelector('#star-exchange-qty').value));centerToast(r.msg || r.reason);showModal('adshop');});
     m.querySelectorAll('#modal-close').forEach(b => b.onclick = closeModal);
-    m.querySelectorAll('#modal-back').forEach(b => b.onclick = () => { if (kind === 'medpick') renderCombat('start', Game.S().combat); else if(kind==='satchelfood')showModal('satchelSettings'); else if (modal && modal.kind) showModal(modal.kind, modal.cfg); });
+    m.querySelectorAll('#modal-back').forEach(b => b.onclick = () => { if (kind === 'medpick') renderCombat('start', Game.S().combat); else if(panels.get(kind).back)showModal(panels.get(kind).back); else if (modal && modal.kind) showModal(modal.kind, modal.cfg); });
     m.querySelectorAll('[data-player-panel]').forEach(b=>b.onclick=()=>{if(b.dataset.playerPanel==='equip')equipTab='p1';showModal(b.dataset.playerPanel);});
     m.querySelectorAll('[data-building-detail]').forEach(b=>b.onclick=()=>showModal('camp',{building:b.dataset.buildingDetail}));
     m.querySelectorAll('[data-camp-back]').forEach(b=>b.onclick=()=>showModal('camp'));
@@ -3590,14 +3560,6 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     m.querySelectorAll('[data-unequiptool]').forEach(b => b.onclick = () => { const r = Game.unequipTool(b.dataset.unequiptool); if (!r.ok) centerToast(r.reason); showModal('equip'); });
     m.querySelectorAll('[data-emptyslot]').forEach(b => b.onclick = () => addLog('请从下方已拥有的神物中点击装备。', 'warn'));
     // 食之包：三个分类各自最多选择三种，点击即保存。
-    m.querySelectorAll('[data-satchel]').forEach(b=>b.onclick=()=>showModal('satchelfood',{pick:b.dataset.satchel}));
-    m.querySelectorAll('[data-satchelpick]').forEach(b=>b.onclick=()=>{
-      const [pick,id]=b.dataset.satchelpick.split(':'),top=m.querySelector('.satchel-choices').scrollTop;
-      const r=Game.toggleSatchelSelection(pick,id);
-      if(!r.ok)centerToast(r.reason);
-      showModal('satchelfood',{pick});
-      document.querySelector('#modal .satchel-choices').scrollTop=top;
-    });
     m.querySelectorAll('[data-bk]').forEach(b => b.onclick = () => {
       const r = Game.backupSlot(+b.dataset.bk);
       if (r.ok) {
@@ -3641,8 +3603,8 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     const cb=m.querySelector('#codex-current-backup');if(cb)cb.onclick=()=>downloadBackup(Game.exportCode());
     const codeText=m.querySelector('#codex-text'),preview=m.querySelector('#codex-preview');
     const updatePreview=()=>{if(preview){preview.textContent=backupSummary(Game.inspectCode(codeText.value));window.Locale?.apply();}};
-    if(preview)codeText.addEventListener('change',updatePreview);
-    if(preview)codeText.addEventListener('input',updatePreview);
+    if(preview)codeText.onchange=updatePreview;
+    if(preview)codeText.oninput=updatePreview;
     const file=m.querySelector('#codex-file');
     if(file){m.querySelector('#codex-file-pick').onclick=()=>{if(window.GuyuFileBackup?.open)window.GuyuFileBackup.open();else file.click();};file.onchange=async()=>{
       const picked=file.files?.[0];if(!picked)return;
@@ -4005,7 +3967,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     if (bn) {
       const recipe = Game.craftRecipe(RECIPES.find(x => x.id === cfg.recipe));
       const up = () => { $('#batch-count').textContent = bn.value; $('#batch-time').textContent = Game.craftMinutes(recipe) * Number(bn.value); $('#batch-output').textContent = '产出：' + Object.entries(recipe.out).map(([k,v]) => `${ITEMS[k].name}×${v * Number(bn.value)}`).join('、') + ' · 材料：' + Object.entries(Game.craftIn(recipe,Number(bn.value))).map(([k,v]) => `${ITEMS[k].name}×${v}`).join('、'); };
-      bn.addEventListener('input', up); bn.addEventListener('change', up);
+      bn.oninput=up; bn.onchange=up;
       m.querySelectorAll('[data-cset]').forEach(b => b.onclick = () => {
         bn.value = b.dataset.cset === '1' ? 1 : b.dataset.cset === 'half' ? Math.max(1, Math.floor(+bn.max / 2)) : bn.max; up();
       });
@@ -4035,7 +3997,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     });
     // 批量条：数量/合计实时更新；确定后按商店类型回到正确的界面
     const bnn = $('#batchn-n');
-    m.querySelectorAll('#modal-transfer-back').forEach(b=>b.onclick=()=>openItemDetail(cfg.item,cfg.dir!=='in'));
+    m.querySelectorAll('#modal-transfer-back').forEach(b=>b.onclick=()=>{if(cfg.returnKind==='warehouse'){showModal('warehouse');restoreInvScroll();}else openItemDetail(cfg.item,cfg.dir!=='in');});
     if (bnn) {
       const bc2 = $('#batchn-count');
       const up2 = () => {
@@ -4047,7 +4009,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
           else if (modal.cfg._unit) tt.textContent = modal.cfg._unit * n2;
         }
       };
-      bnn.addEventListener('input', up2); bnn.addEventListener('change', up2);
+      bnn.oninput=up2; bnn.onchange=up2;
       const bd2 = $('#batchn-do');
       if (bd2) bd2.onclick = () => {
         const cfg2 = modal.cfg, n = +bnn.value;
@@ -4134,7 +4096,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     if(panes.length===2)inventoryDualScroll=[...panes].map(e=>e.scrollTop);
     const m = $('#modal');
     modalOpenedAt=Date.now(); // pointerup切页后的补发click不得关闭详情
-    m.innerHTML = `<div class="modal-content item-detail-modal"><button class="modal-x" aria-label="返回${fromWarehouse==='cellar'?'地窖':fromWarehouse?'仓库':'背包'}">×</button>${itemDetail(id,fromWarehouse)}</div>`;
+    dom.dispose(m);m.innerHTML = `<div class="modal-content item-detail-modal"><button class="modal-x" aria-label="返回${fromWarehouse==='cellar'?'地窖':fromWarehouse?'仓库':'背包'}">×</button>${itemDetail(id,fromWarehouse)}</div>`;
     m.querySelector('.modal-x').onclick=()=>{showModal(inventoryReturn);restoreInvScroll();};
     const mc = m.querySelector('.modal-content'); if (mc) mc.scrollTop = 0;
     bindItemDetail(id,fromWarehouse);
@@ -4171,7 +4133,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     if(restoreCombatView())return;
     if (modal && modal.cfg && modal.cfg.requiredChoice) return;
     clearTimeout(lotteryTimer); lotteryTimer=null; activeMerchant=null; AudioFX.stopVoice();
-    const m = $('#modal'); m.classList.remove('open'); document.body.classList.remove('modal-open'); m.innerHTML = ''; modal = null;
+    const m = $('#modal');dom.dispose(m); m.classList.remove('open'); document.body.classList.remove('modal-open'); m.innerHTML = ''; modal = null;
     if (Game.setTimeFreeze) Game.setTimeFreeze(false); render();   // 关弹窗 → 恢复时间
     // 排队的提示性弹窗：等这个关掉再弹（作者 2026-09-25 要求"不要和其他弹窗冲突"）。
     // 用 setTimeout(0) 而不是直接 showModal：先让上面这轮 render() 跑完，弹窗换得干净。
@@ -4769,7 +4731,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     //    标题页/选择身份页都把它藏起来，只有真正进游戏后才显示。
     const grip = document.getElementById('log-grip');
     if (grip) grip.style.display = 'none';
-    app.innerHTML = `
+    dom.dispose(app);app.innerHTML = `
       <div id="title-screen">
         <div class="title-language">${window.Locale?Locale.control():''}</div>
         <img src="assets/img/title.png" alt="">
@@ -4865,7 +4827,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       html += `<button class="identity" data-slot="${i}"><b>备份槽 ${i + 1}${s ? ` · 第${s.day}天` : ' · 空白'}</b><span>${s ? `第 ${s.day} 天${s.settled ? '（已结算）' : ''} · 点击从此处继续` : '空白 · 点击开始新游戏'}</span></button>`;
     }
     html += `</div><button id="sel-back">返回</button><div id="modal"></div></div>`;
-    app.innerHTML = html;
+    dom.dispose(app);app.innerHTML = html;
     app.querySelectorAll('.identity').forEach(b => b.onclick = () => {
       const i = +b.dataset.slot;
       if (i === 3 && !Game.extraSlotUnlocked()) { showModal('buyslot'); return; }
@@ -4898,7 +4860,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       html += `<button class="identity" data-id="${id}"><span class="id-card"><img src="${portraitPath(id)}" alt="" onerror="__portraitFail(this,'${id}')"></span><span class="id-body"><b>${idn.name}${locked?' · 100 魂点解锁':''}</b><span class="id-desc">${idn.desc}${locked?' · 永久解锁，已有存档可继续。':''}</span></span></button>`;
     }
     html += `</div><button id="sel-back">返回</button><div id="modal"></div></div>`;
-    app.innerHTML = html;
+    dom.dispose(app);app.innerHTML = html;
     app.querySelectorAll('.identity').forEach(b => b.onclick = () => {
       const id=b.dataset.id;
       if (!Game.identityUnlocked(id)) {
@@ -4919,7 +4881,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       html += `<button class="identity difficulty-${id}" data-id="${id}" ${unlocked?'':'disabled'}><span class="id-body"><b>${d.name}${unlocked?'':' · 未解锁'}${d.recommend ? ' <i style="font-style:normal;font-size:11px;border:1px solid var(--ink);padding:0 4px;border-radius:3px">新手推荐</i>' : ''}</b><span>${unlocked?d.desc:'幸存者模式完成任一通关结局解锁。'}</span></span></button>`;
     }
     html += `</div><div class="hint" style="margin-top:6px">第一次玩？选「求生者」就行，按喜欢的体验选择。</div><button id="sel-back">返回</button><div id="modal"></div></div>`;
-    app.innerHTML = html;
+    dom.dispose(app);app.innerHTML = html;
     // 开场分镜只在"真人点了难度"时播：程序化 click（探针/自动化，isTrusted === false）自动跳过，
     // 免得每次截图/回归都要先手动关掉分镜。探针想看分镜就设 window.__guyuForceComic = 1。
     app.querySelectorAll('.identity').forEach(b => b.onclick = (e) => {
@@ -5025,7 +4987,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     document.body.appendChild(L);
     AudioFX.setScene('forest');   // 加载时播清脆鸟叫+树叶沙沙
     setTimeout(() => { L.classList.add('done'); setTimeout(() => L.remove(), 500); }, 2200);
-    app.innerHTML = `
+    dom.dispose(app);app.innerHTML = `
       <div id="topbar">
         <!-- ⚠️ 邮箱按钮必须是顶栏最后一个、且不被裁掉：以前它排在状态条后面，窄屏下状态条把它挤到
              右边又被顶栏的 overflow:hidden 裁掉，看起来像"跑到格子栏右边"。
@@ -5116,8 +5078,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       if (e.target !== modalEl) return;
       const k = modal && modal.kind;
       // 面板类都支持"点外面关闭"（战斗、剧情选择、结局、命名输入、掷骰子这种不能误关的除外）
-      const PANEL_KINDS = ['inv','craft','equip','skill','skilltree','satchelfood','satchelSettings','camp','room','laochao','town','black','atlTrade','repair','livestock','mission','info','farm','diary','collection','itemInfo','lottery','lotteryPick','lotteryPool','lotteryResult','fishman','sleeppick','savemenu','backup','rescue','settings','mailbox','guide','share','crafthelp','adshop','comhelp','codex','heirloom','naming','devpw','rune','winter'];
-      if (PANEL_KINDS.includes(k)) closeModal();
+      if (panels.get(k).dismiss) closeModal();
     });
     // 移动端：不预加载全部大图，改为按需加载（切换场景时才读取对应图），降低内存与首屏压力
     render();

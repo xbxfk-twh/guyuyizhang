@@ -31,7 +31,9 @@ const RND = Math.random;
 const always = () => 0.0;      // 概率判定必成功
 const never = () => 0.999;     // 概率判定必失败
 const UI = fs.readFileSync(ROOT + '/js/ui.js', 'utf8');
-const _GAME_SRC = fs.readFileSync(ROOT + '/js/game.js', 'utf8');   // 供"实现方式"类断言做正则检查
+const PANEL_META=new Function(fs.readFileSync(ROOT+'/js/ui/panel-registry.js','utf8')+';return GamePanels.create().snapshot();')();
+const PRESS_SRC=fs.readFileSync(ROOT+'/js/ui/input/press.js','utf8'),SATCHEL_VIEW=fs.readFileSync(ROOT+'/js/ui/food-satchel.js','utf8');
+const _GAME_SRC = JSON.parse(fs.readFileSync(ROOT+'/runtime-manifest.json','utf8')).logic.filter(name=>name!=='js/data.js').map(name=>fs.readFileSync(ROOT+'/'+name,'utf8')).join('\n');   // 供"实现方式"类断言做正则检查
 // ⚠️ 必须在这里（文件顶部）一起声明：以前只把 _GAME_SRC 放这儿、_DATA_SRC 放在文件中部，
 //    结果靠前的小节引用它就会撞 **暂时性死区**（TDZ）——报 `_DATA_SRC is not defined`。
 const _DATA_SRC = fs.readFileSync(ROOT + '/js/data.js', 'utf8');   // 供"数据字段"类断言做正则检查
@@ -89,7 +91,7 @@ section('0. 静态引用与资源');
   const IDX = fs.readFileSync(ROOT + '/index.html', 'utf8');
   const bv = (IDX.match(/window\.BUILD_VER = '([^']+)'/) || [])[1] || '';
   const qs = [...IDX.matchAll(/\?v=([^"'>]+)/g)].map(m => m[1]);
-  ck('index.html 版本号与资源缓存参数同步', /^v\d+\.\d+/.test(bv) && qs.length === 9 && qs.every(v => v === bv), bv + ' / ' + qs.join(','));
+  ck('index.html 版本号与资源缓存参数同步', /^v\d+\.\d+/.test(bv) && qs.length === JSON.parse(fs.readFileSync(ROOT+'/runtime-manifest.json','utf8')).scripts.length+JSON.parse(fs.readFileSync(ROOT+'/runtime-manifest.json','utf8')).styles.length && qs.every(v => v === bv), bv + ' / ' + qs.join(','));
   const jsAll = DATA + GAME + UI + fs.readFileSync(ROOT + '/index.html', 'utf8');
   const re = new RegExp('assets/[A-Za-z0-9_\\-/.]+?\\.(png|jpg|jpeg|webp|mp3|ogg|wav)', 'g');
   const imgs = new Set(); let m; while ((m = re.exec(jsAll))) imgs.add(m[0]);
@@ -2164,7 +2166,7 @@ section('7e. 不死丹改动 / 深海售卖机卖神物');
     G.setSatchelPref('food', '');
     ck('偏好存进存档（读回来还在）', (() => { G.setSatchelPref('drink', 'water'); G.save(); G.load(); return G.satchelPref().drink === 'water'; })());
     ck('装备面板里有食之包的"优先吃/喝"入口',
-       /data-satchel="food"/.test(UI) && /data-satchel="drink"/.test(UI) && /satchelfood/.test(UI));
+       /satchelPanels.menu/.test(UI) && /satchelPanels.picker/.test(UI) && /data-satchel/.test(SATCHEL_VIEW) && /Game.toggleSatchelSelection/.test(SATCHEL_VIEW));
   }
 
   // 已有但没装备的神物不该再刷一份
@@ -2393,7 +2395,7 @@ section('7i. 收购恒定七折 + 批量出售（含手机端）');
   // 批量出售：四个入口 + 手机端长按可靠性
   ck('老潮/盐镇/黑市/交易机的卖货按钮都接了长按批量', (UI.match(/bindPress\(b, doTap, doLong\)/g) || []).length >= 4);
   ck('长按会因滑动/系统打断而取消（手机端不误触）', /pointermove/.test(UI) && /pointercancel/.test(UI) && /Math\.hypot/.test(UI));
-  ck('按钮禁用/置灰时不响应长按', /el2\.disabled \|\| el2\.classList\.contains\('lockedb'\)/.test(UI));
+  ck('按钮禁用/置灰时不响应长按', /node\.disabled\|\|node\.classList\.contains\('lockedb'\)/.test(PRESS_SRC));
   ck('批量弹窗有 1/一半/全部 快捷档', /data-bset="1"/.test(UI) && /data-bset="half"/.test(UI) && /data-bset="all"/.test(UI));
   ck('CSS 关掉长按选中与长按菜单', /-webkit-touch-callout: none/.test(CSS) && /user-select: none/.test(CSS));
   ck('卖货面板不反复显示批量说明，保留初次操作提示', !/长按「卖出」可批量卖/.test(UI) && /function maybeBatchTip\(/.test(UI) && !/卖多少都不会再压价/.test(UI));
@@ -3083,7 +3085,7 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
     ck('有 gainItem：野外物资直接收入并允许超载，不凭空消失',
        /function gainItem\(id,n\)/.test(_GAME_SRC) && /const before=capUsed\(\),ok=addItem\(id,n,true,true\)/.test(_GAME_SRC));
     ck('旧待收仅在读档时迁入，日常扣物资不再重复执行迁移',
-       /function migratePendingLoot\(\)/.test(_GAME_SRC) && /function normalizeState\(\)[\s\S]{0,450}migratePendingLoot\(\);/.test(_GAME_SRC) && !/flushPending\(\)/.test(_GAME_SRC));
+       /function migratePendingLoot\(\)/.test(_GAME_SRC) && /function normalizeState\(\) \{for\(const stage of stages\)stage.run\(\);\}/.test(_GAME_SRC) && /id:'pending-loot',run:migratePendingLoot/.test(_GAME_SRC) && !/flushPending\(\)/.test(_GAME_SRC));
     // 实测
     G.newGame('fisher', 'normal');
     let s = G.S(); s.inv = {}; s.tut = null;
@@ -3335,17 +3337,16 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
   }
   // ===== 弹窗暂停：开着"纯管理"弹窗时时间不流逝 =====
   {
-    const m = UI.match(/const TIME_FREEZE_PANELS = \[([\s\S]*?)\];/);
-    const list = m ? m[1].match(/'([a-zA-Z0-9]+)'/g).map(x => x.replace(/'/g, '')) : [];
+    const list=Object.keys(PANEL_META).filter(key=>PANEL_META[key].freeze);
     ck('管理类面板在冻结名单里（背包/装备/技能/图鉴/日志/邮箱/设置…）',
        ['inv','equip','skill','collection','diary','mailbox','settings','codex'].every(x => list.includes(x)), list.join(','));
     ck('★ 会主动花时间的面板不在名单里（营地/制造/交易/耕地…，否则功能被关掉）',
        ['camp','craft','laochao','town','black','farm','sleeppick','grind','repair','naming'].every(x => !list.includes(x)));
     ck('open 时设置冻结、closeModal 时恢复',
-       /Game\.setTimeFreeze\(TIME_FREEZE_PANELS\.indexOf\(kind\) >= 0\)/.test(UI) &&
+       /Game\.setTimeFreeze\(!!panels.get\(kind\).freeze\)/.test(UI) &&
        /function closeModal\(\)[\s\S]*?Game\.setTimeFreeze\(false\)[\s\S]*?function rerenderEquip/.test(UI));
     ck('addMin 在冻结时直接返回（连 tick 都不加）',
-       /function addMin\(m\) \{[\s\S]{0,160}if \(_timeFrozen\) return false;/.test(_GAME_SRC));
+       /function addMin\(m\) \{[\s\S]{0,160}if \(timeFrozen\(\)\) return false;/.test(_GAME_SRC));
     ck('顶栏时间会标出 ⏸', /Game\.timeFrozen && Game\.timeFrozen\(\) \? '⏸ ' : ''/.test(UI));
     // 实测
     G.newGame('fisher', 'normal');
@@ -3796,7 +3797,7 @@ section('11. 玩家反馈（蛛巢白扣体力 / 救了四个小满 / 双持不�
      /已点亮 ' \+ lights\.filter\(v => v\)\.length \+ '\/9'/.test(UI) && /全亮了！/.test(UI));
   // ⑬ 防点击穿透：打开弹窗那一下不能顺手把弹窗里的第一个按钮也点了（玩家反馈"单击直接睡俩小时"）
   ck('★ 弹窗刚打开的 200ms 内忽略落在弹窗里的点击（防"点一下触发两个按钮"）',
-     /let modalOpenedAt = 0;/.test(UI) && /modalOpenedAt = Date\.now\(\);/.test(UI) &&
+     /let modalOpenedAt = 0;/.test(UI) && /if\(!samePanel\)modalOpenedAt=openedNow;/.test(UI) && /const openedNow = Date\.now\(\);/.test(UI) &&
      /Date\.now\(\) - modalOpenedAt < 350 && mm\.contains\(e\.target\)/.test(UI) &&
      /document\.addEventListener\('click', \(e\) => \{/.test(UI) && /\}, true\);/.test(UI));
   // ⑭ 新身份「养蜂人」+ 专属家具「蜂箱」
@@ -4190,7 +4191,7 @@ section('9. 技能树（B1：框架 + 主干三选一 + 遗忘 + 采集/制造�
      /data-nodelearn="\$\{kind\}:\$\{n\.id\}"/.test(UI) && /Game\.skillNodeLearn\(k, id\)/.test(UI) &&
      /data-nodeforget="\$\{kind\}:\$\{n\.id\}"/.test(UI) && /Game\.skillNodeForget\(k, id\)/.test(UI));
   ck('技能树弹窗在"点外面关闭 / 时间冻结"名单里',
-     /'skilltree'/.test(UI) && /'skill', 'skilltree'/.test(UI));
+     PANEL_META.skilltree.freeze && PANEL_META.skilltree.dismiss);
   ck('老版的"点一下+1级"接口已删除（避免主干和成长选项脱节）',
      !/function skillUp\(kind\)/.test(_GAME_SRC) && !/Game\.skillUp\(/.test(UI) && !/data-skillup/.test(UI));
 }
@@ -4632,7 +4633,7 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
     ck('备份 · 读档面板里有救援入口（扫描 + 恢复按钮）',
        /data-rescue="scan"/.test(UI) && /function rescueModal\(\)/.test(UI) && /data-rescue-go="\$\{it\.src\}"/.test(UI) &&
        /Game\.restoreLocalSave\(src\)/.test(UI));
-    ck('救援面板在"点外面关闭 + 时间冻结"名单里', /'backup', 'rescue'/.test(UI) && /'backup','rescue'/.test(UI));
+    ck('救援面板在"点外面关闭 + 时间冻结"名单里', PANEL_META.backup.freeze && PANEL_META.rescue.freeze && PANEL_META.rescue.dismiss);
   }
   // ⑦ 这几条是本轮玩家反馈的其它四条
   {
@@ -4806,7 +4807,7 @@ section('9e. 独立版本地存档与旧平台接口兼容');
  G.newGame('fisher','normal');ck('本地保存仍可写入',G.save().ok);
  ck('不再调用平台云管理器',!_GAME_SRC.includes('getCloudSaveManager')&&!_GAME_SRC.includes('createArchive('));
  ck('设置显示本地存档与导出提醒',UI.includes('<b>本地存档</b>')&&UI.includes('请导出存档码备份'));
- ck('广告观看及云检测按钮已移除',!UI.includes('watch-reward-ad')&&!UI.includes('data-cloudretry')&&!UI.includes('end-adrevive'));
+ ck('商城广告观看入口恢复，云检测和未恢复的复活入口不混入',UI.includes('watch-reward-ad')&&UI.includes('TapAds.enabled()')&&!UI.includes('data-cloudretry')&&!UI.includes('end-adrevive'));
  ck('商城双向兑换均有入口',UI.includes('data-soulexchange')&&UI.includes('data-adexchange')&&typeof G.exchangeSoulForStars==='function');
 }
 
@@ -5909,8 +5910,8 @@ section('23. 攻略按钮与全流程攻略');
   ck('★ 23.5 攻略与邮箱在菜单，顶栏无按钮', /data-savemenu="guide"/.test(U) && /data-savemenu="mail"/.test(U) && !/<button id="btn-guide"|<button id="btn-mail"/.test(U));
   ck('★ 23.6 攻略按钮有独立的点击绑定', /const bg2 = \$\('#btn-guide'\); if \(bg2\) bg2\.onclick = \(\) => showModal\('guide'\);/.test(U));
   ck('★ 23.7 攻略面板有渲染分支', /else if \(kind === 'guide'\) html = guideModal\(\);/.test(U));
-  ck('★ 23.8 开着攻略时时间冻结（看攻略不该掉饱食度）', /const TIME_FREEZE_PANELS = \[[\s\S]*?'guide'[\s\S]*?\];/.test(U));
-  ck('★ 23.9 攻略面板在"点空白不误关"的名单里', /'mailbox','guide','share','crafthelp'/.test(U));
+  ck('★ 23.8 开着攻略时时间冻结（看攻略不该掉饱食度）', PANEL_META.guide.freeze);
+  ck('★ 23.9 攻略面板在"点空白不误关"的名单里', PANEL_META.guide.dismiss);
   ck('★ 23.10 攻略分页，菜单和邮箱复用正文', /data-guide-page/.test(U)&&/data-guide-step/.test(U)&&/inner = guideContent\(\);/.test(U));
   // 作者 2026-09-25："这个全流程攻略格式不对啊，手机版看"
   //   根因：`.help-item b { display:block }` 是给小标题用的，却把**正文里每一处加重**也拆成了独立一行，
@@ -6063,7 +6064,7 @@ section('25. 鱼人已换过误报 / 装备图标 / UI 紧凑化 / 通关分享�
      !/recipe-mats mats-line">产出：/.test(U));
   // ---- ④ 食之包压成紧凑行（复用 recipe-row） ----
   ck('★ 25.8 食之包改成一行紧凑行，复用 recipe-row',
-     U.includes("kind === 'satchelSettings'") && U.includes('data-satchel-settings') && /\.satchel-row \{/.test(fs.readFileSync(ROOT + '/css/style.css', 'utf8')));
+     U.includes("panels.register('satchelSettings'") && /satchel-menu/.test(SATCHEL_VIEW) && U.includes('data-satchel-settings') && /\.satchel-row \{/.test(fs.readFileSync(ROOT + '/css/style.css', 'utf8')));
   // ---- ⑤ 手机端弹窗宽度再收窄（-32 → -48） ----
   {
     const PC = fs.readFileSync(ROOT + '/css/panels.css', 'utf8');
@@ -6082,7 +6083,7 @@ section('25. 鱼人已换过误报 / 装备图标 / UI 紧凑化 / 通关分享�
      /img\.onload = \(\) => \{\s*try \{ paint\(img\); finish\(\); \}\s*catch \(e\) \{ plain\(\); \}/.test(U) &&
      /const plain = \(\) => \{ try \{ paint\(null\); \} catch \(e\) \{\} finish\(\); \};/.test(U));
   ck('★ 25.15 分享弹窗已接入渲染 / 冻结时间 / 点空白不误关',
-     /else if \(kind === 'share'\) html = shareModal\(\);/.test(U) && /'guide', 'share', 'settings'/.test(U) && /'guide','share','crafthelp'/.test(U));
+     /else if \(kind === 'share'\) html = shareModal\(\);/.test(U) && PANEL_META.share.freeze && PANEL_META.share.dismiss);
 }
 
 // ============================================================
@@ -6183,7 +6184,7 @@ section('26. 冬季：采雪 / 烧雪水 / 冬季来临弹窗');
   ck('★ 26.14 冬季弹窗接进了渲染分支 / 白名单 / 点空白可关',
      /else if \(kind === 'winter'\) html = winterModal\(\);/.test(UI) &&
      /'daily','winter'\]\.includes\(k\)/.test(UI) &&
-     /'devpw','rune','winter'\]/.test(UI));
+     PANEL_META.winter.dismiss);
   ck('★ 26.15 已经有弹窗时「冬季来临」先排队，等上一个关掉再弹（作者要求"不要和其他弹窗冲突"）',
      /if \(k === 'winter' && modal\) \{ pendingPanels\.push\(cfg\); return; \}/.test(UI) &&
      /function showNextPendingPanel\(\)/.test(UI) &&

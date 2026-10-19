@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
-const source = ['data.js', 'game.js'].map(name => fs.readFileSync(path.join(root, '孤屿遗章-游戏 - 发布/js', name), 'utf8')).join('\n');
+const source = require('../../回归测试/helpers/runtime.js').logicFiles.map(name => fs.readFileSync(path.join(root, '孤屿遗章-游戏 - 发布/js', name), 'utf8')).join('\n');
 const store = {};
 const math = Object.create(Math);
 let random = 0.5;

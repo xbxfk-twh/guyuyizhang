@@ -1,0 +1,72 @@
+/* 面板生命周期元数据只有这一份；功能自行注册渲染和绑定。 */
+const GamePanels = (() => {
+  const defaults = Object.freeze({
+    transferHelp: {freeze:true, dismiss:false},
+    bookFocus: {freeze:true, dismiss:false},
+    cellar: {freeze:true, dismiss:false, work:true},
+    cellarDeposit: {freeze:true, dismiss:false},
+    batchn: {freeze:true, dismiss:false},
+    batch: {freeze:true, dismiss:false},
+    satchelSettings: {freeze:true, dismiss:true},
+    satchelfood: {freeze:true, dismiss:true},
+    autoHelp: {freeze:true, dismiss:false},
+    warehouseAuto: {freeze:true, dismiss:false},
+    lootExpiry: {freeze:true, dismiss:false},
+    equipPick: {freeze:true, dismiss:false},
+    buffInfo: {freeze:true, dismiss:false},
+    warehouse: {freeze:true, dismiss:false, work:true},
+    loot: {freeze:true, dismiss:false},
+    nightmareInfusion: {freeze:true, dismiss:false},
+    separator: {freeze:true, dismiss:false},
+    inv: {freeze:true, dismiss:true, work:true},
+    equip: {freeze:true, dismiss:true, work:true},
+    skill: {freeze:true, dismiss:true},
+    skilltree: {freeze:true, dismiss:true},
+    collection: {freeze:true, dismiss:true},
+    itemInfo: {freeze:true, dismiss:true},
+    lottery: {freeze:true, dismiss:true},
+    lotteryPick: {freeze:true, dismiss:true},
+    lotteryPool: {freeze:true, dismiss:true},
+    lotteryResult: {freeze:true, dismiss:true},
+    diary: {freeze:true, dismiss:true},
+    mailbox: {freeze:true, dismiss:true},
+    adshop: {freeze:true, dismiss:true},
+    guide: {freeze:true, dismiss:true},
+    share: {freeze:true, dismiss:true},
+    settings: {freeze:true, dismiss:true},
+    savemenu: {freeze:true, dismiss:true},
+    backup: {freeze:true, dismiss:true},
+    rescue: {freeze:true, dismiss:true},
+    heirloom: {freeze:true, dismiss:true},
+    codex: {freeze:true, dismiss:true},
+    crafthelp: {freeze:true, dismiss:true},
+    comhelp: {freeze:true, dismiss:true},
+    devpw: {freeze:true, dismiss:true},
+    craft: {freeze:false, dismiss:true, work:true},
+    camp: {freeze:false, dismiss:true},
+    room: {freeze:false, dismiss:true},
+    laochao: {freeze:false, dismiss:true},
+    town: {freeze:false, dismiss:true},
+    black: {freeze:false, dismiss:true},
+    atlTrade: {freeze:false, dismiss:true},
+    repair: {freeze:false, dismiss:true},
+    livestock: {freeze:false, dismiss:true},
+    mission: {freeze:false, dismiss:true},
+    info: {freeze:false, dismiss:true},
+    farm: {freeze:false, dismiss:true},
+    fishman: {freeze:false, dismiss:true},
+    sleeppick: {freeze:false, dismiss:true},
+    naming: {freeze:false, dismiss:true},
+    rune: {freeze:false, dismiss:true},
+    winter: {freeze:false, dismiss:true}
+  });
+  function create() {
+    const entries=new Map(Object.entries(defaults).map(([key,value])=>[key,{...value}]));
+    return Object.freeze({
+      register(kind,feature){entries.set(kind,{...(entries.get(kind)||{}),...feature});},
+      get(kind){return entries.get(kind)||{};},
+      snapshot(){return Object.fromEntries([...entries].map(([k,v])=>[k,{freeze:!!v.freeze,dismiss:!!v.dismiss,work:!!v.work}]));}
+    });
+  }
+  return Object.freeze({create});
+})();

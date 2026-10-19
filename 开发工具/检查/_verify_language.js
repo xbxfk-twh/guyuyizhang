@@ -14,7 +14,7 @@ let passed=0,fail=0,ws,ch;const errors=[];
  const waitRoomLayout=async()=>{let last='',stable=0;for(let i=0;i<40;i++){const state=await ev(`(()=>{const imgs=[...document.querySelectorAll('.room-stage img')],sprites=[...document.querySelectorAll('.room-sprite')];if(!imgs.length||sprites.length<=10||imgs.some(e=>!e.complete||!e.naturalWidth))return '';return JSON.stringify(sprites.map(e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height];}));})()`);stable=state&&state===last?stable+1:0;last=state;if(stable>=2)return;await sleep(100);}throw Error('房间图片或布局未稳定');};
  const check=async(name,expr)=>{const ok=await ev(expr);if(!ok){await shot('mobile-ui-failure.png');console.error(await ev(`JSON.stringify([...document.querySelectorAll('[data-separate], .room-sprite')].map(e=>({name:e.getAttribute('aria-label')||e.title,rect:e.getBoundingClientRect().toJSON(),hit:document.elementFromPoint(e.getBoundingClientRect().x+e.offsetWidth/2,e.getBoundingClientRect().y+e.offsetHeight/2)?.outerHTML.slice(0,180)})))`));}assert.ok(ok,name);passed++;console.log('OK '+name);};
  const shot=async(name)=>{const r=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(out,name),Buffer.from(r.data,'base64'));};
- await send('Runtime.enable');await send('Page.enable');await send('Page.addScriptToEvaluateOnNewDocument',{source:"localStorage.removeItem('guyuyizhang_language');"});
+ await send('Runtime.enable');await send('Page.enable');await send('Page.addScriptToEvaluateOnNewDocument',{source:"window.GUYU_CHANNEL='web';localStorage.removeItem('guyuyizhang_language');"});
 
 
  for(const [w,h]of [[667,375],[1366,768]]){
@@ -33,5 +33,10 @@ let passed=0,fail=0,ws,ch;const errors=[];
   await tap('#modal .modal-x');await tap('[data-nav="save"]');await ev(`document.querySelector('[data-savemenu="settings"]').click();`);
   await check('设置提供语言控件 '+w,`!!document.querySelector('#modal [data-language]')`);await ev(`document.querySelector('#modal [data-language]').scrollIntoView({block:'center'});`);await shot('language-settings-en-'+w+'.png');await ev(`document.querySelector('#modal [data-language]').value='zh';document.querySelector('#modal [data-language]').dispatchEvent(new Event('change',{bubbles:true}));`);await check('设置选中文实际生效 '+w,`Locale.current()==='zh'&&document.querySelector('#modal').textContent.includes('声音')`);
  }
+ await send('Page.addScriptToEvaluateOnNewDocument',{source:"window.GUYU_CHANNEL='taptap';const pref=sessionStorage.getItem('tap-test-language');if(pref)localStorage.setItem('guyuyizhang_language',pref);else localStorage.removeItem('guyuyizhang_language');"});
+ await send('Page.navigate',{url:require('url').pathToFileURL(path.join(root,'孤屿遗章-游戏 - 发布/index.html')).href});await sleep(2800);
+ await check('Tap首次进入默认中文',`Locale.current()==='zh'&&document.documentElement.lang==='zh-CN'&&document.querySelector('#btn-new').textContent==='新的旅程'`);await shot('tap-default-zh.png');
+ await ev(`sessionStorage.setItem('tap-test-language','en')`);await send('Page.reload');await sleep(2800);await check('Tap保留玩家主动选择的英文',`Locale.current()==='en'`);
+ await send('Page.addScriptToEvaluateOnNewDocument',{source:"window.GUYU_CHANNEL='standalone';localStorage.removeItem('guyuyizhang_language');"});await send('Page.reload');await sleep(2800);await check('独立渠道仍保持默认英文',`Locale.current()==='en'`);
  assert.deepEqual(errors,[]);passed++;console.log('OK 无脚本异常');
 }catch(e){fail++;console.error(e.stack);console.error(JSON.stringify(errors));if(ws){try{ws.send(JSON.stringify({id:9999,method:'Page.captureScreenshot',params:{format:'png'}}));}catch{}}}finally{ws?.close();ch?.kill();console.log('通过 '+passed+' 项，失败 '+fail+' 项\nRESULT:'+(fail?'FAIL':'PASS'));process.exitCode=fail?1:0;}})();

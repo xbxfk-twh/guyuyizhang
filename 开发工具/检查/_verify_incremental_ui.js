@@ -1,0 +1,41 @@
+const {openBrowser}=require('../../回归测试/helpers/browser');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const baseline=process.argv.includes('--baseline');
+const width=Number(process.env.GUYU_TEST_WIDTH)||667,height=Number(process.env.GUYU_TEST_HEIGHT)||375;
+const language=process.env.GUYU_TEST_LANGUAGE||'zh';
+(async()=>{let b,passed=0;try{
+ b=await openBrowser({width,height,init:`localStorage.setItem('guyuyizhang_language',${JSON.stringify(language)})`});const {ev,tap,sleep}=b;
+ await ev(`Game.newGame('fisher','normal');Game.S().tut=null;Game.S().capacity=999;Game.S().buildings.house=0;Game.S().buildings.fire=0;Game.S().buildings.storage=3;for(const id of Object.keys(ITEMS).filter(k=>ITEMS[k].cat==='mat').slice(0,45))Game.addItem(id,10,true);Game.addItem('wood',100,true);Game.metaState().batchTipSeen=1;const old=Game.S().inv.wood;delete Game.S().inv.wood;Game.S().inv.wood=old;UI.begin();`);await sleep(2700);
+ await ev(`document.querySelector('#modal .modal-x')?.click();window.refs={hot:document.querySelector('#hotspots .hotspot'),art:document.querySelector('#camp-buildings img'),scene:document.querySelector('#scene-img')};Game.S().stats.hunger--;UI.render();`);
+ const scene=await ev(`({hot:refs.hot===document.querySelector('#hotspots .hotspot'),art:refs.art===document.querySelector('#camp-buildings img'),scene:refs.scene===document.querySelector('#scene-img')})`);
+ await ev(`(document.querySelector('[data-hotspot="warehouse"]')||[...document.querySelectorAll('#hotspots .hotspot')].find(e=>/仓库|储物/.test(e.textContent))).click();window.wrefs={panel:document.querySelector('#modal .modal-content'),scroll:document.querySelector('.inventory-pane .work-scroll'),wood:document.querySelector('[data-item="wood"]'),stone:document.querySelector('[data-item="stone"]')};wrefs.scroll.scrollTop=100;window.oldWood=Game.invCount('wood');`);
+ await tap('[data-item="wood"]');
+ const warehouse=await ev(`({panel:wrefs.panel===document.querySelector('#modal .modal-content'),scroll:wrefs.scroll===document.querySelector('.inventory-pane .work-scroll'),wood:wrefs.wood===document.querySelector('[data-item="wood"]'),stone:wrefs.stone===document.querySelector('[data-item="stone"]'),moved:oldWood-Game.invCount('wood'),scrollTop:document.querySelector('.inventory-pane .work-scroll').scrollTop,scrollMax:wrefs.scroll.scrollHeight-wrefs.scroll.clientHeight})`);
+ const report={scene,warehouse,errors:b.errors};fs.writeFileSync(path.join(b.out,baseline?'refactor-render-before.json':'refactor-render-after-'+width+'.json'),JSON.stringify(report,null,2));
+ if(baseline){console.log(JSON.stringify(report));console.log('RESULT:PASS');return;}
+ const check=(name,value)=>{assert.ok(value,name);passed++;console.log('OK '+name);};
+ check('状态数字变化保留热点、建筑图片和场景底图节点',Object.values(scene).every(Boolean));
+ check('存入一份仅更新数量，弹窗、滚动容器和两种卡面均不替换',warehouse.panel&&warehouse.scroll&&warehouse.wood&&warehouse.stone&&warehouse.moved===1&&(warehouse.scrollMax===0||warehouse.scrollTop>0));
+ await ev(`window.once=Game.invCount('wood');for(let i=0;i<100;i++)UI.render();document.querySelector('[data-item="wood"]').click();`);
+ check('100次场景刷新后操作仍只结算一次',await ev(`once-Game.invCount('wood')===1`));
+ const stats=await ev(`(()=>{const panel=document.querySelector('#modal .modal-content'),scroll=document.querySelector('.inventory-pane .work-scroll'),stone=document.querySelector('[data-item="stone"]'),qty=Game.invCount('wood'),top=scroll.scrollTop,t=performance.now();for(let i=0;i<50;i++)document.querySelector('[data-item="wood"]').click();return {same:panel===document.querySelector('#modal .modal-content')&&scroll===document.querySelector('.inventory-pane .work-scroll')&&stone===document.querySelector('[data-item="stone"]'),count:qty-Game.invCount('wood'),scroll:Math.abs(scroll.scrollTop-top)<1,ms:performance.now()-t};})()`);
+ check('连续50次存入不重建、不跳滚动且数量守恒',stats.same&&stats.count===50&&stats.scroll);console.log('连续50次存取耗时（本机样本） '+Math.round(stats.ms)+'ms');
+ await tap('[data-item="wood"]',{long:true});
+ check('真实手机长按只弹批量窗不偷偷存一份',await ev(`!!document.querySelector('#batchn-n')&&Game.invCount('wood')===once-51`));
+ await tap('#modal-transfer-back');
+ check('批量返回直接回到同一仓库窗',await ev(`document.querySelectorAll('.inventory-pane').length===2`));
+ await b.shot('incremental-warehouse-'+width+'.png');
+ const controls=await ev(`(()=>{const root=document.createElement('div');root.style.cssText='position:fixed;left:-9999px';document.body.appendChild(root);const d=StableDOM.create({locale:Locale,onAdopt:PressInput.adopt,onDispose:PressInput.dispose});const first='<input id="probe-input" value="1"><details><summary>说明</summary><span>内容</span></details><button data-view-key="a">1</button><button data-view-key="b">2</button><svg><path d="M0 0L1 1"></path></svg>';d.html(root,first);const input=root.querySelector('input'),details=root.querySelector('details'),a=root.querySelector('[data-view-key="a"]'),b=root.querySelector('[data-view-key="b"]'),svg=root.querySelector('svg');input.value='23';input.focus();input.setSelectionRange(1,1);details.open=true;d.html(root,first.replace('>1</button>','>3</button>'));const result={input:input===root.querySelector('input')&&input.value==='23'&&document.activeElement===input&&input.selectionStart===1,details:details.open,svg:svg===root.querySelector('svg')&&svg.namespaceURI==='http://www.w3.org/2000/svg'};d.html(root,'<button data-view-key="b">2</button><button data-view-key="a">4</button>');result.reorder=root.firstChild===b&&root.lastChild===a;d.dispose(root);root.remove();return result;})()`);
+ check('增量提交保留输入值、焦点、光标与展开状态',controls.input&&controls.details);
+ check('按身份重排不替换按钮，SVG命名空间保留',controls.reorder&&controls.svg);
+ const guarded=await ev(`(()=>{const root=document.createElement('div');document.body.appendChild(root);const d=StableDOM.create({locale:Locale});const first='<textarea id="probe-area">原文</textarea><select><option value="a" selected>A</option><option value="b">B</option></select><div data-no-translate title="木材">木材</div><div class="tt">木材</div><img src="assets/img/items/wood.png">';d.html(root,first);const area=root.querySelector('textarea'),select=root.querySelector('select'),img=root.querySelector('img');area.value='手写';select.value='b';img.setAttribute('src','assets/img/items/stone.png');Locale.set('en');d.html(root,first);const result={typed:area.value==='手写'&&select.value==='b',raw:root.querySelector('[data-no-translate]').textContent==='木材'&&root.querySelector('[data-no-translate]').title==='木材'&&root.querySelector('.tt').textContent==='木材',fallback:img.getAttribute('src')==='assets/img/items/stone.png'};select.value='a';d.html(root,first.replace('原文','变更').replace('value="a" selected','value="a"').replace('value="b"','value="b" selected').replace('items/wood.png','items/branch.png'));result.controlled=area.value==='变更'&&select.value==='b'&&img.getAttribute('src')==='assets/img/items/branch.png';Locale.set('zh');d.dispose(root);root.remove();return result;})()`);
+ check('翻译不改存档码和原文区，相同默认值保留用户输入',guarded.typed&&guarded.raw);
+ check('备用图片不重复请求原图，显式更换内容仍更新控件和图片',guarded.fallback&&guarded.controlled);
+ await ev(`document.querySelector('#modal .modal-x').click();Game.S().scene='forest';UI.render();window.pan=document.querySelector('#stage-inner');window.panStyle=pan.style.transform;const root=document.querySelector('#scene-wrap');window.weather=document.querySelector('#weather-overlay');Game.S().weather='rain';UI.render();window.rainAnimations=weather.getAnimations().map(a=>a);UI.render();`);
+ check('同场景刷新保留镜头和天气动画，真正换场景仍挂载新底图',await ev(`pan===document.querySelector('#stage-inner')&&panStyle===pan.style.transform&&weather===document.querySelector('#weather-overlay')&&refs.scene!==document.querySelector('#scene-img')&&rainAnimations.every(a=>weather.getAnimations().includes(a))`));
+ await sleep(1400);check('场景截图前没有残留弹窗且森林图片已载入',await ev(`!document.querySelector('#modal').classList.contains('open')&&document.querySelector('#scene-img').complete&&document.querySelector('#scene-img').naturalWidth>0`));
+ await b.shot('incremental-scene-'+width+'.png');
+
+ check('无运行异常',b.errors.length===0);
+ console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);
+ }finally{await b?.close();}})().catch(e=>{console.error(e);console.log('RESULT:FAIL');process.exitCode=1;});

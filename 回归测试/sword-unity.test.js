@@ -1,7 +1,7 @@
 const fs = require('node:fs'),
   path = require('node:path'),
   assert = require('node:assert/strict');
-const source = ['data.js', 'game.js']
+const source = require('./helpers/runtime.js').logicFiles
   .map((file) =>
     fs.readFileSync(
       path.join(__dirname, '../孤屿遗章-游戏 - 发布/js', file),

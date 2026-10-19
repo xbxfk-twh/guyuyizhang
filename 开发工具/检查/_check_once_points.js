@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const ROOT = path.join(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const t = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
-const G = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
+const G = require('../../回归测试/helpers/runtime.js').engineSource(path.join(ROOT, 'js', 'game.js'));
 
 // 点位定义里带 need:{}/yields:[] 这类嵌套，简单正则抓不到；改成"按 id 切段"再看这一段有没有 once:true
 const starts = [];
