@@ -62,7 +62,7 @@ function settingsModal() {
           <div class="set-inline">${deps.SKINS.filter(s => s.id !== 'ink' && (s.id!=='armory' || Game.skinOwned('armory'))).map(s => Game.skinOwned(s.id)
             ? btn('skin:' + s.id, s.id === 'seasons' ? s.name + ' · 免费' : s.name, skinOn(s.id))
             : `<button class="mini-btn" data-askin="${s.id}">🔒 ${s.name} · ${Game.skinCost()} 魂点</button>`).join('')}${btn('skinoff:1', '墨白原味（全部关闭）', deps.skinSet.size === 0)}</div></div>
-        <div class="help-item"><b>本地存档</b><span>进度保存在当前设备。覆盖更新可保留；卸载或清除数据会丢失，请导出存档码备份。</span><div class="set-inline"><button class="mini-btn" data-codex="export">导出存档码</button><button class="mini-btn" data-codex="import">导入存档码</button></div><span class="help-sub">版本 ${(typeof window !== 'undefined' && window.BUILD_VER) || '（未知版本）'}</span></div>
+        <div class="help-item"><b>本地存档</b><span>进度保存在当前设备。卸载或清除数据会丢失，请保存备份文件。换设备可生成10分钟有效的取档码。</span><div class="set-inline"><button class="mini-btn" data-codex="export">取档码 / 文件备份</button><button class="mini-btn" data-codex="import">导入存档</button></div><span class="help-sub">版本 ${(typeof window !== 'undefined' && window.BUILD_VER) || '（未知版本）'}</span></div>
       </div>
       <div class="modal-actions"><button id="modal-close">关 闭</button></div>`;
   }

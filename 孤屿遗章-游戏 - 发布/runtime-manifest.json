@@ -33,6 +33,7 @@
     "js/features/objectives.js",
     "js/features/nightmare.js",
     "js/network/redeem.js",
+    "js/storage/transfer.js",
     "js/features/account.js",
     "js/features/mailbox.js",
     "js/features/lottery.js",

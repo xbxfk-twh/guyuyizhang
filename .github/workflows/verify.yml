@@ -47,6 +47,8 @@ jobs:
         run: node 回归测试/run.js --browser --only=_verify_android_host
       - name: Save recovery and platform fallback
         run: node 回归测试/run.js --browser --only=_verify_oct29_saves
+      - name: Temporary save transfer and startup recovery
+        run: node 回归测试/run.js --browser --only=_verify_oct30_transfer
       - name: Language defaults and switching
         run: node 回归测试/run.js --browser --only=_verify_language
       - name: Advertising adapter and shop
@@ -60,5 +62,6 @@ jobs:
             回归测试/_out/*.log
             回归测试/_out/incremental-*.png
             回归测试/_out/oct29-*.png
+            回归测试/_out/oct30-*.png
           if-no-files-found: warn
           retention-days: 14

@@ -32,7 +32,8 @@ let passed=0,fail=0,ws,ch;const errors=[];
  await ev(`Locale.set('en');`);await sleep(200);await check('新增工具设置英文完整 '+w,`!/[\u4e00-\u9fff]/.test(document.querySelector('[data-set="autoTools"]').closest('.help-item').textContent)`);
  await ev(`Locale.set('zh');`);await tap('[data-codex="export"]');
  await check('导出预览完整性校验 '+w,`document.querySelector('#modal').textContent.includes('完整性校验通过')`);
- const code=await ev(`document.querySelector('#codex-text').value`);await tap('#codex-download');
+ await check('临时取档界面不再展示长码 '+w,`document.querySelector('#codex-text').value===''&&!!document.querySelector('#codex-generate')`);
+ const code=await ev(`Game.exportCode()`);await tap('#codex-download');
  let saved;for(let i=0;i<30&&!saved;i++){await sleep(100);saved=fs.readdirSync(downloads).filter(x=>x.endsWith('.txt')).find(x=>fs.readFileSync(path.join(downloads,x),'utf8')===code);}
  assert.ok(saved,'下载文件内容与完整导出码一致');passed++;console.log('OK 实际下载完整备份 '+w);
  await shot('progression-export-'+w+'.png');

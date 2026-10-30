@@ -39,3 +39,15 @@ python3 server.py --db /var/lib/guyu-save/saves.sqlite3 --config /etc/guyu-save.
 发布APK前须完成源文件逐字节比对、原签名检查与专用模拟器覆盖安装测试。下载文件由nginx直接发送，支持HTTP Range，不经过Python存档进程。当前源码构建号以游戏index.html为准。
 
 官方接口依据：[tap.login](https://developer.taptap.cn/minigameapidoc/dev/api/open-api/login/tap.login/)、[code2Session](https://developer.taptap.cn/minigameapidoc/dev/server/login/code2Session/)。
+
+## 临时取档（手动迁移）
+
+与账号自动备份独立，不要求 Tap 登录，也不修改账号快照。客户端主动上传经过完整性校验的导出内容，生成 `SAVE-` 开头、16个随机字符分组显示的取档码；另一设备取回后仍需预览、确认才导入。码是临时领取凭据，不应公开给其他玩家。
+
+- POST `/backup/v1/transfer/create`：`{body:完整导出码}`，返回 `code` 和 Unix 秒时间戳 `expiresAt`。
+- POST `/backup/v1/transfer/read`：`{code:临时码}`，返回完整正文与到期时间；取档只读，预览取消、网络重试不会消耗或删除记录。
+- 600秒到期即不可读取；服务每10秒清除过期项。只在内存保留压缩正文和码的哈希，不写SQLite、磁盘日志或每日备份；服务重启时临时码失效，可从原设备重新生成。
+- 最多500项、压缩正文总额16MiB，每次请求不超过2MiB；创建和取档分别限流，满额或失败不修改原客户端进度。原有96MiB进程上限不变。
+- 永久离线备份文件、旧长码导入继续保留。临时码不替代账号云备份，也不作为防作弊或服务器权威经济系统。
+
+隔离检查：`node 回归测试/temporary-save.test.js`，`node 回归测试/run.js --browser --only=_verify_oct30_transfer`。原生APK的实际HTTPS检查只在专用模拟器中显式设置 `GUYU_LIVE_TRANSFER_CHECK=1` 时运行，默认 CI 不连接生产取档接口。

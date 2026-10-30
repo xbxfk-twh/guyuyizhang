@@ -4,11 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="screen-orientation" content="landscape">
-  <script>window.BUILD_VER = 'v1.13-20261029-235026';</script>
+  <style>
+    html.boot-pending body { background:#0b0b09; color:#eae6da; }
+    html.boot-pending #app { display:flex; align-items:center; justify-content:center; box-sizing:border-box; padding:12px; min-height:100vh; }
+    #boot-panel { box-sizing:border-box; width:100%; max-width:680px; max-height:calc(100vh - 24px); overflow:auto; padding:18px; background:#eae6da; color:#171811; border:1px solid #aaa593; font:15px/1.6 sans-serif; }
+    #boot-panel h1 { margin:0 0 8px; font-size:24px; }
+    #boot-status { margin:8px 0 16px; overflow-wrap:anywhere; }
+    #boot-actions:not([hidden]) { display:flex; flex-wrap:wrap; gap:8px; }
+    #boot-actions button { min-height:44px; padding:8px 12px; background:transparent; color:#171811; border:1px solid #171811; font:inherit; cursor:pointer; }
+    #boot-actions .boot-primary { background:#171811; color:#eae6da; }
+    #boot-diagnostic { margin-top:12px; box-sizing:border-box; background:#fffdf5; color:#171811; }
+  </style>
+  <script>window.BUILD_VER = 'v1.13-20261030-163025';</script>
   <script>
     // 在游戏脚本之前运行；即使脚本加载/解析失败，也留下可见的诊断入口。
     (function () {
-      var ready = false, failure = '';
+      var ready = false, recoveryShown = false, failure = '';
       function show(message) {
         failure = message || failure;
         var box = document.getElementById('boot-status');
@@ -18,6 +29,7 @@
       }
       window.__guyuBoot = {
         fail: show,
+        recovery: function (message) { recoveryShown = true; var box = document.getElementById('boot-status'); if (box) box.textContent = message; },
         ready: function () { ready = true; document.documentElement.classList.remove('boot-pending'); },
         diagnostic: function () {
           var output = document.getElementById('boot-diagnostic');
@@ -46,20 +58,20 @@
         if (target && target.tagName === 'SCRIPT') show('游戏脚本加载失败：' + (target.getAttribute('src') || '内联脚本'));
         else if (event.message) show(event.message + '（行 ' + (event.lineno || '?') + '）');
       }, true);
-      window.addEventListener('DOMContentLoaded', function () { if (failure && !ready) show(failure); });
-      setTimeout(function () { if (!ready) show(failure || '游戏启动超时，可能是资源加载或运行环境异常'); }, 15000);
+      window.addEventListener('DOMContentLoaded', function () { if (failure && !ready && !recoveryShown) show(failure); });
+      setTimeout(function () { if (!ready && !recoveryShown) show(failure || '游戏启动超时，可能是资源加载或运行环境异常'); }, 15000);
     })();
   </script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <title>孤屿遗章 · 黑白沉浸式文字生存</title>
-  <link rel="stylesheet" href="css/style.css?v=v1.13-20261029-235026">
-  <link rel="stylesheet" href="css/panels.css?v=v1.13-20261029-235026">
-  <link rel="stylesheet" href="css/ui-polish.css?v=v1.13-20261029-235026">
+  <link rel="stylesheet" href="css/style.css?v=v1.13-20261030-163025">
+  <link rel="stylesheet" href="css/panels.css?v=v1.13-20261030-163025">
+  <link rel="stylesheet" href="css/ui-polish.css?v=v1.13-20261030-163025">
 </head>
 <body>
   <div id="app">
-    <div style="padding:24px;max-width:680px;margin:auto;font:16px/1.6 sans-serif">
+    <div id="boot-panel">
       <h1>孤屿遗章</h1><p id="boot-status" role="status">正在准备游戏……</p>
       <div id="boot-actions" hidden>
         <button onclick="location.reload()">重新尝试</button>
@@ -71,79 +83,80 @@
       <noscript>请启用 JavaScript 后重新打开游戏。</noscript>
     </div>
   </div>
-  <script src="js/storage/server.js?v=v1.13-20261029-235026"></script>
-  <script src="js/storage/platform.js?v=v1.13-20261029-235026"></script>
-  <script src="js/i18n.js?v=v1.13-20261029-235026"></script>
-  <script src="js/data.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/food-satchel.js?v=v1.13-20261029-235026"></script>
-  <script src="js/storage/transactions.js?v=v1.13-20261029-235026"></script>
-  <script src="js/storage/codec.js?v=v1.13-20261029-235026"></script>
-  <script src="js/storage/migrations.js?v=v1.13-20261029-235026"></script>
-  <script src="js/core/session.js?v=v1.13-20261029-235026"></script>
-  <script src="js/storage/repository.js?v=v1.13-20261029-235026"></script>
-  <script src="js/core/state-store.js?v=v1.13-20261029-235026"></script>
-  <script src="js/inventory/rules.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/survival.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/livestock.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/journey.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/gathering.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/events.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/combat-stats.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/weapon-care.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/skills.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/combat.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/production.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/trading.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/consumables.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/endings.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/objectives.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/nightmare.js?v=v1.13-20261029-235026"></script>
-  <script src="js/network/redeem.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/account.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/mailbox.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/lottery.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/achievements.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/relics.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/shop.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/save-slots.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/lifecycle.js?v=v1.13-20261029-235026"></script>
-  <script src="js/features/tutorial.js?v=v1.13-20261029-235026"></script>
-  <script src="js/game.js?v=v1.13-20261029-235026"></script>
-  <script src="js/audio.js?v=v1.13-20261029-235026"></script>
-  <script src="js/battle-effects.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ads.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/input/press.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/dom.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/panel-registry.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/food-satchel.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/art.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/notices.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/hud.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/render.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/action-animation.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/map.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/travel.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/scene.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/atlantis.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/rune-puzzle.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/rest.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/progression.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/skills.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/trading.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/batch-transfer.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/camp.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/livestock-farm.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/player-panels.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/combat.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/settings.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/reports.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/dialogs.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/tutorial.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/collection.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/lottery.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/endings-share.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/title.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui/views/startup.js?v=v1.13-20261029-235026"></script>
-  <script src="js/ui.js?v=v1.13-20261029-235026"></script>
+  <script src="js/storage/server.js?v=v1.13-20261030-163025"></script>
+  <script src="js/storage/platform.js?v=v1.13-20261030-163025"></script>
+  <script src="js/i18n.js?v=v1.13-20261030-163025"></script>
+  <script src="js/data.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/food-satchel.js?v=v1.13-20261030-163025"></script>
+  <script src="js/storage/transactions.js?v=v1.13-20261030-163025"></script>
+  <script src="js/storage/codec.js?v=v1.13-20261030-163025"></script>
+  <script src="js/storage/migrations.js?v=v1.13-20261030-163025"></script>
+  <script src="js/core/session.js?v=v1.13-20261030-163025"></script>
+  <script src="js/storage/repository.js?v=v1.13-20261030-163025"></script>
+  <script src="js/core/state-store.js?v=v1.13-20261030-163025"></script>
+  <script src="js/inventory/rules.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/survival.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/livestock.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/journey.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/gathering.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/events.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/combat-stats.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/weapon-care.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/skills.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/combat.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/production.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/trading.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/consumables.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/endings.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/objectives.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/nightmare.js?v=v1.13-20261030-163025"></script>
+  <script src="js/network/redeem.js?v=v1.13-20261030-163025"></script>
+  <script src="js/storage/transfer.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/account.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/mailbox.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/lottery.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/achievements.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/relics.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/shop.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/save-slots.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/lifecycle.js?v=v1.13-20261030-163025"></script>
+  <script src="js/features/tutorial.js?v=v1.13-20261030-163025"></script>
+  <script src="js/game.js?v=v1.13-20261030-163025"></script>
+  <script src="js/audio.js?v=v1.13-20261030-163025"></script>
+  <script src="js/battle-effects.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ads.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/input/press.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/dom.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/panel-registry.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/food-satchel.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/art.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/notices.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/hud.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/render.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/action-animation.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/map.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/travel.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/scene.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/atlantis.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/rune-puzzle.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/rest.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/progression.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/skills.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/trading.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/batch-transfer.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/camp.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/livestock-farm.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/player-panels.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/combat.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/settings.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/reports.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/dialogs.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/tutorial.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/collection.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/lottery.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/endings-share.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/title.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui/views/startup.js?v=v1.13-20261030-163025"></script>
+  <script src="js/ui.js?v=v1.13-20261030-163025"></script>
 </body>
 </html>

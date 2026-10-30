@@ -162,13 +162,23 @@ function init() {
           if(window.__guyuBoot)window.__guyuBoot.ready();
           const choose=which=>{try{bridge.choose(which);finish();}catch(e){window.__guyuBoot?.fail(e.message);}};
           const c=result.conflict;
-          showModal('overlay',{title:'选择要继续的进度',text:`本机与云端存在不同的进度，请选择要继续的一份。\n本机：${c.localSoul}魂点、${c.localSlots}个备份；云端：${c.cloudSoul}魂点、${c.cloudSlots}个备份。\n另一份会保留为恢复记录。`,requiredChoice:true,choices:[
+          const source=c.kind==='device'?'设备备份':'云端';
+          showModal('overlay',{title:'选择要继续的进度',text:`本机与${source}存在不同的进度，请选择要继续的一份。\n本机：${c.localSoul}魂点、${c.localSlots}个备份；${source}：${c.cloudSoul}魂点、${c.cloudSlots}个备份。\n另一份会保留为恢复记录。`,requiredChoice:true,choices:[
             {label:result.conflict.localDay?`本机进度 · 第${result.conflict.localDay}天`:'保留本机账号记录',ok:()=>choose('local')},
-            {label:result.conflict.cloudDay?`云端进度 · 第${result.conflict.cloudDay}天`:'使用云端账号记录',ok:()=>choose('cloud')}
+            {label:result.conflict.cloudDay?`${source}进度 · 第${result.conflict.cloudDay}天`:`使用${source}账号记录`,ok:()=>choose('cloud')}
           ]});return;
         }
         finish();
-      }catch(e){if(window.__guyuBoot)window.__guyuBoot.fail(e.message||'存档服务暂时无法读取，请重试。');}
+      }catch(e){
+        if(window.__guyuBoot)window.__guyuBoot.fail(e.message||'存档服务暂时无法读取，请重试。');
+        const bridge=window.GuyuSaveBridge,actions=$('#boot-actions');
+        if(actions&&bridge?.canContinueLocally?.()&&!$('#boot-local')){
+          const button=document.createElement('button');button.id='boot-local';button.className='boot-primary';button.textContent='使用本机模式进入游戏';
+          button.onclick=()=>{try{bridge.continueLocally();finish();centerToast('当前仅保存在本机，云端原进度不会被覆盖。');}catch(err){window.__guyuBoot?.fail(err.message);}};
+          actions.insertBefore(button,actions.firstChild);
+          window.__guyuBoot?.recovery('云存档暂时无法连接。可以使用本机模式进入游戏，原云端进度会保留；也可以重新尝试。');
+        }
+      }
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
     else go();
@@ -179,14 +189,14 @@ function showSafeMode(crashes) {
     showModal('overlay', {
       title: '启动异常 · 安全模式',
       text: '上次打开游戏时中途出错了（连续 ' + crashes + ' 次）。\n\n报错记录：' + String(err).slice(0, 160)
-        + '\n\n建议先「导出存档码」保命，再试「用备份存档打开」（备份是上一次保存前的状态，最多丢几步）。',
+        + '\n\n建议先保存完整备份文件，再试「用备份存档打开」（备份是上一次保存前的状态，最多丢几步）。',
       choices: [
         { label: '用备份存档打开', hint: '回退到上次保存前的状态', ok: () => {
           const r = Game.restoreBackupSave ? Game.restoreBackupSave() : { ok:false, reason:'这个版本没有备份存档功能' };
           if (r && r.ok) { begin(); addLog('已用备份存档打开。', 'good'); }
           else { centerToast('打不开备份：' + ((r && r.reason) || '未知')); }
         } },
-        { label: '导出存档码', hint: '复制保存，换设备/找作者都能恢复', ok: () => showModal('codex', { mode: 'export', code: Game.exportCode() }) },
+        { label: '导出存档码', hint: '保存完整备份文件，或生成临时取档码', ok: () => showModal('codex', { mode: 'export', code: Game.exportCode() }) },
         { label: '继续进入游戏', hint: '我了解风险', ok: () => {} },
       ],
     });

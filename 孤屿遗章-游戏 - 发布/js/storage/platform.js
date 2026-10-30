@@ -1,12 +1,12 @@
 /* TapTap持久文件与云备份。只在启动完成读取后开放写入；不把网络失败当作空账号。 */
 const PlatformSaveStore = (() => {
   const KEYS=['guyuyizhang_save','guyuyizhang_save_bak','guyuyizhang_meta','guyuyizhang_meta_bak','guyuyizhang_rev','guyuyizhang_savedAt','guyuyizhang_rescue','guyuyizhang_write_journal','guyuyizhang_alternate_save'];
-  const ARCHIVE='guyuyizhang_main',IMPORT='guyuyizhang_platform_import';
+  const ARCHIVE='guyuyizhang_main',IMPORT='guyuyizhang_platform_import',LOCAL_ONLY='guyuyizhang_local_mode';
   const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
   const bytes=s=>new TextEncoder().encode(s).byteLength;
   function hash(s){let n=2166136261;for(let i=0;i<s.length;i++)n=Math.imul(n^s.charCodeAt(i),16777619);return (n>>>0).toString(16);}
   function create({storage,getHost,fallback=null,platformHint=false,clock=Date.now,timer=setTimeout,cancel=clearTimeout,timeout=8000}){
-    let ready=false,initTask,fs,cloud,root='',validate,remote,listed=false,acceptedRemote='',acceptedServer='',conflict=null,seq=0,lastSlot=-1;
+    let ready=false,initTask,fs,cloud,root='',validate,remote,listed=false,acceptedRemote='',acceptedServer='',conflict=null,seq=0,lastSlot=-1,localAvailable=false,localOnly=false,deviceVerified=false;
     let queue,writing=null,writeTimer,cloudTimer,busy=false,lastUpload=0,uploaded='',lastLocal=0,notice='本地存档',cloudError='',fileError='';
     const parse=s=>{try{return JSON.parse(s);}catch(e){return null;}};
     const runOf=k=>{for(const key of ['guyuyizhang_save','guyuyizhang_save_bak']){const r=parse(k[key]);if(validate(r))return r;}return null;};
@@ -14,6 +14,7 @@ const PlatformSaveStore = (() => {
     const meaningful=k=>!!runOf(k)||(()=>{const m=metaOf(k);return !!m&&(m.runs>0||m.soul>0||(m.slots||[]).some(Boolean)||Object.keys(m.nodes||{}).length>0);})();
     function needsChoice(local,other){const a=runOf(local),b=runOf(other),am=metaOf(local),bm=metaOf(other);return !!(bm&&(!am||(bm._accountRev||0)>(am._accountRev||0)))||!!(b&&other.guyuyizhang_save!==local.guyuyizhang_save&&(!(a?._runId&&a._runId===b._runId)||(b._rev||0)>(a._rev||0)));}
     function capture(){const k={};for(const key of KEYS)k[key]=storage.getItem(key);return k;}
+    function safeLocal(){const k=capture();if(k.guyuyizhang_write_journal)return false;const hasRun=!!(k.guyuyizhang_save||k.guyuyizhang_save_bak),hasMeta=!!(k.guyuyizhang_meta||k.guyuyizhang_meta_bak);return (!hasRun||!!runOf(k))&&(!hasMeta||!!metaOf(k))&&(!hasRun||!!metaOf(k));}
     function validKeys(k){return object(k)&&!k.guyuyizhang_write_journal&&KEYS.every(key=>k[key]===undefined||k[key]===null||typeof k[key]==='string')&&!!metaOf(k)&&(!(k.guyuyizhang_save||k.guyuyizhang_save_bak)||!!runOf(k));}
     function encode(keys){const payload={format:'guyu-persistent-v1',seq:++seq,capturedAt:clock(),keys};const body=JSON.stringify(payload),result=JSON.stringify({payload,checksum:hash(body)});if(bytes(result)>10*1024*1024)throw Error('备份超过平台大小上限，请先导出存档。');return result;}
     function decode(text){
@@ -34,7 +35,7 @@ const PlatformSaveStore = (() => {
     });}
     const read=p=>invoke(fs,'readFile',{filePath:p,encoding:'utf8'}).then(r=>r.data);
     const write=(p,data)=>invoke(fs,'writeFile',{filePath:p,data,encoding:'utf8'});
-    async function optionalRead(path){try{return await read(path);}catch(e){if(e.errno===400101||/no such file|not exist|not found|ENOENT/i.test(e.message))return null;throw e;}}
+    async function optionalRead(path){try{return await read(path);}catch(e){if(Number(e.errno)===400101||/no such file|not exist|not found|ENOENT/i.test(e.message))return null;throw e;}}
     function restoreImport(){const raw=storage.getItem(IMPORT);if(!raw)return;const journal=parse(raw);if(!object(journal?.before))throw Error('存档恢复记录异常，请先导出原始备份。');for(const key of KEYS){const v=journal.before[key];if(v===null||v===undefined)storage.removeItem(key);else if(typeof v==='string')storage.setItem(key,v);else throw Error('存档恢复记录不完整。');}storage.removeItem(IMPORT);}
     function install(keys){
       const before=capture();storage.setItem(IMPORT,JSON.stringify({before}));
@@ -58,20 +59,33 @@ const PlatformSaveStore = (() => {
       if(ready)return {ok:true};if(initTask)return initTask;
       validate=validSave;
       initTask=(async()=>{
-        restoreImport();let host=getHost();
-        if(platformHint){for(let n=0;n<30&&(!host?.getFileSystemManager||!host.env?.USER_DATA_PATH);n++){await new Promise(r=>timer(r,100));host=getHost();}if(!host?.getFileSystemManager||!host.env?.USER_DATA_PATH)throw Error('TapTap存档服务尚未就绪，请更新TapTap或重新尝试。');}
+        localAvailable=false;deviceVerified=false;restoreImport();let host=getHost();
+        if(platformHint){for(let n=0;n<30&&(!host?.getFileSystemManager||!host.env?.USER_DATA_PATH);n++){await new Promise(r=>timer(r,100));host=getHost();}if(!host?.getFileSystemManager||!host.env?.USER_DATA_PATH){localAvailable=safeLocal();throw Error('TapTap存档服务尚未就绪，可重试或选择本机模式。');}}
         let local=capture();
         if(!host?.getFileSystemManager||!host.env?.USER_DATA_PATH){ready=true;return {ok:true};}
-        root=host.env.USER_DATA_PATH;fs=host.getFileSystemManager();cloud=typeof host.getCloudSaveManager==='function'?host.getCloudSaveManager():null;
+        root=host.env.USER_DATA_PATH;
+        try{fs=host.getFileSystemManager();if(typeof fs?.readFile!=='function'||typeof fs?.writeFile!=='function')throw Error('unsupported');}catch(e){fs=null;localAvailable=safeLocal();throw Error('设备存档接口暂不可用，可重试或选择本机模式。');}
+        let cloudUnavailable=false;
+        try{cloud=typeof host.getCloudSaveManager==='function'?host.getCloudSaveManager():null;}catch(e){cloud=null;cloudUnavailable=true;cloudError='云存档接口尚未就绪';}
         fallback?.setFileSystem?.(fs,root);
         const records=await Promise.all([0,1].map(async index=>{try{const text=await optionalRead(root+'/guyu_progress_'+index+'.json');return {index,data:decode(text),exists:!!text};}catch(e){return {index,error:e};}}));
+        deviceVerified=records.every(r=>!r.error&&!(r.exists&&!r.data));
         const valid=records.filter(r=>r.data).sort((a,b)=>b.data.seq-a.data.seq);if(valid[0]){seq=valid[0].data.seq;lastSlot=valid[0].index;}
+        if(storage.getItem(LOCAL_ONLY)==='1'){
+          if(records.some(r=>r.error||r.exists&&!r.data)){fs=null;cloud=null;localAvailable=safeLocal();throw Error('设备备份暂不可读，可以保留原文件并继续本机模式。');}
+          if(valid[0]&&needsChoice(local,valid[0].data.keys)){
+            const other=valid[0].data.keys;conflict={local,distant:other};
+            return {ok:true,conflict:{kind:'device',localDay:runOf(local)?.day||0,cloudDay:runOf(other)?.day||0,localSoul:metaOf(local)?.soul||0,cloudSoul:metaOf(other)?.soul||0,localSlots:(metaOf(local)?.slots||[]).filter(Boolean).length,cloudSlots:(metaOf(other)?.slots||[]).filter(Boolean).length}};
+          }
+        }
         const localRun=runOf(local),diskRun=valid[0]&&runOf(valid[0].data.keys);
         if(valid[0]&&(!meaningful(local)||(localRun?._runId&&localRun._runId===diskRun?._runId&&(diskRun._rev||0)>(localRun._rev||0)))){const restored={...valid[0].data.keys};if((metaOf(local)?._accountRev||0)>(metaOf(restored)?._accountRev||0))for(const key of ['guyuyizhang_meta','guyuyizhang_meta_bak'])restored[key]=local[key];install(restored);local=capture();notice='已从设备持久备份恢复';}
         else if(!localRun&&diskRun){const restored={...valid[0].data.keys};for(const key of ['guyuyizhang_meta','guyuyizhang_meta_bak'])if(local[key])restored[key]=local[key];restored.guyuyizhang_rev=String(Math.max(Number(local.guyuyizhang_rev)||0,Number(restored.guyuyizhang_rev)||0));install(restored);local=capture();notice='已找回本机进度，账号记录保持不变';}
         else if(valid[0]&&localRun&&!metaOf(local)&&metaOf(valid[0].data.keys)){const restored={...local};for(const key of ['guyuyizhang_meta','guyuyizhang_meta_bak'])restored[key]=valid[0].data.keys[key];install(restored);local=capture();notice='已找回本机账号记录';}
         if(valid[0]&&(metaOf(valid[0].data.keys)?._accountRev||0)>(metaOf(local)?._accountRev||0)){const restored={...local};for(const key of ['guyuyizhang_meta','guyuyizhang_meta_bak'])restored[key]=valid[0].data.keys[key];install(restored);local=capture();notice='已恢复较新的设备账号记录';}
+        localAvailable=safeLocal();
         if(!meaningful(local)&&records.some(r=>r.error||r.exists&&!r.data)&&!cloud)throw Error('持久备份暂时无法读取，未新建空档。');
+        if(cloudUnavailable&&!meaningful(local))throw Error('云存档接口尚未就绪，可重试或选择本机模式。');
         if(cloud){
           let distant;try{distant=await remoteRead();}catch(e){cloudError=e.message;try{distant=await serverRead();if(distant){acceptedServer=hash(JSON.stringify(distant.keys));notice='已读取服务器备用进度';}}catch(serverError){cloudError+='；'+serverError.message;}if(!distant&&!meaningful(local))throw Error('云端备份暂时无法核对，请联网重试；没有创建或覆盖存档。 '+e.message);}
           // “列表为空”也可能是平台记录暂不可见；新设备先核对已有备用，避免直接开空局。
@@ -88,10 +102,13 @@ const PlatformSaveStore = (() => {
           }
         }
         if(!meaningful(capture())&&records.some(r=>r.error||r.exists&&!r.data))throw Error('设备备份尚未恢复，原记录已保留，请重试或导出诊断。');
+        if(!deviceVerified){fs=null;cloud=null;localOnly=true;storage.setItem(LOCAL_ONLY,'1');notice='仅本机保存，设备备份尚未核对';}
+        else storage.removeItem(LOCAL_ONLY);
         ready=true;return {ok:true};
       })().catch(e=>{initTask=null;throw e;});return initTask;
     }
-    function choose(which){if(!conflict||!['local','cloud'].includes(which))throw Error('无效存档选择');const selected={...(which==='cloud'?conflict.distant:conflict.local)},other={...(which==='cloud'?conflict.local:conflict.distant)};delete other.guyuyizhang_alternate_save;selected.guyuyizhang_alternate_save=JSON.stringify(other);install(selected);conflict=null;ready=true;notice=which==='cloud'?'已恢复云端进度':'保留本机进度';}
+    function choose(which){if(!conflict||!['local','cloud'].includes(which))throw Error('无效存档选择');const selected={...(which==='cloud'?conflict.distant:conflict.local)},other={...(which==='cloud'?conflict.local:conflict.distant)};delete other.guyuyizhang_alternate_save;selected.guyuyizhang_alternate_save=JSON.stringify(other);install(selected);storage.removeItem(LOCAL_ONLY);conflict=null;ready=true;notice=which==='cloud'?'已恢复备份进度':'保留本机进度';}
+    function continueLocally(){if(!localAvailable||initTask||conflict)throw Error('本机记录尚未核对，请先重试或抢救备份。');if(!safeLocal())throw Error('本机记录不完整，原记录已保留。');storage.setItem(LOCAL_ONLY,'1');if(!deviceVerified)fs=null;localOnly=true;cloud=null;listed=false;ready=true;notice='仅保存在本机，云端原记录未覆盖';cloudError='';return {ok:true};}
     function snapshot(){const keys=capture();if(keys.guyuyizhang_write_journal||!validKeys(keys))return null;return encode(keys);}
     function schedule(){if(!ready||!fs)return false;try{queue=snapshot();}catch(e){fileError=e.message;return false;}if(!queue)return false;if(!writeTimer)writeTimer=timer(()=>{writeTimer=null;flush();},250);return true;}
     async function flush(){
@@ -127,7 +144,7 @@ const PlatformSaveStore = (() => {
       finally{busy=false;if(cloudQueued)scheduleCloud(cloudQueued);}
     }
     const port={getItem:key=>ready?storage.getItem(key):null,setItem(key,value){if(!ready)throw Error('存档读取尚未完成，已阻止提前写入');storage.setItem(key,value);},removeItem(key){if(!ready)throw Error('存档读取尚未完成，已阻止提前写入');storage.removeItem(key);}};
-    return Object.freeze({initialize,choose,schedule,flush,storage:port,ready:()=>ready,status:()=>({supported:!!cloud,pendingLocal:!!queue||!!writing,pending:!!queue||!!writing||busy||!!cloudQueued,msg:fileError||cloudError||(busy||cloudQueued?'设备备份已保存，云端同步中':notice),at:lastUpload,applied:lastLocal,uuid:remote?.uuid||null,diag:fs?'tap-persistent':'local-only'}),decode});
+    return Object.freeze({initialize,choose,continueLocally,canContinueLocally:()=>localAvailable&&!ready&&!initTask&&!conflict,schedule,flush,storage:port,ready:()=>ready,status:()=>({supported:!!cloud,pendingLocal:!!queue||!!writing,pending:!!queue||!!writing||busy||!!cloudQueued,msg:fileError||cloudError||(localOnly?'仅保存在本机，云端原记录未覆盖':busy||cloudQueued?'设备备份已保存，云端同步中':notice),at:lastUpload,applied:lastLocal,uuid:remote?.uuid||null,diag:localOnly?'local-only-selected':fs?'tap-persistent':'local-only'}),decode});
   }
   return Object.freeze({create,keys:KEYS});
 })();

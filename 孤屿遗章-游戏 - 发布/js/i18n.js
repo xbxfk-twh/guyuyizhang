@@ -127,3 +127,7 @@ const Locale = (()=>{
   return {text,set,apply,control,syncText,syncAttribute,translate:visit,current:()=>language};
 })();
 window.Locale=Locale;
+
+Object.assign(DICTIONARY, {"临时取档码": "Temporary transfer code", "取档码 / 文件备份": "Transfer code / Backup file", "生成取档码": "Generate transfer code", "复制取档码": "Copy transfer code", "保存备份文件": "Save backup file", "导入存档": "Import save", "使用本机模式进入游戏": "Play on this device", "生成后10分钟有效，可在另一设备导入。永久备份请选择保存文件。": "Valid for 10 minutes. Import on another device. Save a file for a permanent backup.", "10分钟内有效，请只发给自己。": "Valid for 10 minutes. Keep this code private.", "云存档暂时无法连接。可以使用本机模式进入游戏，原云端进度会保留；也可以重新尝试。": "Cloud saves are temporarily unavailable. You can play locally without changing your cloud progress, or retry."} );
+
+Object.assign(DICTIONARY, {"输入临时取档码，或选择备份文件；也支持以前保存的长码。导入前会显示预览。": "Enter a temporary transfer code or choose a backup file. Legacy codes are also supported. Review the save before importing.", "进度保存在当前设备。卸载或清除数据会丢失，请保存备份文件。换设备可生成10分钟有效的取档码。": "Progress is stored on this device. Uninstalling or clearing data removes it. Save a backup file, or generate a 10-minute transfer code to move devices.", "换设备可生成10分钟有效的取档码；长期备份请保存文件。": "Generate a 10-minute transfer code to move devices. Save a file for a permanent backup.", "点击「预览并导入」从服务器取档，确认后才会覆盖进度。": "Select Preview and import to retrieve the save. Progress changes only after confirmation.", "正在生成……": "Generating...", "正在取档……": "Retrieving save..."});

@@ -19,6 +19,7 @@ fs.mkdirSync(out, { recursive: true });
 const checks = [
   '回归测试/platform-save.test.js', '回归测试/save-recovery.test.js',
   '回归测试/server-save.test.js',
+  '回归测试/temporary-save.test.js', '回归测试/platform-local-mode.test.js',
   '回归测试/sword-unity.test.js', '回归测试/camp-inventory.test.js', '回归测试/language.test.js',
   '回归测试/redeem-transport.test.js', '回归测试/remote-redeem.test.js', '回归测试/one-time-redeem.test.js',
   '回归测试/legacy-latest.test.js',
@@ -61,6 +62,7 @@ const checks = [
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_character_voices.js', '开发工具/检查/_verify_one_time_redeem_ui.js', '开发工具/检查/_verify_weapon_ui.js', '开发工具/检查/_verify_lantern.js', '开发工具/检查/_verify_oct16_feedback.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_oct27_feedback.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_oct29_saves.js');
+if (args.includes('--browser')) checks.push('开发工具/检查/_verify_oct30_transfer.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_downloads.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_android_host.js', '开发工具/检查/_verify_storage_spoil.js', '开发工具/检查/_verify_camp_art.js', '开发工具/检查/_verify_inventory_compact.js', '开发工具/检查/_verify_mobile_refresh.js', '开发工具/检查/_verify_player_tabs_build.js', '开发工具/检查/_verify_language.js', '开发工具/检查/_verify_warehouse_feedback.js', '开发工具/检查/_verify_combat_resume.js', '开发工具/检查/_verify_camp_inventory_ui.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_activity_order_mobile.js', '开发工具/检查/_verify_focus_cellar_camp.js', '开发工具/检查/_verify_rain_inventory.js', '开发工具/检查/_verify_storage_recipe_touch.js', '开发工具/检查/_verify_october07_ui.js', '开发工具/检查/_verify_divine_packs_ui.js', '开发工具/检查/_verify_plain_controls.js', '开发工具/检查/_verify_scene_crop_storage.js', '开发工具/检查/_verify_warehouse_feedback_ui.js', '开发工具/检查/_verify_scenes.js', '开发工具/检查/_verify_feedback_ui.js', '开发工具/检查/_verify_ui_layout.js', '开发工具/检查/_verify_newgame_confirm.js', '开发工具/检查/_verify_camp_panel.js', '开发工具/检查/_verify_atl_light.js', '开发工具/检查/_verify_third_batch.js', '开发工具/检查/_verify_status_badges.js', '开发工具/检查/_verify_settle_entry.js', // 老潮兑换：2026-09-25 定稿成"沿用出售那一套"（点一下换 1 份 / 长按批量，删掉「全部」+二次确认），

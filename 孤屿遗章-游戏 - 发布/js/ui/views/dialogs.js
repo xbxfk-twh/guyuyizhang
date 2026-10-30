@@ -191,11 +191,11 @@ function showModal(kind, cfg) {
     else if (kind === 'buyslot') html = `<div class="modal-title">解锁第四存档位</div><div class="overlay-text">支付 100 魂点，永久解锁一个新的备份槽。购买后可消耗备份点向槽内备份。</div><div class="modal-actions"><button data-buyslot-yes="1">确认解锁</button><button data-buyslot-no="1">取消</button></div>`;
     else if (kind === 'codex') {
       html = cfg && cfg.mode === 'export'
-        ? `<div class="modal-title">导出存档码</div><div class="overlay-text">备份包含当前进度与账号数据。请整段复制，或下载文本文件保存到设备外。</div>
-           <textarea id="codex-text" readonly style="width:100%;height:90px;font-size:11px;line-height:1.4;padding:8px;box-sizing:border-box;background:var(--paper);color:var(--ink);border:2px solid var(--ink)">${esc(cfg.code || '')}</textarea>
-           <div class="batch-hint">${esc(backupSummary(Game.inspectCode(cfg.code || '')))}</div><div class="modal-actions"><button id="codex-copy">复 制</button><button id="codex-download">下载备份文件</button><button id="modal-close">关 闭</button></div>`
-        : `<div class="modal-title">导入存档码</div><div class="overlay-text">粘贴完整存档码或选择备份文件，确认前会显示内容预览；旧码可能只包含账号数据。</div>
-           <textarea id="codex-text" placeholder="在这里粘贴存档码" style="width:100%;height:64px;font-size:11px;line-height:1.4;padding:8px;box-sizing:border-box;background:var(--paper);color:var(--ink);border:2px solid var(--ink)"></textarea>
+        ? `<div class="modal-title">临时取档码</div><div class="overlay-text">生成后10分钟有效，可在另一设备导入。永久备份请选择保存文件。</div>
+           <input id="codex-text" readonly aria-label="临时取档码" placeholder="点击生成取档码" style="width:100%;padding:10px;box-sizing:border-box;background:var(--paper);color:var(--ink);border:2px solid var(--ink);font-size:18px;text-align:center">
+           <div class="batch-hint" id="transfer-status" role="status">${esc(backupSummary(Game.inspectCode(cfg.code || '')))}</div><div class="modal-actions"><button id="codex-generate">生成取档码</button><button id="codex-copy" disabled>复制取档码</button><button id="codex-download">保存备份文件</button><button id="modal-close">关 闭</button></div>`
+        : `<div class="modal-title">导入存档</div><div class="overlay-text">输入临时取档码，或选择备份文件；也支持以前保存的长码。导入前会显示预览。</div>
+           <textarea id="codex-text" placeholder="粘贴 SAVE- 开头的取档码或旧存档码" style="width:100%;height:64px;font-size:13px;line-height:1.4;padding:8px;box-sizing:border-box;background:var(--paper);color:var(--ink);border:2px solid var(--ink)"></textarea>
            <div class="batch-hint" id="codex-preview" aria-live="polite">请先粘贴存档码</div><input id="codex-file" type="file" accept=".txt,text/plain" hidden><div class="modal-actions"><button id="codex-file-pick">选择备份文件</button><button id="codex-current-backup">备份当前进度</button><button id="codex-do">预览并导入</button><button id="modal-close">取 消</button></div>`;
     }
     else if (kind === 'devpw') html = devpwModal();
@@ -350,11 +350,19 @@ function bindModal(kind, cfg) {
     });
     m.querySelectorAll('[data-buybp]').forEach(b => b.onclick = () => { const r = Game.buyBackupPoint(); if (r.ok) { addLog('购买了 1 个备份点。', 'good'); } else addLog(r.reason, 'warn'); showModal('backup'); });
     m.querySelectorAll('[data-codex]').forEach(b => b.onclick = () => showModal('codex', { mode: b.dataset.codex, code: b.dataset.codex === 'export' ? Game.exportCode() : '' }));
-    const ccopy = m.querySelector('#codex-copy'); if (ccopy) ccopy.onclick = () => { const t = m.querySelector('#codex-text'); try { t.select(); document.execCommand('copy'); centerToast('已复制，快去粘贴保存吧'); } catch (e) { centerToast('复制失败，请长按文本框手动复制'); } };
-    const cd=m.querySelector('#codex-download');if(cd)cd.onclick=()=>downloadBackup(m.querySelector('#codex-text').value);
+    const transfer=TemporarySaveTransfer.create({send:(url,data)=>RedeemTransport.send(window,url,data,{timeoutMs:12000}),inspect:code=>Game.inspectCode(code)});
+    const ccopy = m.querySelector('#codex-copy'); if (ccopy) ccopy.onclick = () => { const t = m.querySelector('#codex-text'); try { t.select(); if(!document.execCommand('copy'))throw Error('copy');centerToast('已复制取档码，请在10分钟内使用。'); } catch (e) { centerToast('复制失败，请长按文本框手动复制'); } };
+    const cd=m.querySelector('#codex-download');if(cd)cd.onclick=()=>downloadBackup(cfg.code||Game.exportCode());
     const cb=m.querySelector('#codex-current-backup');if(cb)cb.onclick=()=>downloadBackup(Game.exportCode());
     const codeText=m.querySelector('#codex-text'),preview=m.querySelector('#codex-preview');
-    const updatePreview=()=>{if(preview){preview.textContent=backupSummary(Game.inspectCode(codeText.value));window.Locale?.apply();}};
+    const generate=m.querySelector('#codex-generate');
+    if(generate)generate.onclick=async()=>{
+      const status=m.querySelector('#transfer-status');generate.disabled=true;status.textContent='正在生成……';
+      try{const result=await transfer.upload(cfg.code||Game.exportCode());if(!codeText.isConnected)return;codeText.value=result.code;codeText.dataset.expires=String(result.expiresAt);ccopy.disabled=false;status.textContent='10分钟内有效，请只发给自己。';}
+      catch(e){if(codeText.isConnected)status.textContent=e.message;}
+      finally{if(generate.isConnected)generate.disabled=false;}
+    };
+    const updatePreview=()=>{if(preview){preview.textContent=TemporarySaveTransfer.isCode(codeText.value)?'点击「预览并导入」从服务器取档，确认后才会覆盖进度。':backupSummary(Game.inspectCode(codeText.value));window.Locale?.apply();}};
     if(preview)codeText.onchange=updatePreview;
     if(preview)codeText.oninput=updatePreview;
     const file=m.querySelector('#codex-file');
@@ -363,8 +371,13 @@ function bindModal(kind, cfg) {
       if(picked.size>20*1024*1024){centerToast('备份文件过大，请确认选择的是存档文本文件。');return;}
       try{const text=await picked.text();if(!codeText.isConnected)return;codeText.value=text;updatePreview();}catch(e){centerToast('无法读取文件，请重新选择或粘贴存档码。');}
     };}
-    const cdo=m.querySelector('#codex-do');if(cdo)cdo.onclick=()=>{
-      const code=codeText.value,info=Game.inspectCode(code);updatePreview();if(!info.ok){centerToast(info.reason);return;}
+    const cdo=m.querySelector('#codex-do');if(cdo)cdo.onclick=async()=>{
+      if(cdo.disabled)return;cdo.disabled=true;
+      let code=codeText.value;
+      try{if(TemporarySaveTransfer.isCode(code)){preview.textContent='正在取档……';code=await transfer.download(code);}if(!codeText.isConnected)return;}
+      catch(e){if(codeText.isConnected){preview.textContent=e.message;centerToast(e.message);}return;}
+      finally{if(cdo.isConnected)cdo.disabled=false;}
+      const info=Game.inspectCode(code);if(!info.ok){preview.textContent=info.reason;centerToast(info.reason);return;}
       showModal('overlay',{title:'确认导入备份',text:backupSummary(info)+'\n导入会覆盖对应进度。需要保留当前档时，请先备份。',choices:[
         {label:'确认导入',ok:()=>{const r=Game.importCode(code);if(!r.ok){showModal('codex',{mode:'import'});centerToast(r.reason);return;}centerToast(`导入成功：魂点 ${r.soul}、传世 ${r.runs} 世、备份槽 ${r.slots} 个`);if(r.currentGame)begin();else showModal('backup');}},
         {label:'返回',ok:()=>{showModal('codex',{mode:'import'});const t=document.querySelector('#codex-text');t.value=code;t.dispatchEvent(new Event('input'));}}
