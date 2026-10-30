@@ -3,7 +3,7 @@ const base=path.resolve(__dirname,'../孤屿遗章-游戏 - 发布/js');
 const DATA=fs.readFileSync(path.join(base,'data.js'),'utf8');
 const GAME=require('./helpers/runtime.js').engineSource(path.join(base,'game.js'));
 const ROOT=path.join(__dirname,'..','孤屿遗章-游戏 - 发布');
-const UI=fs.readFileSync(path.join(base,'ui.js'),'utf8');
+const UI=require("./helpers/runtime.js").uiSource(path.join(base,'ui.js'));
 const source=DATA+'\n'+GAME;
 const store={};
 const ls={getItem:k=>store[k]||null,setItem:(k,v)=>store[k]=String(v),removeItem:k=>delete store[k]};

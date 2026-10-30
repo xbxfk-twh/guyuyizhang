@@ -1,0 +1,18 @@
+# Runtime sources retain the exact shipped bytes; tooling and docs use LF.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.pdf binary
+*.docx binary
+*.pptx binary
+"孤屿遗章-游戏 - 发布/**" -text whitespace=cr-at-eol

@@ -1209,11 +1209,13 @@ const SCENE_HOTSPOTS = {
 };
 
 // ---------- 结局 ----------
-// 官方兑换码（纯前端：每人本地用一次；你手动放出这些码，以后可随时加）
+// online 码由服务器全服单次核验；其他通用码沿用本地账号去重。
+// 奖励定义同时供历史待领邮件迁移使用，不作为 online 码的发奖依据。
 const REDEEM_CODES = {
-  'LAOBANDAQI': { retired:true, soul:10000, adCoins:1000 },
+  'LAOBANDAQI': { online:true, soul:10000, adCoins:1000 },
   'GANXIEPINGJIA': { retired:true, soul:300, adCoins:30 },
-  'XIEXIELAOBAN': { retired:true, item:'divineSuperPack', qty:1 },
+  'XIEXIELAOBAN': { online:true, item:'divineSuperPack', qty:1 },
+  'SHIYAN': { online:true, adCoins:100 },
   'SHENJIA2026': { retired:true, item:'divineArmor', qty:1 },
   'SHENGONG2026': { retired:true, item:'divineBow', qty:1 },  // 神弓：每个账号一次，先投递到邮箱
   // 已下架，仅保留旧邮件回执迁移所需的奖励定义。
@@ -1241,19 +1243,29 @@ const REDEEM_CODES = {
 const GUIDE_NOTE = '按页查看流程与操作，具体材料和属性可在制作页、图鉴查看。';
 const GUIDE = [
   {
-    "title": "开局与营地",
-    "enTitle": "Getting Started",
+    "title": "基础知识",
+    "enTitle": "Basic Knowledge",
     "steps": [
       "先打开背包，查看已有的食物、工具和武器；点击物品看详情，食物和药品从详情页使用。",
       "先保证淡水、食物和休息。河畔取水，树林和河畔采集食物；生鱼、生肉可能引起反胃，优先烹饪。",
       "准备石斧、石镐，收集木材、燧石、石头和茅草，再发展工具台、熔炉和床。所需材料看制作与营地建造页。",
-      "点击营地建筑进入管理；床和住所改善休息，仓库收纳物资，围墙降低夜袭风险。生命、体力、饱食、水分、精神和健康要分别照顾。"
+      "点击营地建筑进入管理；床和住所改善休息，仓库收纳物资，围墙降低夜袭风险。生命、体力、饱食、水分、精神和健康要分别照顾。",
+      "丢弃物品：长按背包或地窖中的物品选择数量。地窖丢弃还需再次确认；要取出物品，请轻点后选择取出，不要长按。",
+      "批量操作：长按制作、商人购买或出售按钮选择数量；交易窗口可上下滑动查看后面的商品与委托。",
+      "长按食之包卡面，可选择优先食物、优先饮料与禁食物品，每类最多3种；优先物品用完后沿用默认规则。",
+      "战斗先点击怪物选中目标再行动；装备→技能可展开技能树升级，图鉴可查看已发现物品和怪物的数值与说明。",
+      "保存与备份：退出前可在菜单保存进度；重要进度建议导出存档码并另存。备份点保存在当前设备，清除数据或卸载前先做好外部备份。"
     ],
     "enSteps": [
       "Open your backpack to check starting supplies. Tap an item for details; use food and medicine from that screen.",
       "Secure water, food and rest. Collect water at the river and forage nearby. Raw fish and meat can cause nausea; cook them when possible.",
       "Prepare a stone axe and pickaxe, gather basic materials, then develop your workbench, furnace and bed. Check crafting and camp construction for costs.",
-      "Tap camp buildings to manage them. Beds and housing improve rest, storage holds supplies, and walls reduce raid risk. Health, stamina, hunger, thirst, spirit and wellness need separate care."
+      "Tap camp buildings to manage them. Beds and housing improve rest, storage holds supplies, and walls reduce raid risk. Health, stamina, hunger, thirst, spirit and wellness need separate care.",
+      "Hold an item in your backpack or cellar to choose a quantity to discard. Cellar discards require a second confirmation. To withdraw cellar items, tap them and choose Withdraw instead of holding.",
+      "Hold crafting, merchant Buy or Sell buttons to choose a quantity. Scroll merchant windows vertically to see more goods and commissions.",
+      "Hold the Food Satchel card to choose up to three preferred foods, drinks or excluded items per category. When preferred items run out, the default selection rules apply.",
+      "In combat, tap an enemy to select it before acting. Open Equipment, then Skills to upgrade skill trees. The collection shows stats and descriptions for discovered items and enemies.",
+      "Save progress from the menu before leaving. Export important progress as a save code and keep it separately. Backup slots remain on this device; make an external backup before clearing data or uninstalling."
     ]
   },
   {
@@ -1282,7 +1294,7 @@ const GUIDE = [
       "高炉需先建砖熔炉，准备石砖12、铁件4，并满足建造页的制造等级和家具位要求；不需要高炉图纸。削木板每批消耗4木材：基础产出2木板（30分钟），使用铁斧或钢斧产出3木板（20分钟）；砖熔炉可成批烧砖。营地建造里的船坞负责升级船只，地图上的地点用于出海探索。",
       "轻点制作按钮制作一份，长按打开批量制作并选择次数。晾晒等需等待的配方一次只能挂一批，完成后先收取。",
       "商人界面的购买、出售、贝壳和金币兑换按钮，轻点操作一份，长按选择批量数量；图纸等物品按实际可买数量处理。",
-      "长按食之包卡面，选择优先食物、优先饮料和禁食物品，每类最多3种；点已选物品可取消。优先物品用完会自动选择其他安全物品，禁食始终生效。地窖物品长按可批量存入或丢弃。",
+      "长按食之包卡面，选择优先食物、优先饮料和禁食物品，每类最多3种；点已选物品可取消。优先物品用完会自动选择其他安全物品，禁食始终生效。地窖内轻点物品查看取出，长按选择批量丢弃并再次确认；存入列表长按可批量存入。",
       "潮生丹和渊息丹各有制作上限，但服用不限次数。查看物品说明区分回复生命、恢复健康和提高上限的效果。",
       "自动取用工具默认关闭，可在设置开启；开启后会选背包或当前营地仓库中等级最高的可用工具，不填工具槽，野外不借仓。关闭时使用已装备工具。钢工具的价值还包括采集更快、更省体力和更长耐久。",
       "食之包需要装备才会生效，每游戏小时检查一次：饱食或水分低于50时，各补一份合规物品，不会立即补满。可取用背包与对应区域仓库；岛上有地窖时也可取用地窖，地窖并非必需。岛海库存不互通。"
@@ -1292,7 +1304,7 @@ const GUIDE = [
       "A Blast Furnace needs a Brick Furnace, 12 Stone Bricks, 4 Iron Parts, and the crafting level and furniture space shown in construction; no furnace blueprint is needed. Planks cost 4 Wood per batch: 2 in 30 minutes normally, or 3 in 20 minutes with an Iron or Steel Axe. A Brick Furnace unlocks bulk brick firing. Upgrade boats under Camp Construction; map destinations are for sailing and exploration.",
       "Tap Craft for one batch; hold it to choose multiple batches. Drying recipes can run only one batch at a time; collect it before starting another.",
       "At merchants, tap buy, sell or currency exchange for one unit; hold for a quantity selector. Blueprints follow their purchase limits.",
-      "Hold the Food Satchel card to select up to three preferred foods, drinks or excluded items per category. Tap selected items to remove them. When preferences run out, other safe items are used; exclusions always apply. Hold cellar items for bulk storage or discard.",
+      "Hold the Food Satchel card to select up to three preferred foods, drinks or excluded items per category. Tap selected items to remove them. When preferences run out, other safe items are used; exclusions always apply. Tap stored cellar items to withdraw them, or hold to discard with a second confirmation. Hold items in the deposit list for bulk storage.",
       "Vital Tide Pills and Abyss Breath Pills have crafting limits but no consumption limit. Read item details to distinguish healing, wellness recovery and maximum-stat bonuses.",
       "Auto Tools is off by default and can be enabled in Settings. It selects the highest usable tier from your bag or the current camp warehouse without filling tool slots. Outside camp it cannot borrow stored tools. With it off, equipped tools are used. Steel tools also gather faster, save stamina and last longer.",
       "Equip the Food Satchel to activate it. Once per game hour, hunger or thirst below 50 triggers one eligible item each, rather than an instant refill. It uses your bag and the matching regional warehouse, plus an island cellar if built; a cellar is optional. Island and underwater stock remain separate."

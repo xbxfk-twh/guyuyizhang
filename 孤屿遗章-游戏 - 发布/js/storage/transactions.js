@@ -16,6 +16,8 @@ const SaveTransactions = (() => {
         if(pending())throw Error('上次存储恢复尚未完成');
         for(const key of KEYS)before[key]=storage.getItem(key);
         storage.setItem(JOURNAL,JSON.stringify({version:1,before}));started=true;
+        // 显式导入/读旧槽是一次新操作，沿用当前账号修订号，不携带旧码的写入序号。
+        if(nextM)nextM._accountRev=Math.max(nextM._accountRev||0,previous.meta?._accountRev||0);
         active=true;setPair(nextS,nextM);migrateMeta();
         if(normalizeRequested&&nextS)normalize(parseInt(before.guyuyizhang_rev||'0',10)||0);
         if(!normalizeRequested&&nextS)reconcile();

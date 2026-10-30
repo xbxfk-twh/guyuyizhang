@@ -36,6 +36,19 @@ const language=process.env.GUYU_TEST_LANGUAGE||'zh';
  await sleep(1400);check('场景截图前没有残留弹窗且森林图片已载入',await ev(`!document.querySelector('#modal').classList.contains('open')&&document.querySelector('#scene-img').complete&&document.querySelector('#scene-img').naturalWidth>0`));
  await b.shot('incremental-scene-'+width+'.png');
 
+ // 长按期间旧按钮被卸载，松手后的浏览器 click 不得穿透到新面板/背景。
+ await ev(`Game.S().scene='camp';Game.S().relics=['satchel'];Game.S().relicSlots=1;Game.S().relicEquip=['satchel'];UI.render();document.querySelector('[data-nav=equip]').click();`);
+ await sleep(450);
+ const held=await ev(`(()=>{const e=document.querySelector('[data-eqpick][data-satchel-settings]');e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()`);
+ if(width<1000)await b.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[held]});
+ else await b.send('Input.dispatchMouseEvent',{type:'mousePressed',...held,button:'left',clickCount:1});
+ let menuReady=false;for(let i=0;i<30&&!menuReady;i++){await sleep(100);menuReady=await ev(`!!document.querySelector('.satchel-menu')`);}
+ assert.ok(menuReady,'长按必须实际打开菜单');await sleep(900);
+ if(width<1000)await b.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ else await b.send('Input.dispatchMouseEvent',{type:'mouseReleased',...held,button:'left',clickCount:1});
+ await sleep(150);
+ check('长按换页后再松手，不穿透关闭菜单或触发新窗口按钮',await ev(`document.querySelector('#modal').classList.contains('open')&&document.querySelectorAll('.satchel-menu button').length===3`));
+
  // 故意把新文档初始化拖过旧探针的固定1.4秒等待，确认不会误读旧页面。
  await b.send('Page.addScriptToEvaluateOnNewDocument',{source:"window.__slowBootProbe=true;{const start=Date.now();while(Date.now()-start<2200){}}"});
  const beforeBoot=Date.now(),reloadURL=await ev('location.href');await b.navigate(reloadURL);const bootElapsed=Date.now()-beforeBoot;

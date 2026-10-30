@@ -3,7 +3,7 @@ const fs = require('fs');
 const ROOT = 'C:/Users/34297/Desktop/孤屿遗章/孤屿遗章-游戏 - 发布';
 const DATA = fs.readFileSync(ROOT + '/js/data.js', 'utf8');
 const GAME = require('../../回归测试/helpers/runtime.js').engineSource(ROOT + '/js/game.js');
-const UI = fs.readFileSync(ROOT + '/js/ui.js', 'utf8');
+const UI = require("../../回归测试/helpers/runtime.js").uiSource(ROOT + '/js/ui.js');
 const D = new Function('console', DATA + '\nreturn {ITEMS,SCENES,ENEMIES,RECIPES,LAOCHAO,TOWN,BLACKMARKET,RANDOM_EVENTS,REDEEM_CODES};')(console);
 const ATL = [...UI.matchAll(/const ATL_(?:SHOP|BUY) = \[([\s\S]*?)\];/g)].map(m => m[1]).join(' ');
 

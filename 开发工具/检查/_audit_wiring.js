@@ -18,7 +18,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const DATA = fs.readFileSync(path.join(ROOT, 'js/data.js'), 'utf8');
 const GAME = require('../../回归测试/helpers/runtime.js').engineSource(path.join(ROOT, 'js/game.js'));
-const UI = fs.readFileSync(path.join(ROOT, 'js/ui.js'), 'utf8');
+const UI = require("../../回归测试/helpers/runtime.js").uiSource(path.join(ROOT, 'js/ui.js'));
 let ok = 0; const bad = [];
 const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —— ' + e : '')); } else { bad.push(l); console.log('  FAIL ' + l + (e ? '  —— ' + e : '')); } };
 
@@ -49,7 +49,7 @@ console.log('\n① TOWN 摊位 → 集市标签');
      /const shopIds = Object\.keys\(TOWN\)\.sort\(/.test(UI) &&
      /const shops = shopIds\.map\(id => \[id, TOWN\[id\]\.name, TOWN\[id\]\.needFame \|\| 0\]\);/.test(UI));
   ck('①3 点「买」按当前摊位取货架（不写死摊位名）', /const list = \(TOWN\[shop\] && TOWN\[shop\]\.sell\) \|\| \[\];/.test(UI));
-  ck('①4 点「卖」按当前摊位取收购表', /const list = \(TOWN\[townShopNow\] && TOWN\[townShopNow\]\.buy\) \|\| \[\];/.test(UI));
+  ck('①4 点「卖」按当前摊位取收购表', /const list = \(TOWN\[deps\.townShopNow\] && TOWN\[deps\.townShopNow\]\.buy\) \|\| \[\];/.test(UI));
 }
 
 console.log('\n② FURNITURE → 能不能建');

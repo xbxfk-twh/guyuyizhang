@@ -196,7 +196,7 @@ sec('D. 全部场景 × 全部点位：可用性检查 + 实际采集一次不�
 sec('E. 图鉴 / 配方 / 引用完整性');
 {
   const spr = new Set();
-  const UI = fs.readFileSync(path.join(ROOT, 'js', 'ui.js'), 'utf8');
+  const UI = require("../../回归测试/helpers/runtime.js").uiSource(path.join(ROOT, 'js', 'ui.js'));
   (UI.match(/const SPR = \{([^}]*)\}/) || ['',''])[1].split(',').forEach(x => { const k = x.split(':')[0].trim(); if (k) spr.add(k); });
   (UI.match(/Object\.assign\(SPR, \{([^}]*)\}\)/) || ['',''])[1].split(',').forEach(x => { const k = x.split(':')[0].trim(); if (k) spr.add(k); });
   // 图标可在 items/ 或 items-accent/ 任一目录（限定物神弓是常驻彩色）
@@ -223,10 +223,10 @@ sec('F. 新版公告投递与旧公告撤下');
 sec('G. 兑换码与神物');
 {
   Game.newGame('fisher', 'normal');
-  const codes = Object.keys(box.REDEEM_CODES).filter(c=>!box.REDEEM_CODES[c].retired);
+  const codes = Object.keys(box.REDEEM_CODES).filter(c=>!box.REDEEM_CODES[c].retired&&!box.REDEEM_CODES[c].online);
   let oks = 0;
   for (const c of codes) { try { if (Game.redeemCode(c).ok) oks++; } catch (e) {} }
-  ck('所有兑换码都能正常兑换', oks === codes.length, oks + '/' + codes.length);
+  ck('本地通用码都能正常兑换（联网码由专属并发专项覆盖）', oks === codes.length, oks + '/' + codes.length);
   const retired=Object.keys(box.REDEEM_CODES).filter(c=>box.REDEEM_CODES[c].retired);
   ck('下架兑换码不能再兑换',retired.every(c=>!Game.redeemCode(c).ok));
   const RELICS = box.RELICS;

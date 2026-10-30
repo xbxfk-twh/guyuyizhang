@@ -954,6 +954,10 @@ body.log-tiny .logtime{display:none!important}
 .guide-nav select{flex:1;min-width:100px;max-width:100%;padding:5px;background:var(--paper);color:var(--ink);border:1px solid var(--ink);font:inherit}
 .guide-nav button{padding:5px 8px;white-space:nowrap}.guide-nav>span{font-size:12px}
 .guide-page h3{font-size:17px;margin:12px 0 8px}.guide-page p{font-size:14px;line-height:1.65;margin:9px 0}
+[data-savemenu="guide"],[data-mailtab="guide"]{position:relative}
+.guide-unread-dot{position:absolute;right:5px;top:5px;width:8px;height:8px;background:#c83232;border-radius:50%;pointer-events:none}
+#modal button.discard-danger{color:#a52b25;border-color:#a52b25}
+#modal button.discard-danger:hover{color:#fff;background:#a52b25}
 @media(max-height:480px){.guide-page p{font-size:12px;line-height:1.5;margin:7px 0}.guide-page h3{font-size:15px}.guide-nav{gap:4px}}
 
 body:has(#modal.open .player-panel-tabs) #nav{z-index:1001}

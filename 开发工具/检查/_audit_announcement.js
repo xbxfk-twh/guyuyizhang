@@ -6,7 +6,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
 const GAME = require('../../回归测试/helpers/runtime.js').engineSource(path.join(ROOT, 'js', 'game.js'));
-const UI = fs.readFileSync(path.join(ROOT, 'js', 'ui.js'), 'utf8');
+const UI = require("../../回归测试/helpers/runtime.js").uiSource(path.join(ROOT, 'js', 'ui.js'));
 const CSS = fs.readFileSync(path.join(ROOT, 'css', 'style.css'), 'utf8');
 const AUDIO = fs.readFileSync(path.join(ROOT, 'js', 'audio.js'), 'utf8');
 const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
@@ -39,14 +39,14 @@ ck('设置面板：音乐/音效/环境音三开关 + 日志三档 + 皮肤包�
 ck('主界面菜单化：只留设置按钮，图鉴/签到收进设置里（真能点开）',
    /id="btn-set"/.test(UI) && !/id="btn-codex"/.test(UI) && !/id="btn-sign"/.test(UI) &&
    /data-open="collection"/.test(UI) && /data-open="sign"/.test(UI) && /querySelectorAll\('\[data-open\]'\)/.test(UI));
-ck('图鉴账号级、没存档也能看', /const st = S\(\) \|\| \{ seen: \{\}, killCount: \{\}, flags: \{\} \};/.test(UI) && /const seen = \(S && S\.seen\) \|\| \{\};/.test(GAME));
+ck('图鉴账号级、没存档也能看', /const st = S\(\) \|\| \{ seen: \{\}, killCount: \{\}, flags: \{\} \};/.test(UI) && /const seen = \(gameState\.run && gameState\.run\.seen\) \|\| \{\};/.test(GAME));
 
 console.log('\n【大地图】');
 ck('舞台铺满（不再锁 16:9）', /stage\.style\.width = w \+ 'px';/.test(UI) && !/Math\.round\(w \* 9 \/ 16\)/.test(UI));
 // 作者 2026-09-15 定调：大地图【宽度=屏幕宽度】、只有上下能拖（横向锁死），热点跟着地图一起走
 ck('地图宽度贴合屏幕 + 可上下拖（横向锁死）+ 热点跟着一起走',
    /function mapBox\(iw, ih, bw, bh\)/.test(UI) && /function bindPan\(sel, getPan, setPan, settle\)/.test(UI) &&
-   /applyBox\('#map-arrows', box, mapPanY, 0\)/.test(UI) && /mapPanX = 0;/.test(UI));
+   /applyBox\('#map-arrows', box, deps\.mapPanY, 0\)/.test(UI) && /mapPanX = 0;/.test(UI));
 // 曾试过"贴边浮动标签"和"滑出画面整条隐藏"，都不对。作者最终要求：
 // 热点像印在地图上 —— 随图滑动、被屏幕裁掉就自然滑出去，不突然消失、不独立位移。
 ck('地图热点完全锁定在地图上（不显隐、不独立位移、不贴边浮动）',
@@ -61,7 +61,7 @@ ck('★ 回地图自动对准当前所在地 + 不越界（热点仍只钉在地
 ck('第一章大地图显示天气', /mwo\.className = st\.scene === 'atlantis' \? '' : \(st\.weather === 'rain'/.test(UI));
 
 console.log('\n【战斗与难度】');
-ck('出手 = 时间追赶（比例攒出手 + 存活才进入最后一击同时结算）', /C\.accE = Math\.max\(0, Math\.min\(3, \(C\.accE \|\| 0\) \+ _spdE \/ _spdP\)\)/.test(GAME) && /if \(twin\) \{ if \(!C\.fled && S\.stats\.hp > 0 && aliveNow\(\)\.length\) \{ doEnemyTurn\(\); doPlayerTurn\(\); \}/.test(GAME));
+ck('出手 = 时间追赶（比例攒出手 + 存活才进入最后一击同时结算）', /C\.accE = Math\.max\(0, Math\.min\(3, \(C\.accE \|\| 0\) \+ _spdE \/ _spdP\)\)/.test(GAME) && /if \(twin\) \{ if \(!C\.fled && gameState\.run\.stats\.hp > 0 && aliveNow\(\)\.length\) \{ doEnemyTurn\(\); doPlayerTurn\(\); \}/.test(GAME));
 ck('防御效率 100/90/80/70', DIFFICULTIES.easy.defEff === 1 && DIFFICULTIES.normal.defEff === 0.9 && DIFFICULTIES.hard.defEff === 0.8 && DIFFICULTIES.legend.defEff === 0.7 && /defPart = myDef \* defEff/.test(GAME));
 ck('群袭 50% 两只 + 触手必两只', /packAlways/.test(DATA) && /enemy\.packAlways \? 2 : \(chance\(0\.5\) \? 2 : 1\)/.test(GAME) && ENEMIES.tentacle.packAlways === 1);
 ck('沉没之王「穿透」实装', /includes\('pierce'\)/.test(GAME) && (ENEMIES.sunkenKing.traits || []).includes('pierce'));
@@ -72,7 +72,7 @@ ck('潜水服保暖 +2', ITEMS.diveSuit.warm === 2 && ITEMS.diveSuit2.warm === 2
 ck('工具每高一级快 20%', /\(1 - \(tt - 1\) \* 0\.2\)/.test(GAME));
 // 作者 2026-09-19：造价略微提高（6藤蔓+3木 → 8藤蔓+4木；耐久仍 10）
 ck('渔网造价 藤蔓9+木材4、耐久 10（受 2026-09-22 配方配比调整影响：藤蔓≥5 份 ×1.1）', RECIPES.find(r => r.id === 'r_net').in.vine === 9 && RECIPES.find(r => r.id === 'r_net').in.wood === 4 && DURA.net === 10);
-ck('夜袭：首次之后才有随机 + 50 天 5 匹', /S\.flags\.firstRaidDone \|\| S\.day > raidDay\(\)/.test(GAME) && /1 \+ Math\.floor\(d \/ 12\.5\)/.test(GAME) && /Math\.min\(5, 1 \+ Math\.floor\(d \/ 12\.5\)\)/.test(GAME));
+ck('夜袭：首次之后才有随机 + 50 天 5 匹', /gameState\.run\.flags\.firstRaidDone \|\| gameState\.run\.day > raidDay\(\)/.test(GAME) && /1 \+ Math\.floor\(d \/ 12\.5\)/.test(GAME) && /Math\.min\(5, 1 \+ Math\.floor\(d \/ 12\.5\)\)/.test(GAME));
 ck('草药膏生命健康各15 / 绷带生命15+止血 / 大煎蛋10', ITEMS.herbPaste.heal === 15 && ITEMS.herbPaste.healthRestore === 15 && ITEMS.bandage.heal === 15 && !ITEMS.bandage.healthRestore && !!ITEMS.bandage.stopBleed && ITEMS.bigOmelette.heal === 10);
 ck('熏鱼/熏肉 需要 2 树枝', RECIPES.find(r => r.id === 'r_smokedfish').in.branch === 2 && RECIPES.find(r => r.id === 'r_smokedmeat').in.branch === 2);
 ck('精神恢复下调（床 6/7/9/10、提神茶 14）', ['bed1','bed2','bed3','bed4'].map(b => FURNITURE.find(f => f.id === b).spirit).join(',') === '6,7,9,10' && ITEMS.tea.spirit === 14);
@@ -87,13 +87,13 @@ ck('旧公告已撤下，新版仍待批准', PATCH_NOTES.every(n=>n.version==='
   ck('旧公告移除但物资邮件保留',list.length===2 && list.some(x=>x.item==='namecard') && list.some(x=>x.notice==='v1.10'));
 }
 console.log('\n【重要修复】');
-ck('死亡后继续游戏会清掉结算状态（结局按钮不再消失）', /function continueRun\(\)/.test(GAME) && /if \(S\.ending\) S\.ending = undefined;/.test(GAME) && /Game\.continueRun\(\)/.test(UI));
+ck('死亡后继续游戏会清掉结算状态（结局按钮不再消失）', /function continueRun\(\)/.test(GAME) && /if \(gameState\.run\.ending\) gameState\.run\.ending = undefined;/.test(GAME) && /Game\.continueRun\(\)/.test(UI));
 ck('山顶祭坛热点会重新亮起 + 可直接举行仪式', /function altarReady\(p\)/.test(GAME) && /ritualReady/.test(UI) && /祭坛 · 举行仪式/.test(UI));
 ck('山顶祭坛：领奖才标记已搜刮（不会一点开就永久作废）',
-   /if \(p\.once && p\.type !== 'adventure'\) S\.flags\['pt_'\+p\.id\] = 1;/.test(GAME) && /function onceRewardMissing\(p\)/.test(GAME) && /祭坛 · 取回遗物/.test(UI));
+   /if \(p\.once && p\.type !== 'adventure'\) gameState\.run\.flags\['pt_'\+p\.id\] = 1;/.test(GAME) && /function onceRewardMissing\(p\)/.test(GAME) && /祭坛 · 取回遗物/.test(UI));
 ck('存档日志截到 200 条（存档瘦身）', /const LOG_KEEP = 200;/.test(GAME) && /copy\.log\.length = LOG_KEEP/.test(GAME));
 ck('随机事件条件改成"全部满足"（雾天漏雨 bug 已修）',
-   /function randomEventPool\(sceneId\)/.test(GAME) && /if \(c\.rain && !\(S\.weather === 'rain' \|\| S\.weather === 'storm'\)\) return false;/.test(GAME) && /if \(c\.houseBelow && !\(S\.buildings\.house < c\.houseBelow\)\) return false;/.test(GAME));
+   /function randomEventPool\(sceneId\)/.test(GAME) && /if \(c\.rain && !\(gameState\.run\.weather === 'rain' \|\| gameState\.run\.weather === 'storm'\)\) return false;/.test(GAME) && /if \(c\.houseBelow && !\(gameState\.run\.buildings\.house < c\.houseBelow\)\) return false;/.test(GAME));
 
 console.log('\n【送礼码（不在公告/活动页）】');
 {

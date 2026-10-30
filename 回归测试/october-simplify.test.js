@@ -68,7 +68,7 @@ test('第十抽保底出奖、清零连续未中；回旧码不倒退账号次�
  assert.equal(G.lotteryOffer('beibi',0,1).ok,false);assert.equal(G.lotteryOffer('beibi',1,0).ok,false);
 });
 test('源质锭收购价覆盖原料价值，海底交易机与对岸报价一致',()=>{
- const ui=fs.readFileSync(path.join(__dirname,'../孤屿遗章-游戏 - 发布/js/ui.js'),'utf8');
+ const ui=require("./helpers/runtime.js").uiSource(path.join(__dirname,'../孤屿遗章-游戏 - 发布/js/ui.js'));
  const shop=new Function('return '+ui.match(/const ATL_SHOP = (\[[^;\n]+\]);/)[1])();
  const town=TOWN.informant.buy;
  for(const id of ['sourceOre','sourceBar','anctDevice'])assert.equal(shop.find(x=>x.id===id).base,town.find(x=>x.id===id).base);

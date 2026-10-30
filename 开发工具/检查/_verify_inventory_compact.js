@@ -24,7 +24,7 @@ let passed=0,fail=0,ws,ch;const errors=[];
   await tap('[data-nav="inv"]');
   await check('标题缩短且移除冗余入口 '+w,`document.querySelector('.work-head').getBoundingClientRect().height<=36&&!document.querySelector('.pack-picker,[data-loot-open],[data-invequip],[data-store-all]')`);
   await check('普通背包图标放大且无横向溢出 '+w,`document.querySelector('.inv-item .item-icon').getBoundingClientRect().width>=34&&document.querySelector('.inv-item').getBoundingClientRect().height>=86&&document.querySelector('.work-scroll').scrollWidth<=document.querySelector('.work-scroll').clientWidth`);await check('分类完整显示 '+w,`[...document.querySelectorAll('.inventory-side .tab')].every(b=>b.scrollWidth<=b.clientWidth)`);await shot('compact-bag-'+w+'.png');
-  await tap('[data-warehouse-open]');
+  await tap('#modal .modal-x');await tap('[data-hotspot=warehouse]');
   await check('仓库保持紧凑并显示分类全文 '+w,`document.querySelector('.inv-item').getBoundingClientRect().height<80&&[...document.querySelectorAll('.inventory-side .tab')].every(b=>b.scrollWidth<=b.clientWidth)`);
   await check('两侧背包仓库均显示且各自有分类 '+w,`document.querySelectorAll('.inventory-pane').length===2&&!!document.querySelector('[data-item="wood"]')&&!!document.querySelector('[data-warehouse-item="wood"]')&&document.querySelectorAll('[data-invcat="all"]').length===2`);
   await check('自动存入在右侧且完整可点 '+w,`(()=>{const b=document.querySelector('[data-warehouse-auto]'),r=b.getBoundingClientRect();return b.closest('.inventory-pane')===document.querySelectorAll('.inventory-pane')[1]&&r.right<=innerWidth&&r.bottom<=innerHeight&&b.scrollWidth<=b.clientWidth;})()`);await shot('compact-warehouse-'+w+'.png');

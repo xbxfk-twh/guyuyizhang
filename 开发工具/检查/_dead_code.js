@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const ROOT = path.join(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const GAME = require('../../回归测试/helpers/runtime.js').engineSource(path.join(ROOT, 'js', 'game.js'));
-const UI = fs.readFileSync(path.join(ROOT, 'js', 'ui.js'), 'utf8');
+const UI = require("../../回归测试/helpers/runtime.js").uiSource(path.join(ROOT, 'js', 'ui.js'));
 const CHECKS = fs.readFileSync(path.join(__dirname, '..', '..', '回归测试', 'checks.js'), 'utf8');
 const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
 // 开发工具里也算"有人用"（比如 setS 是存档体检工具在用）

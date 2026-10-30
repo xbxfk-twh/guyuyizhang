@@ -7,7 +7,7 @@ const keys=['guyuyizhang_save','guyuyizhang_save_bak','guyuyizhang_savedAt','guy
 function engine(store={},window={}) {
   const control={fail:null,alerts:0};
   const ls={getItem:k=>store[k]??null,setItem(k,v){if(control.fail && control.fail(k)){const e=Error('injected quota');e.name='QuotaExceededError';throw e;}store[k]=String(v);},removeItem:k=>delete store[k]};
-  const box=new Function('localStorage','window','document','console','setTimeout','clearTimeout',source+'\nreturn {G:Game,RECIPES,ITEMS};')(ls,window,{cookie:''},{log(){},warn(){}},()=>1,()=>{});
+  const box=new Function('localStorage','window','document','console','setTimeout','clearTimeout',source+'\nreturn {G:Game,RECIPES,ITEMS,IDENTITIES};')(ls,window,{cookie:''},{log(){},warn(){}},()=>1,()=>{});
   box.G.bind({onLog(){},onChange(){},onFight(){},onEnding(){},onOverlay(){},onSaveFail(){control.alerts++;}});
   return {...box,store,control};
 }
@@ -35,7 +35,7 @@ await check('职业解锁写盘失败原子回滚，未解锁旧角色存档仍�
 });
 await check('传奇全职业新局仅职业物品，其他难度补给及旧传奇档保留',()=>{
   const e=fresh(),g=e.G;
-  const identities=new Function(source+'\nreturn IDENTITIES;')();
+  const identities=e.IDENTITIES;
   for(const id of Object.keys(identities)){
     g.metaState().identityUnlocks={trainer:1,beekeeper:1};g.metaState().challengeUnlocked=true;g.newGame(id,'legend');assert.deepEqual(g.S().inv,identities[id].items);
     assert.equal(g.capacity(),15);assert.equal(g.S().buildings.house,-1);

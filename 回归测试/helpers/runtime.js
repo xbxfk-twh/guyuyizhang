@@ -14,4 +14,8 @@ function engineSource(gameFile=path.join(defaultRoot,'js/game.js')) {
  const list=readManifest(root).logic;
  return list.filter(name=>name!=='js/data.js').map(name=>fs.readFileSync(path.join(root,name),'utf8')).join('\n');
 }
-module.exports={logicFiles:manifest.logic.map(name=>name.replace(/^js\//,'')),engineSource};
+function uiSource(uiFile=path.join(defaultRoot,'js/ui.js')) {
+ const root=path.dirname(path.dirname(uiFile));
+ return readManifest(root).scripts.filter(name=>name.startsWith('js/ui/views/')||name==='js/ui.js').map(name=>fs.readFileSync(path.join(root,name),'utf8')).join('\n');
+}
+module.exports={logicFiles:manifest.logic.map(name=>name.replace(/^js\//,'')),engineSource,uiSource};

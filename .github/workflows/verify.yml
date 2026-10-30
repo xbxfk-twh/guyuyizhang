@@ -28,6 +28,8 @@ jobs:
           python-version: '3.12'
       - name: Core regression
         run: node 回归测试/run.js
+      - name: Repository structure and tracked-file safety
+        run: python -X utf8 开发工具/检查/_verify_repository.py
       - name: Packaging validation tests
         run: python -X utf8 回归测试/test_release.py
       - name: Validate source manifest without packaging
@@ -43,6 +45,8 @@ jobs:
         run: node 回归测试/run.js --browser --only=_verify_incremental_ui
       - name: Android host lifecycle
         run: node 回归测试/run.js --browser --only=_verify_android_host
+      - name: Save recovery and platform fallback
+        run: node 回归测试/run.js --browser --only=_verify_oct29_saves
       - name: Language defaults and switching
         run: node 回归测试/run.js --browser --only=_verify_language
       - name: Advertising adapter and shop
@@ -55,5 +59,6 @@ jobs:
           path: |
             回归测试/_out/*.log
             回归测试/_out/incremental-*.png
+            回归测试/_out/oct29-*.png
           if-no-files-found: warn
           retention-days: 14

@@ -29,7 +29,7 @@ let passed=0,fail=0,ws,ch;const errors=[];
   await check('状态详情保留中毒与增益效果 '+w,`document.querySelector('#modal').textContent.includes('每小时失去3生命')&&document.querySelector('#modal').textContent.includes('3')&&document.querySelector('#modal').textContent.includes('简易药膏')`);
   await tap('#modal .modal-x');
   await check('日志时间不重复天数 '+w,`[...document.querySelectorAll('.logtime')].every(e=>!e.textContent.includes('天'))`);
-  await tap('[data-nav="inv"]');await shot('mobile-refresh-bag-'+w+'.png');await tap('[data-warehouse-open]');await shot('mobile-refresh-warehouse-'+w+'.png');await tap('#modal .modal-x');
+  await tap('[data-nav="inv"]');await shot('mobile-refresh-bag-'+w+'.png');await tap('#modal .modal-x');await tap('[data-hotspot=warehouse]');await shot('mobile-refresh-warehouse-'+w+'.png');await tap('#modal .modal-x');
   await ev(`(()=>{const b=[...document.querySelectorAll('.hotspot')].find(e=>e.textContent.includes('进屋'));b?.click();})()`);await sleep(500);
   await check('室内无无效摆放入口 '+w,`!document.querySelector('#room-arrange,#room-reset')`);
  }

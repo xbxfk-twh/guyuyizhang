@@ -1,5 +1,5 @@
 # ============ 孤屿遗章 · Git 忽略清单 ============
-# 目标：仓库只留"源码 + 文档 + 开发工具"，体积控制在 ~90MB；
+# 目标：仓库只留源码、运行资源、文档和开发工具；
 #      重资产（原图、旧发布包、宣传片）和私人/敏感目录都不进 git。
 
 # —— 体积大：素材实验原图、旧发布包备份（503MB）——
@@ -49,3 +49,29 @@ node_modules/
 /_promo_work/
 /开发工具/备份/发布包/
 /开发工具/备份/图片清理_*/
+
+# 本机资料与运维入口；公开仓库不维护个人账户配置。
+/.codex-remote-attachments/
+/测试名单.txt
+/开发工具/上传/
+/开发工具/存档服务/deploy.js
+/开发工具/检查/_cleanup_project_20261021.ps1
+/文档/Clash分流规则建议.md
+*.apk
+*.zip
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.pem
+*.p12
+*.pfx
+*.key
+.env
+.env.*
+!.env.example
+.private-*
+private*.json
+signing.properties
+*.log

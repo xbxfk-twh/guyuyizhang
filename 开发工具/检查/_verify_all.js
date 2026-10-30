@@ -5,7 +5,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
 const GAME = require('../../回归测试/helpers/runtime.js').engineSource(path.join(ROOT, 'js', 'game.js'));
-const UI = fs.readFileSync(path.join(ROOT, 'js', 'ui.js'), 'utf8');
+const UI = require("../../回归测试/helpers/runtime.js").uiSource(path.join(ROOT, 'js', 'ui.js'));
 const CSS = fs.readFileSync(path.join(ROOT, 'css', 'style.css'), 'utf8');
 const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
@@ -77,10 +77,10 @@ ck('图标路径按皮肤切换，缺彩色自动回退；限定物常驻彩色'
    /const dir = \(ALWAYS_COLOR\[id\] \|\| \(skinOn\('accent'\) && ACCENT\[id\]\)\) \? 'items-accent' : 'items';/.test(UI) &&
    /const ALWAYS_COLOR = \{ divineBow:1, divineArmor:1, divinePack:1, divineSuperPack:1 \};/.test(UI));
 ck('皮肤可多选：状态是集合，不再是单个 skin 变量',
-   /let skinSet = \(\(\) => \{/.test(UI) && /function skinOn\(id\) \{ return skinSet\.has\(id\); \}/.test(UI) && !/skin === '/.test(UI));
+   /let skinSet = \(\(\) => \{/.test(UI) && /function skinOn\(id\) \{ return deps\.skinSet\.has\(id\); \}/.test(UI) && !/skin === '/.test(UI));
 ck('切皮肤立刻重绘（否则图标路径不更新）', /if \(document\.getElementById\('top-day'\)\) render\(\);/.test(UI));
 ck('皮肤持久化（本机 · 跨存档 · 存 JSON 数组且兼容老的裸字符串）',
-   /guyuyizhang_skin/.test(UI) && /JSON\.stringify\(\[\.\.\.skinSet\]\)/.test(UI) && /arr = Array\.isArray\(j\) \? j : \[j\]/.test(UI));
+   /guyuyizhang_skin/.test(UI) && /JSON\.stringify\(\[\.\.\.deps\.skinSet\]\)/.test(UI) && /arr = Array\.isArray\(j\) \? j : \[j\]/.test(UI));
 ck('六个颜色变量都在皮肤里', /body\.skin-accent \{/.test(CSS) && /--paper:/.test(CSS) && /--ink:/.test(CSS) && /--line:/.test(CSS));
 ck('图标底不被压暗（黑墨图标在深色皮肤不会隐形）', /--tile:/.test(CSS) && /body\.skin-accent \.inv-item:hover \{ background: var\(--tile\)/.test(CSS));
 
@@ -125,7 +125,7 @@ ck('竹影深处挪进了背景最暗的那片竹林（x=66 y=50）', bam && bam
   ck('兽径挪到「草药」和「蘑菇」中间（x=62 y=79）', hunt && hunt.x === 62 && hunt.y === 79, hunt ? `x=${hunt.x} y=${hunt.y}` : '没找到');
 }
 const sceneHotspotPinned = /classList\.add\('pinned'/.test(UI);
-ck('场景热点没有做成"贴边浮动"（位置固定在图上、靠拖动看）', /function applyScenePan\(\)/.test(UI) && /applyBox\('#hotspots', box, scenePanY\)/.test(UI) && !/hotspot[\s\S]{0,80}pinned/.test(UI));
+ck('场景热点没有做成"贴边浮动"（位置固定在图上、靠拖动看）', /function applyScenePan\(\)/.test(UI) && /applyBox\('#hotspots', box, deps\.scenePanY\)/.test(UI) && !/hotspot[\s\S]{0,80}pinned/.test(UI));
 ck('热点百分比锚在图片内容盒上（不因铺满裁切而错位）', /function coverBox\(iw, ih, bw, bh, zoom\)/.test(UI) && /applyBox\('#hotspots'/.test(UI));
 // 作者明确要求：热点要"像印在地图上"——随图滑动、被屏幕裁掉就自然滑出去，
 // **不许突然出现/消失（不做显隐判定）、不许有任何独立位移**。

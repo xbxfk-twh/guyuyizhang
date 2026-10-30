@@ -3,6 +3,7 @@
    本地实录音效/环境音/角色短句 + Web Audio 氛围配乐与回退音效
    ============================================================ */
 const AudioFX = (() => {
+  const VOICE_ASSET_REV = 'vox-bc12f6139c5b11f7';
   let ctx = null;
   let hostSuspended = false;
   let master = null;      // 总音量
@@ -39,7 +40,7 @@ const AudioFX = (() => {
   function playVoice(who, index) {
     if (hostSuspended || !ctx || !sfxOn || !voiceOn || !window.Audio || !/^(laochao|grocer|smith|informant|gourmet|black|fishman|atlTrade|linghui)$/.test(who) || !Number.isInteger(index)) return;
     stopVoice();
-    try { voice=new window.Audio(`assets/audio/voices/${who}-${index}.mp3`); voice.volume=0.65; const p=voice.play(); if(p && p.catch) p.catch(()=>{}); } catch(e) {}
+    try { voice=new window.Audio(`assets/audio/voices/${who}-${index}.mp3?v=${VOICE_ASSET_REV}`); voice.volume=0.65; const p=voice.play(); if(p && p.catch) p.catch(()=>{}); } catch(e) {}
   }
   function voiceState() { return voiceOn; }
   function toggleVoice() { voiceOn=!voiceOn; if(!voiceOn) stopVoice(); try { window.localStorage.setItem('guyu_voice',voiceOn?'on':'off'); }catch(e){} return voiceOn; }

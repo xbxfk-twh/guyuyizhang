@@ -20,10 +20,10 @@ let passed=0,fail=0,ws,ch;const errors=[];
  for(const [w,h] of [[667,375],[1366,768]]){
  await send('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:1,mobile:w<1000});await send('Page.navigate',{url:require('url').pathToFileURL(path.join(root,'孤屿遗章-游戏 - 发布/index.html')).href});await sleep(2500);
  await ev("Game.newGame('fisher','normal');Game.S().tut=null;Game.S().tick=100;Game.S().inv={};Game.S().warehouse={items:[{id:'fish',qty:2,expiry:99},{id:'meat',qty:3,expiry:200}]};UI.begin()");await sleep(4500);
- await ev("document.querySelector('[data-nav=inv]').click();document.querySelector('[data-warehouse-open]').click()");await sleep(300);
+ await ev("document.querySelector('[data-hotspot=warehouse]').click()");await sleep(300);
  await check('仓库腐物直接显示且新鲜批次保留 '+w,"!!document.querySelector('[data-warehouse-item=rot]')&&!document.querySelector('[data-warehouse-item=fish]')&&!!document.querySelector('[data-warehouse-item=meat]')");await shot('storage-spoil-'+w+'.png');
- await ev("document.querySelector('[data-warehouse-item=rot]').click()");await check('腐物无食用入口 '+w,"!document.querySelector('[data-use=rot]')&&!!document.querySelector('[data-ware-transfer=rot]')");
- await ev("document.querySelector('[data-ware-transfer=rot]').click()");await check('实际取出腐物数量无损 '+w,"Game.invCount('rot')===1&&Game.warehouseState().inv.rot===1");
+ await ev("document.querySelector('[data-warehouse-item=rot]').click()");await check('腐物无食用入口 '+w,"!document.querySelector('[data-use=rot]')&&document.querySelectorAll('.inventory-pane').length===2");
+ await check('实际取出腐物数量无损 '+w,"Game.invCount('rot')===1&&Game.warehouseState().inv.rot===1");
  await ev("document.querySelector('#modal .modal-x').click();document.querySelector('#modal .modal-x')?.click();Game.S().buildings.cellar=0;Game.S().cellar={items:[{id:'berry',qty:2,expiry:99}]};UI.render();[...document.querySelectorAll('#hotspots .hotspot')].find(e=>e.textContent.includes('地窖')).click()");await sleep(300);
  await check('地窖过期批次显示腐物 '+w,"!!document.querySelector('[data-cellar-item=rot]')&&!document.querySelector('[data-cellar-item=berry]')");
  await ev("document.querySelector('[data-cellar-item=rot]').click();document.querySelector('[data-cellar-take=rot]').click()");await check('地窖腐物实际可取出 '+w,"Game.invCount('rot')===2&&Game.cellarState().inv.rot===1");

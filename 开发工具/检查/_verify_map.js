@@ -119,9 +119,9 @@ const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —
   ck('地图移动后热点相对地图坐标仍完全不变（真锁定）', s.moved === 0 && s.pinned === 0, 'moved=' + s.moved + ' pinned=' + s.pinned);
   ck('地图移动后依然没有热点被隐藏', s.hidden === 0, '隐藏 ' + s.hidden);
   ck('绑定了拖动/滚轮（bindMapPan + bindPan，且监听 pointer 事件）',
-     /function bindMapPan\(\)/.test(fs.readFileSync(ROOT + '/js/ui.js', 'utf8')) &&
-     /addEventListener\('pointerdown'/.test(fs.readFileSync(ROOT + '/js/ui.js', 'utf8')) &&
-     /addEventListener\('wheel'/.test(fs.readFileSync(ROOT + '/js/ui.js', 'utf8')));
+     /function bindMapPan\(\)/.test(require("../../回归测试/helpers/runtime.js").uiSource(ROOT + '/js/ui.js')) &&
+     /addEventListener\('pointerdown'/.test(require("../../回归测试/helpers/runtime.js").uiSource(ROOT + '/js/ui.js')) &&
+     /addEventListener\('wheel'/.test(require("../../回归测试/helpers/runtime.js").uiSource(ROOT + '/js/ui.js')));
 
   // 玩家明确要求：**整张岛必须拖着看**，一进地图不能把所有场景热点都送到眼前。
   // 所以这里反着验：地图必须比视口高/宽出可观的一块，且不能有任何自动居中。

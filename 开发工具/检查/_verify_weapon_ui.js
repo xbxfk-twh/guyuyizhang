@@ -185,7 +185,7 @@ const errors = [];
         `getComputedStyle(document.querySelector('#modal .modal-content')).animationName==='modalin'`
       );
       await ev(
-        `(()=>{const panes=[...document.querySelectorAll('.inventory-pane .work-scroll')];panes[0].scrollTop=10;panes[1].scrollTop=120;window.warehouseBefore=panes.map(p=>p.scrollTop);document.querySelector('[data-item="bamboo"]').click();window.warehouseFrames=[];const sample=()=>{const m=document.querySelector('#modal .modal-content');warehouseFrames.push({animation:getComputedStyle(m).animationName,opacity:getComputedStyle(m).opacity,scroll:[...document.querySelectorAll('.inventory-pane .work-scroll')].map(p=>p.scrollTop)});if(warehouseFrames.length<4)requestAnimationFrame(sample);};sample();})()`
+        `(()=>{const panes=[...document.querySelectorAll('.inventory-pane .work-scroll')];panes[0].scrollTop=10;panes[1].scrollTop=120;window.warehouseBefore=panes.map(p=>p.scrollTop);window.warehouseModalNode=document.querySelector('#modal .modal-content');document.querySelector('[data-item="bamboo"]').click();window.warehouseFrames=[];const sample=()=>{const m=document.querySelector('#modal .modal-content');warehouseFrames.push({sameNode:m===warehouseModalNode,animations:m.getAnimations().filter(a=>a.playState==='running'||a.pending).length,opacity:getComputedStyle(m).opacity,scroll:[...document.querySelectorAll('.inventory-pane .work-scroll')].map(p=>p.scrollTop)});if(warehouseFrames.length<4)requestAnimationFrame(sample);};sample();})()`
       );
       await ev(
         `new Promise(resolve=>{const done=()=>warehouseFrames.length===4?resolve():requestAnimationFrame(done);done();})`
@@ -197,7 +197,7 @@ const errors = [];
       );
       await check(
         '存入刷新不重播动画且两侧滚动首帧不跳 ' + w,
-        `warehouseFrames.length===4&&warehouseBefore.every(n=>n>0)&&warehouseFrames.every(f=>f.animation==='none'&&f.opacity==='1'&&JSON.stringify(f.scroll)===JSON.stringify(warehouseBefore))`
+        `warehouseFrames.length===4&&warehouseBefore.every(n=>n>0)&&warehouseFrames.every(f=>f.sameNode&&f.animations===0&&f.opacity==='1'&&JSON.stringify(f.scroll)===JSON.stringify(warehouseBefore))`
       );
       await check(
         '连续存入数量守恒 ' + w,

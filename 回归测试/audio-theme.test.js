@@ -9,7 +9,7 @@
 const fs = require('fs'), path = require('path'), assert = require('node:assert/strict');
 const ROOT = path.resolve(__dirname, '../孤屿遗章-游戏 - 发布');
 const src = fs.readFileSync(path.join(ROOT, 'js/audio.js'), 'utf8');
-const ui = fs.readFileSync(path.join(ROOT, 'js/ui.js'), 'utf8');
+const ui = require("./helpers/runtime.js").uiSource(path.join(ROOT, 'js/ui.js'));
 // ⚠️ 先剥注释再看：两个文件里都留了"这半边删了、那半边留着"的说明注释，
 //    直接 grep 原文会被自己的注释骗过去（这个坑在本项目里反复出现）。
 const NO_COMMENT = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
@@ -100,7 +100,8 @@ for(let i=0;i<30;i++) sampled.play('hit');
 assert.equal(media.length,6,'密集短音效最多六个实例');
 assert.ok(media.every(a=>a.src.endsWith('/hit.mp3')),'命中使用实录素材');
 sampled.playVoice('fishman',0);const spoken=media.at(-1);
-assert.ok(spoken.src.endsWith('/fishman-0.mp3')&&!spoken.paused,'人鱼短句已播放');
+assert.equal(spoken.src,'assets/audio/voices/fishman-0.mp3?v='+JSON.parse(fs.readFileSync(path.join(ROOT,'assets/audio/voices/manifest.json'),'utf8')).revision,'人鱼短句使用当前录音缓存版本');
+assert.ok(!spoken.paused,'人鱼短句已播放');
 sampled.toggleVoice();assert.ok(spoken.paused&&preferences.guyu_voice==='off','关闭角色语音立即停止并记录偏好');
 const count=media.length;sampled.playVoice('fishman',1);assert.equal(media.length,count,'静音不会创建或播放新语音');
 sampled.toggleVoice();sampled.toggleSfx();assert.ok(media.every(a=>a.paused),'关闭音效同时停止短句与音效');

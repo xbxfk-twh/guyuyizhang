@@ -6,7 +6,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..', '..', '孤屿遗章-游戏 - 发布');
 const OUT = path.join(__dirname, '..', '..', '文档', '商店价格表.md');
 const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
-const UI = fs.readFileSync(path.join(ROOT, 'js', 'ui.js'), 'utf8');
+const UI = require("../../回归测试/helpers/runtime.js").uiSource(path.join(ROOT, 'js', 'ui.js'));
 const GAME = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
 const sellMatch = GAME.match(/const SELL_SUP = ([\d.]+);/);
 if (!sellMatch) throw new Error('无法从游戏源码读取收购系数');

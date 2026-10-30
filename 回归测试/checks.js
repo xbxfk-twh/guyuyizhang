@@ -30,7 +30,7 @@ const buildFarm = (id) => { const s = G.S(); const keep = s.scene; s.scene = 'fa
 const RND = Math.random;
 const always = () => 0.0;      // 概率判定必成功
 const never = () => 0.999;     // 概率判定必失败
-const UI = fs.readFileSync(ROOT + '/js/ui.js', 'utf8');
+const UI = JSON.parse(fs.readFileSync(ROOT+'/runtime-manifest.json','utf8')).scripts.filter(name=>name.startsWith('js/ui/views/')||name==='js/ui.js').map(name=>fs.readFileSync(ROOT+'/'+name,'utf8')).join('\n');
 const PANEL_META=new Function(fs.readFileSync(ROOT+'/js/ui/panel-registry.js','utf8')+';return GamePanels.create().snapshot();')();
 const PRESS_SRC=fs.readFileSync(ROOT+'/js/ui/input/press.js','utf8'),SATCHEL_VIEW=fs.readFileSync(ROOT+'/js/ui/food-satchel.js','utf8');
 const _GAME_SRC = JSON.parse(fs.readFileSync(ROOT+'/runtime-manifest.json','utf8')).logic.filter(name=>name!=='js/data.js').map(name=>fs.readFileSync(ROOT+'/'+name,'utf8')).join('\n');   // 供"实现方式"类断言做正则检查
@@ -654,7 +654,7 @@ section('6e. 数据安全（魂点/成就/存档）与难度调整');
   ck('夜袭强度不按难度分（各难度同一套曲线）',
      wolfAt(50, 'easy') === 5 && wolfAt(50, 'legend') === 5 && typeof G.raidWolves === 'function');
   ck('随机夜袭只在首次夜袭之后才可能触发',
-     /S\.flags\.firstRaidDone \|\| S\.day > raidDay\(\)/.test(GAME) && /S\.flags\.firstRaidDone = 1;/.test(GAME));
+     /gameState\.run\.flags\.firstRaidDone \|\| gameState\.run\.day > raidDay\(\)/.test(GAME) && /gameState\.run\.flags\.firstRaidDone = 1;/.test(GAME));
   ck('困难/传奇资源倍率改为 1.0（难度只体现在怪物与死亡规则）',
      DIFFICULTIES.hard.resMul === 1.0 && DIFFICULTIES.legend.resMul === 1.0 && DIFFICULTIES.hard.enemyMul === 1.3 && DIFFICULTIES.legend.enemyMul === 1.6);
   // 砍树彩蛋：所有身份通用，30% 概率 +7 木材
@@ -1167,7 +1167,7 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
      /set-lbl/.test(UI));
   ck('设置里能关掉「当前目标」提示（本机偏好，存 localStorage）',
      /data-set="obj:on"/.test(UI) && /data-set="obj:off"/.test(UI) && /guyuyizhang_obj/.test(UI) &&
-     /st\.scene !== 'camp' \|\| !showObjective/.test(UI));
+     /st\.scene !== 'camp' \|\| !deps\.showObjective/.test(UI));
   ck('每日签到挪到设置面板最上面（第一块就是它）',
      /<div class="help-list">\s*<div class="help-item"><b>图鉴 · 每日签到<\/b>/.test(UI));
   ck('皮肤包要花魂点解锁：深海琥珀 / 彩绘卡面 各 50 魂点',
@@ -1186,7 +1186,7 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
      /--ink:/.test(CSS) && /--ink2:/.test(CSS) && /--gray:/.test(CSS) && /--line:/.test(CSS));
   ck('皮肤会持久化（记在本机，跨存档）',
      /const SKIN_LS_KEY = 'guyuyizhang_skin';/.test(UI) &&
-     /localStorage\.getItem\(SKIN_LS_KEY\)/.test(UI) && /localStorage\.setItem\(SKIN_LS_KEY, JSON\.stringify/.test(UI) &&
+     /localStorage\.getItem\(SKIN_LS_KEY\)/.test(UI) && /localStorage\.setItem\(deps\.SKIN_LS_KEY, JSON\.stringify/.test(UI) &&
      /applySkin\(\);/.test(UI));
   ck('皮肤不压暗图标底（黑墨图标在深色皮肤里不会隐形）',
      /--tile:/.test(CSS) && /body\.skin-accent \.inv-item:hover \{ background: var\(--tile\)/.test(CSS) &&
@@ -1251,7 +1251,7 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
          /const slot = weaponTurnSlot\(\);/.test(_GAME_SRC) && /if \(me\.length >= 2\) _swingTurn = \(_swingTurn \+ 1\) % 2;/.test(_GAME_SRC));
 ck('战斗日志标出所用武器（双持才标；传的是装备槽 id，不是物品对象）',
    /const wTag = usedW \? `〔\$\{wNameOf\(usedW\)\}〕` : '';/.test(_GAME_SRC) &&
-   /const usedW = \(!anyRanged && !C\.thrown && meleeWeapons\(\)\.length > 1\) \? S\.equipment\[weaponTurnSlot\(\)\] : null;/.test(_GAME_SRC) &&
+   /const usedW = \(!anyRanged && !C\.thrown && meleeWeapons\(\)\.length > 1\) \? gameState\.run\.equipment\[weaponTurnSlot\(\)\] : null;/.test(_GAME_SRC) &&
    !/wNameOf\(usedW\.id\)/.test(_GAME_SRC) &&
    /meleeWeapons\(\)\.length > 1/.test(_GAME_SRC));
       // 双手武器占两只手：手上握着双手武器时，不许再装副手武器/盾牌（旧版会把双手武器顶掉，武器像凭空消失）
@@ -1327,7 +1327,7 @@ ck('战斗日志标出所用武器（双持才标；传的是装备槽 id，不�
       // 校准：既修耐久也加命中，且主手副手都能校准
       {
         ck('校准既修耐久也真的提升命中（pistolCalibrated 存档字段）',
-           /S\.pistolCalibrated = true;/.test(_GAME_SRC) &&
+           /gameState\.run\.pistolCalibrated = true;/.test(_GAME_SRC) &&
            /if \(S\.pistolCalibrated === undefined\) S\.pistolCalibrated = false;/.test(_GAME_SRC) &&
            /pistolCalibrated:false/.test(_GAME_SRC));
         G.newGame('fisher', 'normal');
@@ -1562,8 +1562,8 @@ ck('战斗日志标出所用武器（双持才标；传的是装备槽 id，不�
     ck('分镜是 5 格、每格都有正文',
        (UI.match(/\{ t:'[^']+', img:'assets\/img\/comic\//g) || []).length === 5 && /\{ t:'醒来'/.test(UI));
     ck('★ 分镜只在新存档播：freshRun 只在「选难度」那一下置位、begin() 消费',
-       /Game\.newGame\(lastIdentity,\s*lastDifficulty\);[\s\S]{0,130}freshRun = \(e && e\.isTrusted === false\) \? !!window\.__guyuForceComic : true;/.test(UI) &&
-       /if \(freshRun\) \{\s*freshRun = false;/.test(UI));
+       /Game\.newGame\(deps\.lastIdentity,\s*deps\.lastDifficulty\);[\s\S]{0,130}freshRun = \(e && e\.isTrusted === false\) \? !!window\.__guyuForceComic : true;/.test(UI) &&
+       /if \(deps\.freshRun\) \{\s*deps\.freshRun = false;/.test(UI));
     ck('★ 分镜有「跳过」，跳过也有日志、照样进游戏',
        /id="comic-skip"/.test(UI) && /开场分镜已跳过/.test(UI) && /function showComicIntro\(done\) \{/.test(UI));
     ck('分镜翻页带防"开这一页那一下顺手翻一格"（同 #modal 的 350ms）',
@@ -1574,14 +1574,14 @@ ck('战斗日志标出所用武器（双持才标；传的是装备槽 id，不�
     ck('分镜缺图会回退到已有场景图（绝不空白）',
        /img\.onerror = \(\) => \{ if \(img\.src\.indexOf\(c\.fb\) < 0\) img\.src = c\.fb; \}/.test(UI));
     ck('分镜只预加载下一格（省内存），且最后一格文案是「爬上沙滩」',
-       /const preload = \(k\) => \{ if \(COMIC\[k\]\)/.test(UI) && /'爬上沙滩 ▶'/.test(UI));
+       /const preload = \(k\) => \{ if \(deps\.COMIC\[k\]\)/.test(UI) && /'爬上沙滩 ▶'/.test(UI));
     ck('分镜样式齐（满屏插画 + 底部字幕 + 直角按钮）',
        /#comic-screen \{ position: fixed; inset: 0; z-index: 6000/.test(CSS_T) &&
        /\.comic-cap \{/.test(CSS_T) && /\.comic-bar button \{/.test(CSS_T) && /#comic-screen\.lk/.test(CSS_T));
   }
   ck('图鉴不进游戏也能看（账号级）',
      /const st = S\(\) \|\| \{ seen: \{\}, killCount: \{\}, flags: \{\} \};/.test(UI) &&
-     /const seen = \(S && S\.seen\) \|\| \{\};/.test(GAME));
+     /const seen = \(gameState\.run && gameState\.run\.seen\) \|\| \{\};/.test(GAME));
   // 更新公告：批准后进邮箱、每个版本只发一次、点「知道了」移除
   {
     const note=PATCH_NOTES.find(n=>n.version==='v1.10');
@@ -1629,7 +1629,7 @@ section('7. 收尾：休息时长 / 夜袭 / 存档');
        G.S().day === 2 && Math.round(G.S().stats.stamina) === 70 && savedStam() === 70,
        '第' + G.S().day + '天 内存 ' + Math.round(G.S().stats.stamina) + ' / 存档 ' + savedStam());
   }
-  ck('界面里有休息时长循环按钮', /btn-rest-h/.test(UI) && /restHours = \(restHours % 3\) \+ 1/.test(UI));
+  ck('界面里有休息时长循环按钮', /btn-rest-h/.test(UI) && /deps\.restHours = \(deps\.restHours % 3\) \+ 1/.test(UI));
   // 午觉：任何状态下都不该倒扣生命
   function sleepTrial(mode, hour, st3) {
     G.newGame('fisher', 'normal');
@@ -2677,7 +2677,7 @@ section('7l. 牧场（鸡舍/羊圈）与草地陷阱');
        /function collectDailyReport\(\)/.test(_GAME_SRC) && /rep\.ranch = livestockNewDay\(\);/.test(_GAME_SRC) &&
        /rep\.trap = resolveTrapDaily\(\);/.test(_GAME_SRC));
     ck('newDay 里调用晨报，并在有内容时弹窗', /collectDailyReport\(\);/.test(_GAME_SRC) &&
-       /if \(S\.day > 1 && S\.dailyReport && onOverlay\)/.test(_GAME_SRC) && /ranchHasNews \|\| trapHasNews/.test(_GAME_SRC));
+       /if \(gameState\.run\.day > 1 && gameState\.run\.dailyReport && deps\.onOverlay\)/.test(_GAME_SRC) && /ranchHasNews \|\| trapHasNews/.test(_GAME_SRC));
     // ⚠️ 白名单在 2026-09-25 多了 'winter'（冬季来临弹窗），断言跟着扩 —— 这条本来就是
     //    "新加弹窗别漏了往白名单里补"，所以它拦住过我们一次正是它该干的事。
     ck("ui 的 onOverlay 白名单包含 'daily' / 'fishman' / 'winter'（漏了会渲染成空壳窗口）",
@@ -2850,9 +2850,9 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
   ck('地图放大出纵向余量，可上下拖动', /function bindMapPan\(\)/.test(UI) && /function bindPan\(sel, getPan, setPan, settle\)/.test(UI) && /addEventListener\('pointermove'/.test(UI) && /addEventListener\('wheel'/.test(UI));
   ck('拖动时热点与底图一起移动（同一套坐标；横向恒为 0）',
      /function applyBox\(sel, box, panY, panX\)/.test(UI) &&
-     /applyBox\('#map-img', box, mapPanY, 0\)/.test(UI) && /applyBox\('#map-arrows', box, mapPanY, 0\)/.test(UI) &&
+     /applyBox\('#map-img', box, deps\.mapPanY, 0\)/.test(UI) && /applyBox\('#map-arrows', box, deps\.mapPanY, 0\)/.test(UI) &&
      /mapPanX = 0;/.test(UI));
-  ck('场景也铺满，热点/建筑跟着图片内容一起缩放', /applyBox\('#scene-img', box, scenePanY\)/.test(UI) && /applyBox\('#hotspots', box, scenePanY\)/.test(UI) && /applyBox\('#camp-buildings', box, scenePanY\)/.test(UI));
+  ck('场景也铺满，热点/建筑跟着图片内容一起缩放', /applyBox\('#scene-img', box, deps\.scenePanY\)/.test(UI) && /applyBox\('#hotspots', box, deps\.scenePanY\)/.test(UI) && /applyBox\('#camp-buildings', box, deps\.scenePanY\)/.test(UI));
   // 作者明确要求：热点像印在地图上，随图滑动、被屏幕裁掉就自然滑出去，
   // **不许突然出现/消失，不许有独立位移**。（曾做过"滑出画面的整条隐藏"，已拆掉）
   ck('热点不做任何显隐判定（滑出画面就跟着地图滑出去，不突然消失）',
@@ -2915,7 +2915,7 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
      !/needX/.test(UI) && !/maxPanX/.test(UI) && !/clampPanX/.test(UI) &&
      /const w = bw, h = ih \* \(bw \/ iw\);/.test(UI));
   ck('★ 纵向余量算得出来（高度超出舞台才可上下拖，且拖不出空白）',
-     /mapPanY = Math\.max\(-box\.maxPan, Math\.min\(box\.maxPan, mapPanY\)\);/.test(UI) &&
+     /deps\.mapPanY = Math\.max\(-box\.maxPan, Math\.min\(box\.maxPan, deps\.mapPanY\)\);/.test(UI) &&
      !/MAP_KEY_L/.test(UI) && !/MAP_KEY_R/.test(UI));
   // 玩家/作者反馈的坐标微调：山顶要贴山峰上部、竹林不许贴左边缘（还要和采石场错开，别让标签连成一片）
   {
@@ -3278,8 +3278,8 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
     const mk = (diff) => { G.newGame('fisher', diff); return G.S(); };
     ck('代码里有传奇门槛判定（公告不算物资）',
        /function mailIsSupply\(g\) \{ return !!\(g && !g\.notice && \(g\.item \|\| g\.relic \|\| g\.soul \|\| g\.adCoins\)\); \}/.test(_GAME_SRC) &&
-       /S\.difficulty === 'legend' && mailIsSupply\(g\)/.test(_GAME_SRC) &&
-       /S\.difficulty === 'legend' && \(g\.soul \|\| g\.item \|\| g\.relic \|\| \(g\.mails/.test(_GAME_SRC));
+       /gameState\.run\.difficulty === 'legend' && mailIsSupply\(g\)/.test(_GAME_SRC) &&
+       /gameState\.run\.difficulty === 'legend' && \(g\.soul \|\| g\.item \|\| g\.relic \|\| g\.adCoins \|\| \(g\.mails/.test(_GAME_SRC));
     // 传奇：四类物资都领不了，且邮件不被消耗
     clearMB([{ notice:'vT', title:'公告', body:'x' }, { item:'beibi', qty:100 }, { item:'coin', qty:50 }, { relic:'vampire' }, { soul:100 }]);
     mk('legend');
@@ -3325,11 +3325,11 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
       const mb = UI.slice(start, nxt > 0 ? nxt : start + 3000);
       // ⚠️ 先剥掉注释：注释里可能正好写着 "if (mailTab === 'mail')" 这种字样，会把定位带偏
       const code = mb.replace(/\/\/[^\n]*/g, '');
-      const ifPos = code.indexOf("if (mailTab === 'mail')");
+      const ifPos = code.indexOf("if (deps.mailTab === 'mail')");
       const beforeIf = ifPos > 0 ? code.slice(0, ifPos) : '';
       ck('mailboxModal 的多分支共用变量都声明在 if 外面（isLegend / st）',
          /const isLegend = /.test(beforeIf) && /const st = /.test(beforeIf) &&
-         !/if \(mailTab === 'mail'\) \{[\s\S]{0,400}?const isLegend/.test(code));
+         !/if \(deps\.mailTab === 'mail'\) \{[\s\S]{0,400}?const isLegend/.test(code));
       const rh = (UI.match(/function renderHotspots\(\)[\s\S]*?\n  \}/) || [''])[0];
       ck('renderHotspots 的模板变量也一样（rewardMissing 的老坑）',
          /let rewardMissing = false;/.test(rh) && /let ritualReady = false;/.test(rh));
@@ -3343,7 +3343,7 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
     ck('★ 会主动花时间的面板不在名单里（营地/制造/交易/耕地…，否则功能被关掉）',
        ['camp','craft','laochao','town','black','farm','sleeppick','grind','repair','naming'].every(x => !list.includes(x)));
     ck('open 时设置冻结、closeModal 时恢复',
-       /Game\.setTimeFreeze\(!!panels.get\(kind\).freeze\)/.test(UI) &&
+       /Game\.setTimeFreeze\(!!deps\.panels.get\(kind\).freeze\)/.test(UI) &&
        /function closeModal\(\)[\s\S]*?Game\.setTimeFreeze\(false\)[\s\S]*?function rerenderEquip/.test(UI));
     ck('addMin 在冻结时直接返回（连 tick 都不加）',
        /function addMin\(m\) \{[\s\S]{0,160}if \(timeFrozen\(\)\) return false;/.test(_GAME_SRC));
@@ -3369,11 +3369,11 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
   // ===== 玩家反馈：盐镇买完东西会跳回第一个摊位（杂货商）=====
   {
     ck('集市记住当前摊位（买完重建弹窗后不跳回杂货商）',
-       /let townShopNow = 'grocer';/.test(UI) && /id === townShopNow \? 'active' : ''/.test(UI) &&
+       /let townShopNow = 'grocer';/.test(UI) && /id === deps\.townShopNow \? 'active' : ''/.test(UI) &&
        /townShopNow = b\.dataset\.shop;/.test(UI) &&
        !/<button class="tab active" data-shop="grocer">/.test(UI),
        'tab 的 active 由 townShopNow 决定');
-    ck('声望不够时回退到杂货商（不卡在锁着的摊位）', /needFame > fame\) townShopNow = 'grocer';/.test(UI));
+    ck('声望不够时回退到杂货商（不卡在锁着的摊位）', /needFame > fame\) deps\.townShopNow = 'grocer';/.test(UI));
     ck('批量买卖返回集市时也停在原摊位', /townShopNow = shop;/.test(UI));
   }
   // ===== 玩家反馈的"点集市/告示板弹出空壳窗口"（我改弹窗类点位时引入的回归）=====
@@ -3447,8 +3447,8 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
   // 于是 adventure() 一进去就读到自己刚打的标记，直接跳到"这里已被搜刮"，遗物永远拿不到。
   {
     ck('一次性 adventure 点位不再提前打标记（否则奖励永远拿不到）',
-       /if \(p\.once && p\.type !== 'adventure'\) S\.flags\['pt_'\+p\.id\] = 1;/.test(_GAME_SRC) &&
-       /const markDone = \(\) => \{ if \(p\.once\) S\.flags\['pt_' \+ p\.id\] = 1; \};/.test(_GAME_SRC));
+       /if \(p\.once && p\.type !== 'adventure'\) gameState\.run\.flags\['pt_'\+p\.id\] = 1;/.test(_GAME_SRC) &&
+       /const markDone = \(\) => \{ if \(p\.once\) gameState\.run\.flags\['pt_' \+ p\.id\] = 1; \};/.test(_GAME_SRC));
     ck('三个一次性冒险点的领奖回调都调了 markDone',
        (_GAME_SRC.match(/markDone\(\);/g) || []).length >= 3, '调用 ' + (_GAME_SRC.match(/markDone\(\);/g) || []).length + ' 处');
     ck('老存档抢救：标记已打但奖励没拿 → 点位放出来',
@@ -3548,7 +3548,7 @@ section('7p. 界面手感：立体底栏 / 点击音 / 雨丝');
 ck('底栏 30px（手机端也一样高；日志底边跟着走）', /:root \{ --navh: 30px; \}/.test(CSS) && /#log\.overlap \{ top: 30px; bottom: var\(--navh\);/.test(CSS));
   // 进地图不再对准任何地方：地图停在哪由玩家自己拖（玩家明确要求整张岛拖着看）
   ck('★ 地图平移只由拖动决定（没有"欠着一次自动对准"的残留）',
-     !/mapCenterY/.test(UI) && /bindPan\('#map-wrap', \(\) => mapPanY, \(v\) => \{ mapPanY = v; applyMapPan\(\); \}/.test(UI));
+     !/mapCenterY/.test(UI) && /bindPan\('#map-wrap', \(\) => deps\.mapPanY, \(v\) => \{ deps\.mapPanY = v; applyMapPan\(\); \}/.test(UI));
   // 雨：短雨丝 + 不规则（SVG 短线贴图，不再是密排直线）
   ck('雨丝变短且不再整齐排列', /data:image\/svg\+xml;utf8,<svg[\s\S]{0,200}<line/.test(CSS) && /@keyframes rainfall/.test(CSS) && !/repeating-linear-gradient\(102deg/.test(CSS));
   ck('雨丝比原来细/淡（不再糊满屏）', /stroke-width='1\.[56]'/.test(CSS) && /opacity: 0\.7[0-9];/.test(CSS) && (CSS.match(/<line /g) || []).length < 40);
@@ -3693,7 +3693,7 @@ section('10. 战斗血条不再"卡住"（玩家反馈：怪掉血了血条不�
   ck('开新战斗时会清掉上一场残留的待选目标（黄框/误触发）',
     UI.includes('fightSeq++;') && UI.includes('ids:new WeakMap()') && UI.includes('selected:null'));
   ck('上一场结束的 1 秒关窗定时器不会顺手清掉新战斗的窗口',
-    UI.includes('const seq=fightSeq;') && UI.includes('if(seq!==fightSeq)return;'));
+    UI.includes('const seq=deps.fightSeq;') && UI.includes('if(seq!==deps.fightSeq)return;'));
 }
 
 section('11. 玩家反馈（蛛巢白扣体力 / 救了四个小满 / 双持不打耐久 / 工具栏挂空壳 / 引导跳过）');
@@ -3749,9 +3749,9 @@ section('11. 玩家反馈（蛛巢白扣体力 / 救了四个小满 / 双持不�
       ck('珍珠之心的源能水晶爆率 = 50%', !!ec && ec.chance === 0.5, ec ? ('chance=' + ec.chance) : '没找到');
     }
   // ③ 一次性点位必须真的只做一次
-  ck('救小满成功会打一次性标记（不再"救了四个小满"）', /S\.flags\.xiaoman = 1; markDone\(\)/.test(_GAME_SRC));
+  ck('救小满成功会打一次性标记（不再"救了四个小满"）', /gameState\.run\.flags\.xiaoman = 1; markDone\(\)/.test(_GAME_SRC));
   ck('荒漠白骨包裹搜完就打标记（不再无限刷金币）', /markDone\(\); addMin\(20\)/.test(_GAME_SRC));
-  ck('小满已在营地时求救点位直接关闭（老存档也能收口）', /p\.id === 'sea_rescue' && S\.flags\.xiaoman/.test(_GAME_SRC));
+  ck('小满已在营地时求救点位直接关闭（老存档也能收口）', /p\.id === 'sea_rescue' && gameState\.run\.flags\.xiaoman/.test(_GAME_SRC));
   // ④ 工具栏不能挂已经用坏、已经从背包里消失的工具
   {
     G.newGame('fisher', 'normal');
@@ -3797,7 +3797,7 @@ section('11. 玩家反馈（蛛巢白扣体力 / 救了四个小满 / 双持不�
      /已点亮 ' \+ lights\.filter\(v => v\)\.length \+ '\/9'/.test(UI) && /全亮了！/.test(UI));
   // ⑬ 防点击穿透：打开弹窗那一下不能顺手把弹窗里的第一个按钮也点了（玩家反馈"单击直接睡俩小时"）
   ck('★ 弹窗刚打开的 200ms 内忽略落在弹窗里的点击（防"点一下触发两个按钮"）',
-     /let modalOpenedAt = 0;/.test(UI) && /if\(!samePanel\)modalOpenedAt=openedNow;/.test(UI) && /const openedNow = Date\.now\(\);/.test(UI) &&
+     /let modalOpenedAt = 0;/.test(UI) && /if\(!samePanel\)deps\.modalOpenedAt=openedNow;/.test(UI) && /const openedNow = Date\.now\(\);/.test(UI) &&
      /Date\.now\(\) - modalOpenedAt < 350 && mm\.contains\(e\.target\)/.test(UI) &&
      /document\.addEventListener\('click', \(e\) => \{/.test(UI) && /\}, true\);/.test(UI));
   // ⑭ 新身份「养蜂人」+ 专属家具「蜂箱」
@@ -3856,7 +3856,7 @@ section('11. 玩家反馈（蛛巢白扣体力 / 救了四个小满 / 双持不�
     ck('★ 养蜂人取蜜有额外收获（平均 >1 份）', honey / trials > 1.05, '平均 ' + (honey / trials).toFixed(2) + ' 份/次');
     ck('家具面板只给该身份显示专属家具（别的身份看不到蜂箱）',
        /if \(f\.onlyIdentity && st\.identity !== f\.onlyIdentity\) continue;/.test(UI) &&
-       /if \(f\.onlyIdentity && S\.identity !== f\.onlyIdentity\)/.test(_GAME_SRC));
+       /if \(f\.onlyIdentity && gameState\.run\.identity !== f\.onlyIdentity\)/.test(_GAME_SRC));
   // ⑮ 立绘卡面：受皮肤包控制 + 缺图回退
     ck('★ 有「彩绘卡面」皮肤包，可整套替换人物立绘',
        /id: 'card',\s+name: '彩绘卡面'/.test(UI) && /portrait: 'identities-card'/.test(UI));
@@ -3887,7 +3887,7 @@ section('11. 玩家反馈（蛛巢白扣体力 / 救了四个小满 / 双持不�
        'tank=' + s.furniture.tank + ' rainfilter=' + s.furniture.rainfilter);
     ck('水壶系不占家具位（升完级占用不变）', G.furnitureUsed() === before, before + ' → ' + G.furnitureUsed());
     ck('口渴效果判定把"水壶或滤雨器"都算作有水壶',
-       /const hasTank = !!\(S\.furniture\.tank \|\| S\.furniture\.rainfilter\);/.test(_GAME_SRC));
+       /const hasTank = !!\(gameState\.run\.furniture\.tank \|\| gameState\.run\.furniture\.rainfilter\);/.test(_GAME_SRC));
     ck('属性面板：没建水壶就整条不显示，建了才写效果（不再出现看不懂的"未装备水壶"）',
        /if \(cs\.tank \|\| st\.furniture\.rainfilter\) \{/.test(UI) && !/row\('水壶', cs\.tank \? '已建/.test(UI));
   }
@@ -3926,7 +3926,7 @@ section('11. 玩家反馈（蛛巢白扣体力 / 救了四个小满 / 双持不�
     } else ck('骸骨包裹：弹窗里能拿到"搜刮包裹"选项', false, ov2 ? ov2.title : '没弹窗');
     ck('投递/选项加了统一兜底（拿过奖励的点位同一弹窗内不能再点）',
        /const showOnce = \(opts\) => \{/.test(_GAME_SRC) &&
-       /if \(p\.once && S\.flags\['pt_' \+ p\.id\] && !altarReady\(p\) && !onceRewardMissing\(p\)\) \{ log\(pointStatus\(p\)/.test(_GAME_SRC) &&
+       /if \(p\.once && gameState\.run\.flags\['pt_' \+ p\.id\] && !altarReady\(p\) && !onceRewardMissing\(p\)\) \{ log\(pointStatus\(p\)/.test(_GAME_SRC) &&
        /showOnce\(\{ title:'求救信号'/.test(_GAME_SRC));
     G.bind({ onOverlay: null });
   }
@@ -3984,7 +3984,7 @@ section('11. 玩家反馈（蛛巢白扣体力 / 救了四个小满 / 双持不�
   }
   // ⑤ 新手引导"跳过"：ui.js 里不许再出现裸的 change()（那是 game.js 内部函数，UI 里根本不存在）
   ck('界面里不再调用不存在的 change()（引导"跳过"以前点了没反应）',
-     !/[^.\w]change\(\)/.test(UI) && /s\.tut = null; Game\.change\(\)/.test(UI));
+     !/[^.\w]change\(\)/.test(UI) && /Game\.skipTutorial\(\)/.test(UI));
 }
 
 // ============================================================
@@ -4214,9 +4214,9 @@ section('9b. 赶路遇袭不能关 / 山洞洞穴熊');
     ck('★ 实测：设了"关"也照样会被拦路', ambushed === true, String(ambushed));
   }
   ck('★ 山洞内的狩猎点不再过滤 minDay（洞内一直可能遇到洞穴熊）',
-     /const caveNow = \/\^cave_\/\.test\(p\.id \|\| ''\)/.test(_GAME_SRC) && /\(caveNow \|\| !e\.minDay \|\| S\.day >= e\.minDay\)/.test(_GAME_SRC));
+     /const caveNow = \/\^cave_\/\.test\(p\.id \|\| ''\)/.test(_GAME_SRC) && /\(caveNow \|\| !e\.minDay \|\| gameState\.run\.day >= e\.minDay\)/.test(_GAME_SRC));
   ck('洞外拦路的洞穴熊仍然第 30 天起（没被一起放开）',
-     /pool\.filter\(id => ENEMIES\[id\] && \(!ENEMIES\[id\]\.minDay \|\| S\.day >= ENEMIES\[id\]\.minDay\)\)/.test(_GAME_SRC));
+     /pool\.filter\(id => ENEMIES\[id\] && \(!ENEMIES\[id\]\.minDay \|\| gameState\.run\.day >= ENEMIES\[id\]\.minDay\)\)/.test(_GAME_SRC));
 }
 
 section('9c. 历代遗章：各技能模块初始经验');
@@ -4572,7 +4572,7 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
   }
   // ④ 采集磨损必须扣"工具栏里在用的那把"，不是背包里最好的那把
   ck('★ 采集磨损扣工具栏里那把（不是背包里等级最高的）',
-     /const inKit = \(S\.toolkit \|\| \[\]\)\.filter\(id => id && ITEMS\[id\] && ITEMS\[id\]\.tool && ITEMS\[id\]\.tool\.kind === kind/.test(_GAME_SRC));
+     /const inKit = \(deps\.state\.run\.toolkit \|\| \[\]\)\.filter\(id => id && ITEMS\[id\] && ITEMS\[id\]\.tool && ITEMS\[id\]\.tool\.kind === kind/.test(_GAME_SRC));
   {
     G.newGame('fisher', 'normal'); const s = G.S(); s.tut = null; s.capacity = 99;
     G.addItem('axeStone', 1, true); G.addItem('axeSteel', 1, true);
@@ -4761,7 +4761,7 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
     }
     // 安全模式不再把"只打开标题页"当成崩溃
     ck('★ 标题页画出来就算"启动成功"（以前只开标题页也计一次崩溃 → 安全模式误报）',
-       /const go = \(\) => \{ showTitle\(\); noteBootOk\(\);/.test(UI) && /guyuyizhang_savecrash/.test(UI) &&
+       /const finish = \(\) => \{ Game.initializeStorage\(\);applySkin\(\);showTitle\(\); noteBootOk\(\);/.test(UI) && /await bridge.initialize\(Game.validSave\)/.test(UI) && /guyuyizhang_savecrash/.test(UI) &&
        /if \(crashes >= 2 \|\| inGame >= 2\) showSafeMode/.test(UI));
   }
 }
@@ -4991,7 +4991,7 @@ section('12. 第三批体验功能（危险反馈 / 批量提示 / 灵灰 / 贝�
     ck('★ 20% 未命中时只说话、不发资源（不每天刷资源）',
        lg2.some(t => SPEAK.test(t)) && !lg2.some(t => GIFT.test(t)), '台词=' + lg2.some(t => SPEAK.test(t)) + ' 资源=' + lg2.some(t => GIFT.test(t)));
     ck('★ 资源只能每天一次（同一天 newDay 只跑一次，不会反复触发）',
-       _GAME_SRC.includes("S.identity === 'linghui'") && _GAME_SRC.includes('chance(0.2)') && _GAME_SRC.includes("pool = [['wood',2]"));
+       _GAME_SRC.includes("gameState.run.identity === 'linghui'") && _GAME_SRC.includes('chance(0.2)') && _GAME_SRC.includes("pool = [['wood',2]"));
     G.bind({ onLog: null, onOverlay: null });
   }
   // ④ 兑换（作者 2026-09-25 改为**双向**）：贝壳→金币 50:1、金币→贝壳 1:30；
@@ -5107,7 +5107,7 @@ section('13. 数值调整落地（吸血/弓术/药师/珍珠/收购/声望/木�
   {
     const fameSources = (LAOCHAO.commissions || []).filter(m => m.reward && m.reward.fame).length;
     ck('★ 声望上限 5、岛主门槛 4，且声望来源足够（≥4 条）',
-       /Math\.min\(5, Math\.round\(\(S\.fame/.test(_GAME_SRC) && /S\.fame >= 4/.test(_GAME_SRC) && fameSources >= 4,
+       /Math\.min\(5, Math\.round\(\(gameState\.run\.fame/.test(_GAME_SRC) && /gameState\.run\.fame >= 4/.test(_GAME_SRC) && fameSources >= 4,
        '声望来源 ' + fameSources + ' 条');
     ck('★ UI 小数声望显示同步到 5 上限', /Number\(fame \|\| 0\)\.toFixed\(2\)/.test(UI) && !/repeat\(5-fame\)/.test(UI));
   }
@@ -5178,7 +5178,7 @@ section('14. 数值平衡清单落地（活刷魂 / 双持 / 乘算封顶 / 火�
     //    直接对全文匹配会被它自己绊倒（这个坑已经踩过好几次了）。
     const src = _GAME_SRC.replace(/\/\/[^\n]*/g, '');
     ck('★ P0-1 回溯保留已结算状态（不再 metaSettled = 0）',
-       /next\.flags\.metaSettled = S\.flags\.metaSettled \|\| 0;/.test(src) &&
+       /next\.flags\.metaSettled = gameState\.run\.flags\.metaSettled \|\| 0;/.test(src) &&
        !/next\.flags\.metaSettled = 0;/.test(src));
     // 行为级：结算过的档回溯后，结算标记仍在
     G.newGame('fisher', 'normal');
@@ -5203,7 +5203,7 @@ section('14. 数值平衡清单落地（活刷魂 / 双持 / 乘算封顶 / 火�
   // P1-4 分区随机事件能触发（re_shark / re_pirates 都挂着 cond.zone，靠这里的掷骰才遇得到）
   {
     ck('★ P1-4 进入分区也会掷随机事件（带 zone 条件的奇遇才遇得到）',
-       /if \(!S\.combat && chance\(0\.1\)\) triggerRandomEvent\(S\.scene\);/.test(_GAME_SRC));
+       /if \(!gameState\.run\.combat && chance\(0\.1\)\) triggerRandomEvent\(gameState\.run\.scene\);/.test(_GAME_SRC));
     ck('★ P1-4「神秘商人」已按作者要求删除（亚特兰蒂斯之种只能从海底鱼人换）',
        !/re_peddler/.test(_DATA_SRC.replace(/\/\/[^\n]*/g, '')));
     // 之种的唯一来源：海底神秘鱼人以物换物（发到 S.relics 神物槽，不是背包物品）
@@ -5240,8 +5240,8 @@ section('14. 数值平衡清单落地（活刷魂 / 双持 / 乘算封顶 / 火�
   }
   // P1-5 once 事件选择后才消耗
   ck('★ P1-5 once 奇遇"做出选择才消耗"（不再不选也吃掉）',
-     /if \(ev\.once\) S\.flags\['re_'\+ev\.id\] = 1;\s*\/\/ ← 选择之后才消耗/.test(_GAME_SRC) &&
-     !/if \(ev\.once\) S\.flags\['re_'\+ev\.id\] = 1;\n\s*log\(`【奇遇】/.test(_GAME_SRC));
+     /if \(ev\.once\) gameState\.run\.flags\['re_'\+ev\.id\] = 1;\s*\/\/ ← 选择之后才消耗/.test(_GAME_SRC) &&
+     !/if \(ev\.once\) gameState\.run\.flags\['re_'\+ev\.id\] = 1;\n\s*log\(`【奇遇】/.test(_GAME_SRC));
   // P2-1 ironImmune：作者 2026-09-23 要求**整条撤销**（金属武器数值本身就高，不需要额外豁免）
   {
     const code = _GAME_SRC.replace(/\/\/[^\n]*/g, '');
@@ -5454,10 +5454,10 @@ section('17. 老潮兑换行（贝壳 ⇄ 金币，与出售同一套）');
      /m\.querySelectorAll\('\[data-choice\]'\)\.forEach\(b => b\.onclick = \(\) => \{[^}]*?closeModal\(\);[^}]*?c\.ok\(\);/.test(U));
   // 真机行为（结算金额、确认前不扣、取消不动）由浏览器探针兜底
   ck('★ 17.8 exchangeShells 仍然是"花多少扣多少"（amount 由贝壳数算出，不是固定 1）',
-     /const amount = Math\.max\(1, Math\.min\(n \|\| 1, Math\.floor\(invCount\('beibi'\) \/ SHELL_PER_COIN\)\)\);/.test(_GAME_SRC));
+     /const amount = Math\.max\(1, Math\.min\(n \|\| 1, Math\.floor\(invCount\('beibi'\) \/ deps\.SHELL_PER_COIN\)\)\);/.test(_GAME_SRC));
   ck('★ 17.9 exchangeGold 同理：按金币数算 amount，一次清零（不是固定换 1 枚）',
      /const amount = Math\.max\(1, Math\.min\(n \|\| 1, invCount\('coin'\)\)\);/.test(_GAME_SRC) &&
-     /addItem\('beibi', amount \* SHELL_FOR_COIN, true\)/.test(_GAME_SRC));
+     /addItem\('beibi', amount \* deps\.SHELL_FOR_COIN, true\)/.test(_GAME_SRC));
 }
 
 // ============================================================
@@ -5516,17 +5516,17 @@ section('20. 皮肤包可多选（各开各的开关 + 老格式兼容）');
 {
   const U = UI;
   ck('★ 20.1 皮肤状态是**集合**（skinSet），不再是单个 skin 变量',
-     /let skinSet = \(\(\) => \{[\s\S]{0,220}?new Set\(\)/.test(U) && /function skinOn\(id\) \{ return skinSet\.has\(id\); \}/.test(U));
+     /let skinSet = \(\(\) => \{[\s\S]{0,220}?new Set\(\)/.test(U) && /function skinOn\(id\) \{ return deps\.skinSet\.has\(id\); \}/.test(U));
   ck('★ 20.2 旧的单选变量 skin 已彻底不存在（没有半改的痕迹）',
      !/skin === '/.test(U) && !/function setSkin\(/.test(U) && !/function skinCls\(/.test(U));
   ck('★ 20.3 老存档兼容：以前存的是裸字符串 id，现在存 JSON 数组',
      /arr = Array\.isArray\(j\) \? j : \[j\]/.test(U) && /catch \(e\) \{ arr = \[raw\]; \}/.test(U));
-  ck('★ 20.4 写回时是数组', /localStorage\.setItem\(SKIN_LS_KEY, JSON\.stringify\(\[\.\.\.skinSet\]\)\)/.test(U));
+  ck('★ 20.4 写回时是数组', /localStorage\.setItem\(deps\.SKIN_LS_KEY, JSON\.stringify\(\[\.\.\.deps\.skinSet\]\)\)/.test(U));
   ck('★ 20.5 墨白原味不是"一种皮肤"，是全部关掉的基准（不进集合）',
      /arr\.filter\(id => id !== 'ink' && SKINS\.some\(s => s\.id === id\)\)/.test(U) &&
-     /if \(!SKINS\.some\(s => s\.id === id\) \|\| id === 'ink' \|\| !Game\.skinOwned\(id\)\) return;/.test(U));
+     /if \(!deps\.SKINS\.some\(s => s\.id === id\) \|\| id === 'ink' \|\| !Game\.skinOwned\(id\)\) return;/.test(U));
   ck('★ 20.6 没拥有的会被踢掉（改档/换账号后不留"标着开启却没效果"的虚标）',
-     /for \(const id of \[\.\.\.skinSet\]\) if \(!Game\.skinOwned\(id\)\) skinSet\.delete\(id\);/.test(U));
+     /for \(const id of \[\.\.\.deps\.skinSet\]\) if \(!Game\.skinOwned\(id\)\) deps\.skinSet\.delete\(id\);/.test(U));
   ck('★ 20.7 匠心彩绘或全彩地图包使装备图集上色', /const colored = skinOn\('armory'\) \|\| skinOn\('seasons'\);/.test(U));
   ck('★ 20.8 深海琥珀：物品图标彩色目录改走 skinOn(\'accent\')',
      /skinOn\('accent'\) && ACCENT\[id\]/.test(U) && /ALWAYS_COLOR\[id\] \|\| \(skinOn\('accent'\)/.test(U));
@@ -5539,7 +5539,7 @@ section('20. 皮肤包可多选（各开各的开关 + 老格式兼容）');
      /function sceneImagePath\(scene, zoneKey, basePath\) \{[\s\S]{0,120}?if \(!skinOn\('seasons'\)\) return basePath;/.test(U) &&
      /const COLOR_ATLANTIS_SCENES = new Set\(/.test(U));
   ck('★ 20.10 彩绘卡面：立绘目录按"开着且自带 portrait 的皮肤"取',
-     /const s = SKINS\.find\(x => skinOn\(x\.id\) && x\.portrait\);/.test(U));
+     /const s = deps\.SKINS\.find\(x => skinOn\(x\.id\) && x\.portrait\);/.test(U));
   ck('★ 20.11 界面配色是逐套 toggle，不是"等于才加"',
      /document\.body\.classList\.toggle\(s\.cls, skinOn\(s\.id\)\)/.test(U));
   ck('★ 20.12 设置面板的皮肤按钮按"开/关"高亮（多选开关）',
@@ -5550,11 +5550,11 @@ section('20. 皮肤包可多选（各开各的开关 + 老格式兼容）');
   ck('★ 20.13 有点一下开、再点一下关的处理',
      /const wasOn = skinOn\(id\);/.test(U) && /enableSkin\(id, !wasOn\);/.test(U));
   ck('★ 20.14 有「墨白原味（全部关闭）」一键复位',
-     /btn\('skinoff:1', '墨白原味（全部关闭）', skinSet\.size === 0\)/.test(U) &&
-     /function clearSkins\(\) \{ skinSet\.clear\(\); saveSkins\(\); applySkin\(\); \}/.test(U));
+     /btn\('skinoff:1', '墨白原味（全部关闭）', deps\.skinSet\.size === 0\)/.test(U) &&
+     /function clearSkins\(\) \{ deps\.skinSet\.clear\(\); saveSkins\(\); applySkin\(\); \}/.test(U));
   ck('★ 20.15 解锁后直接开启那一套（不用再点一次）', /enableSkin\(id, true\);/.test(U));
   ck('★ 20.16 皮肤名会列出全部已开启的（日志与设置面板都要看得懂）',
-     /const on = SKINS\.filter\(s => skinOn\(s\.id\)\)\.map\(s => s\.name\);/.test(U) && /on\.join\(' \+ '\)/.test(U));
+     /const on = deps\.SKINS\.filter\(s => skinOn\(s\.id\)\)\.map\(s => s\.name\);/.test(U) && /on\.join\(' \+ '\)/.test(U));
   // 作者 2026-09-25："皮肤包的介绍我感觉有点冗杂了，去掉吧"
   //   → 设置里那块皮肤条目只剩「当前：…」一行 + 五个开关，四条皮肤的长说明整段删掉。
   //   浏览器探针 _verify_skins.js 会实测"说明只剩 1 个 span、五个开关都在"。
@@ -5665,12 +5665,12 @@ section('21. 新手引导 / 家具位 / 体力上限 / 新菜谱');
     ck('★ 21.13 床加成不会绕过精神打折', G.maxStam() < base + 20, '精神10 时 maxStam=' + G.maxStam());
   }
   ck('★ 21.14 新局引导从第 0 步（看背包）开始，不再直接跳到"做石镐"',
-     /S\.tut = 0;/.test(_GAME_SRC) && !/S\.tut = \(S\.inv && S\.inv\.pickStone > 0\)/.test(_GAME_SRC));
+     /gameState\.run\.tut = 0;/.test(_GAME_SRC) && !/gameState\.run\.tut = \(gameState\.run\.inv && gameState\.run\.inv\.pickStone > 0\)/.test(_GAME_SRC));
   ck('★ 21.15 引导第 0 步的文案提到【背包】', /step === 0 \? '新手引导：先点底部【背包】/.test(U));
   ck('★ 21.16 第 0 步不会被 `if \(!step\)` 当成"没有引导"吞掉（0 是假值，必须单独判）',
      /if \(!step && step !== 0\) \{ if \(t\) t\.remove\(\); return; \}/.test(U));
   ck('★ 21.17 打开背包会把引导推到下一步（已自带工具就直接去装备）',
-     /function tutAfterBag\(\)/.test(U) && /some\(id => ITEMS\[id\] && ITEMS\[id\]\.tool\) \? 2 : 1;/.test(U) &&
+     /function tutAfterBag\(\)/.test(U) && /Game\.tutorialBagViewed\(\)/.test(U) &&
      /else if \(n === 'inv'\) \{ tutAfterBag\(\); showModal\('inv'\); \}/.test(U));
   // ⚠️ 必须剥掉注释再查：我在这两处都写了「原来写的是"生起篝火、搭好帐篷"」的说明注释，
   //    不剥的话断言会被自己的注释骗到（这个坑本项目已经踩过好几次）。
@@ -5885,7 +5885,7 @@ section('22. 亚克兰蒂斯资源链自洽（可达性闭包）');
   }
   // ---- ⑧ 下水门槛一致：进海要潜水服+氧气罩；脱了要扣血 ----
   ck('★ 22.13 进亚特兰蒂斯要潜水服 + 氧气罩（或神物之种）',
-     /if \(!\[.diveSuit.,.diveSuit2.\]\.includes\(S\.equipment\.cloth\)\) return \{ ok:false, reason:.需要先穿/.test(_GAME_SRC) &&
+     /if \(!\[.diveSuit.,.diveSuit2.\]\.includes\(gameState\.run\.equipment\.cloth\)\) return \{ ok:false, reason:.需要先穿/.test(_GAME_SRC) &&
      /hasRelic\('atlantisSeed'\)/.test(_GAME_SRC));
   ck('★ 22.14 海底没穿潜水服会受水压伤害（脱下不是没代价）',
      /hasSuit/.test(_GAME_SRC) && /水压挤得你耳膜剧痛/.test(_GAME_SRC));
@@ -5905,7 +5905,7 @@ section('23. 攻略按钮与全流程攻略');
      GUIDE.length >= 8 && GUIDE.every(s => s.title && Array.isArray(s.steps) && s.steps.length >= 4),
      GUIDE.length + ' 章 / ' + GUIDE.reduce((a, s) => a + s.steps.length, 0) + ' 条');
   ck('★ 23.4 攻略覆盖了第一章开局与第二章通关两条主线',
-     GUIDE.some(s => /开局/.test(s.title)) && GUIDE.some(s => /通关与结局/.test(s.title)) &&
+     GUIDE.some(s => s.title==='基础知识' && s.steps.some(t=>/准备石斧、石镐/.test(t)) && s.steps.some(t=>/河畔取水/.test(t))) && GUIDE.some(s => /通关与结局/.test(s.title)) &&
      GUIDE.some(s => /照明等级/.test(s.title)));
   ck('★ 23.5 攻略与邮箱在菜单，顶栏无按钮', /data-savemenu="guide"/.test(U) && /data-savemenu="mail"/.test(U) && !/<button id="btn-guide"|<button id="btn-mail"/.test(U));
   ck('★ 23.6 攻略按钮有独立的点击绑定', /const bg2 = \$\('#btn-guide'\); if \(bg2\) bg2\.onclick = \(\) => showModal\('guide'\);/.test(U));
@@ -5939,7 +5939,7 @@ section('24. 种植砍半 / 美食家图纸 / 玄铁龙骨 / 制造栏可做性 
   //    现在公式 = rnd(min,max) × 难度 × 施肥，**没有 +2、也没有额外系数常量**。
   ck('★ 24.1 收获公式已删掉固定的 +2（且不再另加系数常量）',
      !/FARM_YIELD_MUL/.test(_GAME_SRC) &&
-     /rnd\(crop\.min, crop\.max\) \* \(pick\.seed==='seedHerb'\?1:DIFFICULTIES\[S\.difficulty\]\.resMul\)/.test(_GAME_SRC) &&
+     /rnd\(crop\.min, crop\.max\) \* \(pick\.seed==='seedHerb'\?1:DIFFICULTIES\[gameState\.run\.difficulty\]\.resMul\)/.test(_GAME_SRC) &&
      !/rnd\(crop\.min, crop\.max\) \+ 2/.test(_GAME_SRC));
   {
     G.newGame('fisher', 'normal');
@@ -5980,7 +5980,7 @@ section('24. 种植砍半 / 美食家图纸 / 玄铁龙骨 / 制造栏可做性 
      /const list = \(TOWN\[shop\] && TOWN\[shop\]\.sell\) \|\| \[\];/.test(U) &&
      !/shop === 'informant' \? TOWN\.informant\.sell/.test(U));
   ck('★ 24.7d 点「卖」按当前摊位取收购表（不再只并三家）',
-     /const list = \(TOWN\[townShopNow\] && TOWN\[townShopNow\]\.buy\) \|\| \[\];/.test(U) &&
+     /const list = \(TOWN\[deps\.townShopNow\] && TOWN\[deps\.townShopNow\]\.buy\) \|\| \[\];/.test(U) &&
      !/TOWN\.grocer\.buy\.concat\(TOWN\.smith\.buy\)\.concat\(TOWN\.informant\.buy\)/.test(U));
   ck('★ 24.7e 美食家声望 3 解锁，卖三张图纸与高价蜂蜜',
      ['grocer', 'smith', 'informant', 'gourmet'].every(k => TOWN[k] && TOWN[k].name) &&
@@ -6006,7 +6006,7 @@ section('24. 种植砍半 / 美食家图纸 / 玄铁龙骨 / 制造栏可做性 
      /if \(r\.needBp && !Game\.knowsBlueprint\(r\.needBp\)\) continue;/.test(U));
   ck('★ 24.11 未建造的工坊不在左侧分类里显示（不再有 🔒 死按钮）',
      /const tabAvail = \(sid\) => sid === 'none' \? true/.test(U) &&
-     /const shownTabs = tabs\.filter\(\(\[sid\]\) => tabAvail\(sid\) \|\| craftTab === sid\);/.test(U) &&
+     /const shownTabs = tabs\.filter\(\(\[sid\]\) => tabAvail\(sid\) \|\| deps\.craftTab === sid\);/.test(U) &&
      !/data-station="\$\{sid\}">\$\{name\}\$\{avail \? '' : ' 🔒'\}/.test(U));
   ck('★ 24.12 加工类配方按用途归入纺织、烹饪和晾晒制革', /\['tailor','纺织·衣物'\]/.test(U) && /\['fire','篝火·烹饪'\]/.test(U) && /\['furniture','晾晒·制革'\]/.test(U));
   ck('★ 24.13 晾肉架状态行紧跟「晾肉干」配方输出（作者：放到一起）',
@@ -6188,9 +6188,9 @@ section('26. 冬季：采雪 / 烧雪水 / 冬季来临弹窗');
   ck('★ 26.15 已经有弹窗时「冬季来临」先排队，等上一个关掉再弹（作者要求"不要和其他弹窗冲突"）',
      /if \(k === 'winter' && modal\) \{ pendingPanels\.push\(cfg\); return; \}/.test(UI) &&
      /function showNextPendingPanel\(\)/.test(UI) &&
-     /if\(modal \|\| battleView \|\| !pendingPanels\.length\)return/.test(UI) &&
-     /const cfg=pendingPanels\.shift\(\)/.test(UI) &&
-     /if\(modal \|\| battleView\)\{pendingPanels\.unshift\(cfg\);return;\}/.test(UI) &&
+     /if\(deps\.modal \|\| deps\.battleView \|\| !deps\.pendingPanels\.length\)return/.test(UI) &&
+     /const cfg=deps\.pendingPanels\.shift\(\)/.test(UI) &&
+     /if\(deps\.modal \|\| deps\.battleView\)\{deps\.pendingPanels\.unshift\(cfg\);return;\}/.test(UI) &&
      /showModal\(kind,cfg\)/.test(UI) && /showNextPendingPanel\(\);/.test(UI));
   ck('★ 26.16 弹窗正文真的教会玩家怎么过冬（采雪 / 烧雪水 / 保暖点数 / 每小时 -5 生命）',
      /function winterModal\(\)/.test(UI) && /采雪/.test(UI) && /烧雪水/.test(UI) && /每小时 -5 生命/.test(UI));
@@ -6371,8 +6371,8 @@ section('29. 战斗批：匕首 / 重击必中 / 混装射速 / 6 个修复');
        /if \(act === 'heavy'\) dmg = Math\.round\(dmg \* 1\.5\);/.test(_GAME_SRC));
     ck('★ 29.7 两个技能共用 20 单位时间冷却，且都在出手后进冷却',
        /const ACT_CD_BASE = 20;/.test(_GAME_SRC) &&
-       /if \(act === 'heavy'\) C\.heavyCd = ACT_CD_BASE;/.test(_GAME_SRC) &&
-       /if \(act === 'sure'\) C\.sureCd = ACT_CD_BASE;/.test(_GAME_SRC) &&
+       /if \(act === 'heavy'\) C\.heavyCd = deps\.ACT_CD_BASE;/.test(_GAME_SRC) &&
+       /if \(act === 'sure'\) C\.sureCd = deps\.ACT_CD_BASE;/.test(_GAME_SRC) &&
        /C\.heavyCd - 100 \/ Math\.max\(1, combatSpeed\(false\)\)/.test(_GAME_SRC) &&
        /C\.sureCd - 100 \/ Math\.max\(1, combatSpeed\(false\)\)/.test(_GAME_SRC));
     ck('★ 29.8 不学重击就没有重击：UI 按钮按 hasHeavy()/hasSure() 出，不再看 combatLv>=2',
@@ -6394,7 +6394,7 @@ section('29. 战斗批：匕首 / 重击必中 / 混装射速 / 6 个修复');
      /const stacks = Math\.max\(1, Math\.min\(3, C\.revenge\)\);/.test(_GAME_SRC) &&
      /const mul = 1 \+ revengeBonus\(\) \* stacks;/.test(_GAME_SRC));
   ck('★ 29.14 #6 双持换手计数器在开战时归零（不再跨战斗泄漏）',
-     /C\.spdBank = 0;[\s\S]{0,200}?_swingTurn = 0;/.test(_GAME_SRC));
+     /C\.spdBank = 0;[\s\S]{0,200}?inventory\.resetSwingTurn\(\);/.test(_GAME_SRC));
 }
 
 console.log('\n================ 汇总 ================');console.log('通过 ' + PASS + ' 项，失败 ' + FAIL + ' 项');

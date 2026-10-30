@@ -102,7 +102,7 @@ check('蜂箱按日储蜜，满包不丢，旧档补默认值', () => {
 });
 check('全彩包图集覆盖全部物品且资源文件齐全', () => {
   const root=path.resolve(__dirname,'../孤屿遗章-游戏 - 发布');
-  const ui=fs.readFileSync(path.join(root,'js/ui.js'),'utf8');
+  const ui=require("./helpers/runtime.js").uiSource(path.join(root,'js/ui.js'));
   const parse=name=>new Function('return '+ui.match(new RegExp('const '+name+' = ([\\s\\S]*?);'))[1])();
   const sheets=parse('COLOR_INVENTORY_SHEETS');
   assert.ok(fs.existsSync(path.join(root,'assets/img/items/blackGreatSword.png')),'玄铁大剑独立版画素材存在');

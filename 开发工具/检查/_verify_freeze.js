@@ -4,7 +4,7 @@ const path = require('path');
 const ROOT = 'E:\\灵灰工作区\\孤屿遗章-游戏';
 const DATA = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8');
 const GAME = require('../../回归测试/helpers/runtime.js').engineSource(path.join(ROOT, 'js', 'game.js'));
-const UI = fs.readFileSync(path.join(ROOT, 'js', 'ui.js'), 'utf8');
+const UI = require("../../回归测试/helpers/runtime.js").uiSource(path.join(ROOT, 'js', 'ui.js'));
 const store = {};
 const fakeLS = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
 const box = {};

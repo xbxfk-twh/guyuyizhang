@@ -1,6 +1,10 @@
 /* 从真实上一版ZIP加载旧引擎生成存档，再交给现版读取。仅内存，不执行网页脚本。 */
 const fs=require('fs'),path=require('path'),assert=require('node:assert/strict'),{spawnSync}=require('child_process');
-const root=path.resolve(__dirname,'..'), archive=process.argv[2] || path.join(root,'孤屿遗章_发布版_v1.08.zip');
+const root=path.resolve(__dirname,'..');
+const archiveLocation=path.join(root,'归档/位置.json');
+const archiveRoot=process.env.GUYU_ARCHIVE_ROOT || (fs.existsSync(archiveLocation)?JSON.parse(fs.readFileSync(archiveLocation,'utf8')).archiveRoot:'');
+const original=path.join(root,'孤屿遗章_发布版_v1.08.zip');
+const archive=process.argv[2] || (fs.existsSync(original)?original:(archiveRoot?path.join(archiveRoot,'孤屿遗章_发布版_v1.08.zip'):original));
 const raw=spawnSync('python',['-X','utf8','-c',`import sys,json,zipfile
 with zipfile.ZipFile(sys.argv[1]) as z:
  print(json.dumps([z.read('guyuyizhang/js/'+n).decode('utf-8-sig') for n in ['data.js','game.js']],ensure_ascii=False))`,archive],{encoding:'utf8',windowsHide:true,maxBuffer:8*1024*1024});
