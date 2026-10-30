@@ -31,7 +31,8 @@ let passed=0,fail=0,ws,ch;const errors=[];
   await check('手机/电脑四个工具操作同一行且可完整点到 '+w,`(()=>{const a=[...document.querySelectorAll('.equipment-picker-actions button')],r=a.map(e=>e.getBoundingClientRect());return a.length===4&&r.every(q=>Math.abs(q.top-r[0].top)<1&&q.left>=0&&q.right<=innerWidth&&q.bottom<=innerHeight);})()`);
   await check('关闭按钮仍在标题右侧 '+w,`(()=>{const a=document.querySelector('.modal-x').getBoundingClientRect(),b=document.querySelector('.modal-title').getBoundingClientRect();return Math.abs(a.top-b.top)<2&&a.left>b.left+b.width*.8;})()`);
   await check('工具操作朴素方框无阴影或圆角 '+w,`[...document.querySelectorAll('.equipment-picker-actions button')].every(e=>{const c=getComputedStyle(e);return c.boxShadow==='none'&&c.borderRadius==='0px'&&c.borderTopWidth==='1px';})`);
-  await check('物品列表可滚动但名称耐久不压扁 '+w,`[...document.querySelectorAll('.equipment-picker>.inv-item')].every(e=>{const r=e.getBoundingClientRect(),n=e.querySelector('small').getBoundingClientRect();return r.height>=104&&n.top>=r.top&&n.bottom<=r.bottom;})`);
+  await ev(`Promise.all(document.querySelector('#modal .modal-content').getAnimations().map(a=>a.finished))`);
+  await check('物品列表可滚动但名称耐久不压扁 '+w,`(()=>{const cards=[...document.querySelectorAll('.equipment-picker>.inv-item')];window.toolCardGeometry=cards.map(e=>({name:e.textContent,card:e.getBoundingClientRect().toJSON(),text:e.querySelector('small').getBoundingClientRect().toJSON()}));const bad=toolCardGeometry.filter(e=>e.card.height<104||e.text.top<e.card.top||e.text.bottom>e.card.bottom);if(bad.length)console.error('工具卡片越界',JSON.stringify(bad));return cards.length>0&&bad.length===0;})()`);
   await shot('plain-tools-'+w+'.png');
   await ev(`window.beforeTools=Object.fromEntries(['axeStone','pickStone','knifeStone'].map(id=>[id,{qty:Game.invCount(id),dur:Game.durOf(id)}]));`);
   for(const id of ['axeStone','pickStone','knifeStone']){

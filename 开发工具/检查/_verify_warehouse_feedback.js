@@ -1,4 +1,4 @@
-/* Real independent Chrome checks: challenge selection, soul workshop and boss. */
+/* 隔离Chrome：海底设施、窄屏日志及食物透明图标。 */
 const {spawn}=require('child_process'),fs=require('fs'),path=require('path'),http=require('http'),os=require('os'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'../..'),out=path.join(root,'回归测试/_out'),profile=fs.mkdtempSync(path.join(os.tmpdir(),'guyu-mobile-')),port=9658;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -25,8 +25,8 @@ let passed=0,fail=0,ws,ch;const errors=[];
   await ev(`Game.S().scene='atlantis';Game.S().zone='habitat';Object.assign(Game.atlantisCamp().furniture,{seaStorage1:true,seaStorage2:true,pearlWork:true,sourceForge:true,repairBench:true});UI.render();`);await sleep(1200);
   await check('升级海箱仅绘制当前等级且全部设施加载 '+w,`document.querySelectorAll('#camp-buildings .build-plate').length===4&&[...document.querySelectorAll('#camp-buildings img')].every(i=>i.complete&&i.naturalWidth>0)`);
   await check('海底设施矩形互不重叠 '+w,`(()=>{const rs=[...document.querySelectorAll('#camp-buildings .build-plate img')].map(i=>i.getBoundingClientRect());return rs.every((a,i)=>rs.slice(i+1).every(b=>a.right<=b.left||b.right<=a.left||a.bottom<=b.top||b.bottom<=a.top));})()`);await shot('warehouse-feedback-habitat-'+w+'.png');if(w<900)await check('手机最窄日志不超过70像素 '+w,`document.querySelector('#log').getBoundingClientRect().width<=70`);
-  await tap('[data-nav="inv"]');await ev(`Game.addItem('bread',1,true);Game.addItem('flour',1,true);UI.render();document.querySelector('[data-warehouse-open]')?.click();document.querySelector('[data-bag-open]')?.click();`);await sleep(700);
-  await check('面包面粉使用新的透明图 '+w,`['bread','flour'].every(id=>{const i=document.querySelector('[data-item="'+id+'"] img');return i&&i.src.includes('-cut-v2.webp')&&i.complete&&i.naturalWidth>0;})`);await shot('warehouse-feedback-food-'+w+'.png');
+  await ev(`Game.addItem('bread',1,true);Game.addItem('flour',1,true);`);await tap('[data-nav="inv"]');await sleep(700);
+  await check('面包面粉使用新的透明图 '+w,`['bread','flour'].every(id=>{const i=document.querySelector('[data-item="'+id+'"] img');return i&&i.complete&&i.naturalWidth>0&&(()=>{const c=document.createElement('canvas');c.width=i.naturalWidth;c.height=i.naturalHeight;const x=c.getContext('2d');x.drawImage(i,0,0);const d=x.getImageData(0,0,c.width,c.height).data;let transparent=0,ink=0;for(let n=3;n<d.length;n+=4){if(d[n]===0)transparent++;if(d[n]>0)ink++;}return transparent>d.length/4*.1&&ink>100;})();})`);await shot('warehouse-feedback-food-'+w+'.png');
  }
  assert.deepEqual(errors,[]);passed++;console.log('OK 无脚本异常');
 }catch(e){fail++;console.error(e.stack);console.error(JSON.stringify(errors));if(ws){try{ws.send(JSON.stringify({id:9999,method:'Page.captureScreenshot',params:{format:'png'}}));}catch{}}}finally{ws?.close();ch?.kill();console.log('通过 '+passed+' 项，失败 '+fail+' 项\nRESULT:'+(fail?'FAIL':'PASS'));process.exitCode=fail?1:0;}})();

@@ -72,6 +72,7 @@ const Game = (() => {
   });
   const lotteryRules=LotteryRules.create({
     gameState,
+    get adCurrencyName(){return adCurrencyName;},
     get persistPair(){return persistPair;},
     get log(){return log;},
     get change(){return change;},

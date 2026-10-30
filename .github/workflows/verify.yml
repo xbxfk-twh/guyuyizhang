@@ -51,6 +51,12 @@ jobs:
         run: node 回归测试/run.js --browser --only=_verify_oct30_transfer
       - name: Language defaults and switching
         run: node 回归测试/run.js --browser --only=_verify_language
+      - name: Current panel layout and controls
+        run: node 回归测试/run.js --browser --only=_verify_ui_layout
+      - name: Furniture capacity confirmation
+        run: node 回归测试/run.js --browser --only=_verify_furn_slot
+      - name: Lottery transactions and channel currency
+        run: node 回归测试/run.js --browser --only=_verify_trade_lottery
       - name: Advertising adapter and shop
         run: node 回归测试/run.js --browser --only=_verify_ads
       - name: Retain verification evidence

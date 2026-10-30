@@ -859,7 +859,7 @@ body.log-tiny .logtime{display:none!important}
 /* 2026-10-10：紧凑背包与同时存取的双栏仓库，仅作用于物品管理页。 */
 #modal .inventory-modal .work-head,#modal .player-panel-modal .work-head{min-height:34px;padding:0 38px 0 8px;gap:4px}
 #modal .inventory-modal .work-title,#modal .player-panel-modal .work-title{line-height:32px;letter-spacing:0;overflow:visible}
-#modal .inventory-modal>.modal-x,#modal .player-panel-modal>.modal-x{width:34px;height:34px;min-width:34px;min-height:34px;font-size:22px}
+#modal .inventory-modal>.modal-x,#modal .player-panel-modal>.modal-x{top:0;width:34px;height:34px;min-width:34px;min-height:34px;font-size:22px}
 #modal .inventory-modal .work-body{padding:6px 8px;gap:7px}
 #modal .inventory-modal .inventory-view-tabs,#modal .player-panel-tabs{gap:5px}
 #modal .inventory-modal .inventory-view-tabs button,#modal .player-panel-tabs button{padding:3px 9px;min-height:28px;font-size:13px;line-height:1.2}

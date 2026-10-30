@@ -1,3 +1,4 @@
+const {pressElement}=require('../../回归测试/helpers/browser');
 /* 第三批体验功能真实浏览器探针：独立 Chrome 配置，不碰玩家数据。 */
 const fs=require('fs'),path=require('path'),os=require('os'),http=require('http'),assert=require('node:assert/strict');
 const {spawn}=require('child_process');
@@ -45,8 +46,9 @@ async function main(){
   //    原来这里有"换 1 枚 + 单独的『全部』按钮（共 4 个）"，现在每个方向只剩一个「卖出」，
   //    轻点 = 换 1 份、长按 = 批量面板；「全部」和它的二次确认弹窗一起删了。
   await check('两个方向各一个「卖出」按钮、触控区都 ≥40px，且不再有单独的「全部」',`(()=>{const a=[...document.querySelectorAll('[data-exshell]')],b=[...document.querySelectorAll('[data-exgold]')];return a.length===1&&b.length===1&&a[0].dataset.exshell==='1'&&b[0].dataset.exgold==='1'&&[...a,...b].every(e=>e.getBoundingClientRect().height>=40);})()`);
-  // bindPress 绑的是指针事件，el.click() 不触发 —— 必须真派发 pointerdown/pointerup。
-  await ev(`(async()=>{const b=document.querySelector('[data-exshell="1"]'),r=b.getBoundingClientRect(),o={bubbles:true,clientX:r.left+r.width/2,clientY:r.top+r.height/2};b.dispatchEvent(new PointerEvent('pointerdown',o));await new Promise(x=>setTimeout(x,520));b.dispatchEvent(new PointerEvent('pointerup',o));})()`);await sleep(450);
+  // 使用真实触摸长按，不能用默认非主指针的合成事件。
+  await pressElement(send,ev,'[data-exshell="1"]',{long:true});
+  console.log('长按结果',await ev(`({max:document.querySelector('#batchn-n')?.max,title:document.querySelector('.modal-title')?.textContent,shell:Game.invCount('beibi'),coin:Game.invCount('coin')})`));
   await check('长按「卖出」弹批量面板、且此时还没扣贝壳',`!!document.querySelector('#batchn-n')&&document.querySelector('#batchn-n').max==='2'&&Game.invCount('beibi')===125&&Game.invCount('coin')===0`);
   await ev(`(()=>{const sl=document.querySelector('#batchn-n');sl.value=2;sl.dispatchEvent(new Event('input',{bubbles:true}));})()`);await sleep(200);
   await ev(`document.querySelector('#batchn-do').click()`);await sleep(350);

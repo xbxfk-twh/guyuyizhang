@@ -12,7 +12,7 @@ const path = require('path');
 const http = require('http');
 const os = require('os');
 const CHROME = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const ROOT = process.env.GUYU_GAME_ROOT || 'C:\\Users\\34297\\Desktop\\孤屿遗章\\孤屿遗章-游戏 - 发布';
+const ROOT = process.env.GUYU_GAME_ROOT || path.join(__dirname,'../..','孤屿遗章-游戏 - 发布');
 const OUT = path.join(__dirname, '_out', 'statusbadges');
 const PORT = 9493;
 const PROFILE = path.join(os.tmpdir(), 'guyu_badge_' + process.pid);
@@ -29,13 +29,14 @@ const SIZES = [
   { n: '桌面', w: 1280, h: 720, mobile: false },
 ];
 
+let activeBrowser,activeSocket;
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  const ch = spawn(CHROME, ['--headless=new', '--disable-gpu', '--no-first-run', '--allow-file-access-from-files',
+  const ch = activeBrowser = spawn(CHROME, ['--headless=new', '--disable-gpu', '--no-first-run', '--allow-file-access-from-files',
     '--remote-debugging-port=' + PORT, '--user-data-dir=' + PROFILE, 'about:blank'], { stdio: 'ignore' });
   let t = null;
   for (let i = 0; i < 60 && !t; i++) { await sleep(250); try { t = (await getJSON('http://127.0.0.1:' + PORT + '/json/list')).find(x => x.type === 'page'); } catch (e) {} }
-  const ws = new WebSocket(t.webSocketDebuggerUrl);
+  const ws = activeSocket = new WebSocket(t.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
   let id = 0; const pend = new Map(); const errs = [];
   ws.onmessage = e => {
@@ -44,7 +45,8 @@ const SIZES = [
     if (m.method === 'Runtime.exceptionThrown') errs.push((((m.params.exceptionDetails || {}).exception) || {}).description || '');
   };
   const send = (me, p) => new Promise((res, rej) => { const i = ++id; pend.set(i, m => (m.error ? rej(new Error(me + ':' + JSON.stringify(m.error))) : res(m.result))); ws.send(JSON.stringify({ id: i, method: me, params: p || {} })); });
-  const ev = async x => { const r = await send('Runtime.evaluate', { expression: x, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) return { __err: JSON.stringify(r.exceptionDetails).slice(0, 300) }; return r.result && r.result.value; };
+  const ev = async x => { const r = await send('Runtime.evaluate', { expression: x, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) throw Error(JSON.stringify(r.exceptionDetails)); return r.result && r.result.value; };
+  await send('Runtime.enable');await send('Page.enable');
 
   for (const s of SIZES) {
     await send('Emulation.setDeviceMetricsOverride', { width: s.w, height: s.h, deviceScaleFactor: 1, mobile: !!s.mobile });
@@ -116,17 +118,14 @@ const SIZES = [
     if (r.没有容器) { ck(s.n + '：#status-badges 容器存在', false); continue; }
 
     ck(s.n + '：状态徽标没被 CSS 隐藏', r.display !== 'none' && r.visibility !== 'hidden' && r.opacity !== '0', 'display=' + r.display);
-    ck(s.n + '：冷热统一徽标与其他负面状态全部渲染', r.数量 >= 4 &&
-      ['流血', '中毒', '寒冷', '恐惧'].every(k => r.文本.some(t => t.indexOf(k) === 0)), r.文本.join(' / '));
+    await ev(`document.querySelector('[data-buff-info="all"]').click()`);
+    const detail=await ev(`document.querySelector('#modal .overlay-text').textContent`);
+    ck(s.n+'：紧凑徽标和状态入口保留完整负面状态',r.数量===(s.w<900?2:3)&&['流血','中毒','寒冷','恐惧'].every(k=>detail.includes(k)),detail);
+    await ev(`document.querySelector('#modal-close').click()`);
     ck(s.n + '：天气与生命之间显示摄氏气温', r.气温位置正确 && /^-?\d+℃$/.test(r.气温 || ''), r.气温);
-    ck(s.n + '：精神恍惚也显示出来', r.文本.some(t => t.indexOf('精神恍惚') === 0));
+    ck(s.n + '：精神恍惚也显示出来', detail.includes('精神恍惚'));
     ck(s.n + '：每个徽标都完整落在视口内', r.出界.length === 0, r.出界.join(',') || '无出界');
-    if (narrow) {
-      ck(s.n + '：徽标条贴在顶栏下沿（不压住状态条）', r.徽标条上沿 >= r.顶栏下沿 - 1, '顶栏底 ' + r.顶栏下沿 + ' → 徽标顶 ' + r.徽标条上沿);
-    } else {
-      ck(s.n + '：徽标位于顶栏下方场景内', r.徽标条上沿 >= r.顶栏下沿 - 1,
-        '顶栏 ' + r.顶栏上沿 + '~' + r.顶栏下沿 + ' / 徽标 ' + r.徽标条上沿 + '~' + r.徽标条下沿);
-    }
+    ck(s.n+'：徽标收纳在顶栏内',r.徽标条上沿>=r.顶栏上沿-1&&r.徽标条下沿<=r.顶栏下沿+1);
     ck(s.n + '：徽标不遮邮箱按钮', r.遮邮箱.length === 0, r.遮邮箱.join(',') || '无遮挡');
     ck(s.n + '：徽标不遮「当前目标」', r.遮目标.length === 0, r.遮目标.join(',') || '无遮挡');
     ck(s.n + '：徽标不遮左上角日志', r.遮日志.length === 0, r.遮日志.join(',') || '无遮挡');
@@ -194,4 +193,4 @@ const SIZES = [
   console.log('\n通过 ' + ok + ' 项，失败 ' + bad.length + ' 项');
   console.log('RESULT:' + (bad.length ? 'FAIL' : 'PASS'));
   process.exit(bad.length ? 1 : 0);
-})();
+})().catch(error=>{console.error(error.stack);console.log('RESULT:FAIL');activeSocket?.close();activeBrowser?.kill();process.exitCode=1;});

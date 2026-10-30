@@ -1,4 +1,4 @@
-/* Real independent Chrome checks: challenge selection, soul workshop and boss. */
+/* 隔离Chrome：装备耐久、自动存入勾选、实际存取与重载。 */
 const {spawn}=require('child_process'),fs=require('fs'),path=require('path'),http=require('http'),os=require('os'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'../..'),out=path.join(root,'回归测试/_out'),profile=fs.mkdtempSync(path.join(os.tmpdir(),'guyu-mobile-')),port=9596;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -34,7 +34,7 @@ let passed=0,fail=0,ws,ch;const errors=[];
   await check('空护甲槽实际换装 '+w,`Game.S().equipment.armor==='ironArmor'`);
   await ev(`document.querySelector('#modal .modal-x').click();document.querySelector('[data-nav="inv"]').click();document.querySelector('[data-item="wood"]').click();`);
   await check('全部存入替代存十 '+w,`!!document.querySelector('[data-ware-transfer][data-qty="all"]')&&!document.querySelector('[data-ware-transfer][data-qty="10"]')`);
-  await ev(`document.querySelector('[data-ware-transfer][data-qty="all"]').click();document.querySelector('#modal .modal-x').click();document.querySelector('[data-nav="inv"]').click();document.querySelector('[data-warehouse-open]').click();document.querySelector('[data-warehouse-auto]').click();`);
+  await ev(`document.querySelector('[data-ware-transfer][data-qty="all"]').click();document.querySelector('#modal .modal-x').click();document.querySelector('[data-nav="inv"]').click();document.querySelector('#modal .modal-x')?.click();[...document.querySelectorAll('#hotspots .hotspot')].find(e=>/仓库|海底储物箱/.test(e.textContent)).click();document.querySelector('[data-warehouse-auto]').click();`);
   await check('自动存入候选界面可保存 '+w,`!!document.querySelector('[data-auto-item="wood"]')&&!!document.querySelector('[data-save-warehouse-auto]')`);
   await check('自动存入复选框有可见原生勾选状态 '+w,`(()=>{const e=document.querySelector('[data-auto-item="wood"]'),r=e.getBoundingClientRect();return getComputedStyle(e).appearance==='auto'&&r.width>=18&&r.height>=18;})()`);
   const tapAuto=async(selector)=>{await sleep(450); // 等待弹窗350ms防点击穿透期结束

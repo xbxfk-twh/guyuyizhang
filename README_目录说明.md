@@ -35,7 +35,7 @@
 | 命令或位置 | 用途与边界 |
 | --- | --- |
 | `node 回归测试/run.js` | 核心回归；模拟或临时存储 |
-| `node 回归测试/run.js --browser` | 全套隔离 Chrome；有已知历史失败，见维护现状 |
+| `node 回归测试/run.js --browser` | 全套隔离 Chrome；完整结果与验收边界见维护现状 |
 | `--browser --only=<脚本名>` | 只选匹配专项；不得当成完整验收 |
 | `python -X utf8 回归测试/test_release.py` | 在临时目录校验微型测试发布包 |
 | `python -X utf8 开发工具/打包/_pack.py --check` | 只读检查，不生成发布包 |

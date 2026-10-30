@@ -281,7 +281,7 @@ function bindModal(kind, cfg) {
         compact: true,
         text: `打造「${f.name}」占1格家具位：${si.used}/${si.cap} → ${si.used+1}/${si.cap}。`,
         choices: [
-          { label: '继续打造', hint: `占用 1 格（还剩 ${si.left} 格）`, ok: () => doBuild() },
+          { label: '继续打造', hint: `占用 1 格（还剩 ${Math.max(0,si.left-1)} 格）`, ok: () => doBuild() },
           { label: '取消', hint: '回到营地', ok: () => showModal('camp') },
         ],
       });

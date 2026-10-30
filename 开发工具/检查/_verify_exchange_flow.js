@@ -1,3 +1,4 @@
+const {pressElement}=require('../../回归测试/helpers/browser');
 /* 老潮兑换（贝壳 ⇄ 金币）真实浏览器复核 —— 桌面 + 手机横屏
 
    ⚠️ 契约变更（2026-09-25，作者原话："贝壳换金币和金币换贝壳沿用前面的出售（除了他们的
@@ -33,7 +34,7 @@ const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —
 
 // 开局 → 站到营地 → 老潮靠岸 → 指定贝壳/金币 → 打开老潮面板并切到「卖给他」
 // 顺便把 __openShop() 挂到 window 上，后面重开老潮面板时复用（取消批量窗后会关掉面板）。
-// ⚠️ bindPress 绑的是 pointerdown/pointerup：el.click() 不会触发，必须真派发指针事件。
+// 点击与长按用CDP可信输入，覆盖浏览器的实际事件链。
 const BOOT = (shells, coins) => `(async () => {
   const w = ms => new Promise(r => setTimeout(r, ms));
   Game.newGame('fisher', 'normal');
@@ -73,53 +74,19 @@ const BOOT = (shells, coins) => `(async () => {
   };
 })()`;
 
-// 派发一次真实的「轻点」：按下 → 80ms 后抬起（远小于 460ms 长按阈值）
-const TAP = sel => `(async () => {
-  const w = ms => new Promise(r => setTimeout(r, ms));
-  const b = document.querySelector('${sel}'); if (!b) return { __err: '找不到 ${sel}' };
-  const r = b.getBoundingClientRect(); const x = r.left + r.width / 2, y = r.top + r.height / 2;
-  const opt = { bubbles: true, clientX: x, clientY: y };
-  b.dispatchEvent(new PointerEvent('pointerdown', opt));
-  await w(80);
-  b.dispatchEvent(new PointerEvent('pointerup', opt));
-  await w(500);
-  const t = document.querySelector('#modal .modal-title');
-  return { 标题: t ? t.textContent.trim() : null, shells: Game.invCount('beibi'), coins: Game.invCount('coin'),
-           面板还在: !!(document.querySelector('#modal [data-exshell="1"]') || document.querySelector('#modal [data-exgold="1"]')) };
-})()`;
-
-// 派发一次真实的「长按」：按下 → 520ms（>460ms 阈值）→ 抬起
-const LONG = sel => `(async () => {
-  const w = ms => new Promise(r => setTimeout(r, ms));
-  const b = document.querySelector('${sel}'); if (!b) return { __err: '找不到 ${sel}' };
-  const r = b.getBoundingClientRect(); const x = r.left + r.width / 2, y = r.top + r.height / 2;
-  const opt = { bubbles: true, clientX: x, clientY: y };
-  b.dispatchEvent(new PointerEvent('pointerdown', opt));
-  await w(520);
-  b.dispatchEvent(new PointerEvent('pointerup', opt));
-  await w(400);
-  const t = document.querySelector('#modal .modal-title');
-  const sl = document.querySelector('#batchn-n');
-  return { 标题: t ? t.textContent.trim() : null,
-           批量面板: !!sl, 最大: sl ? String(sl.max) : null,
-           有确定: !!document.querySelector('#batchn-do'),
-           快捷数: document.querySelectorAll('#modal [data-bset]').length,
-           提示: (document.querySelector('#modal .batch-hint') || {}).textContent || '',
-           shells: Game.invCount('beibi'), coins: Game.invCount('coin') };
-})()`;
-
 const SIZES = [
   { n: '桌面', w: 1280, h: 720, mobile: false },
   { n: '手机横屏', w: 844, h: 390, mobile: true },   // 本游戏只支持横屏
 ];
 
+let activeBrowser,activeSocket;
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  const ch = spawn(CHROME, ['--headless=new', '--disable-gpu', '--no-first-run', '--allow-file-access-from-files',
+  const ch = activeBrowser = spawn(CHROME, ['--headless=new', '--disable-gpu', '--no-first-run', '--allow-file-access-from-files',
     '--remote-debugging-port=' + PORT, '--user-data-dir=' + PROFILE, 'about:blank'], { stdio: 'ignore' });
   let t = null;
   for (let i = 0; i < 60 && !t; i++) { await sleep(250); try { t = (await getJSON('http://127.0.0.1:' + PORT + '/json/list')).find(x => x.type === 'page'); } catch (e) {} }
-  const ws = new WebSocket(t.webSocketDebuggerUrl);
+  const ws = activeSocket = new WebSocket(t.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
   let id = 0; const pend = new Map(); const errs = [];
   ws.onmessage = e => {
@@ -128,8 +95,11 @@ const SIZES = [
     if (m.method === 'Runtime.exceptionThrown') errs.push((((m.params.exceptionDetails || {}).exception) || {}).description || '');
   };
   const send = (me, p) => new Promise((res, rej) => { const i = ++id; pend.set(i, m => (m.error ? rej(new Error(me + ':' + JSON.stringify(m.error))) : res(m.result))); ws.send(JSON.stringify({ id: i, method: me, params: p || {} })); });
-  const ev = async x => { const r = await send('Runtime.evaluate', { expression: x, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) return { __err: JSON.stringify(r.exceptionDetails).slice(0, 300) }; return r.result && r.result.value; };
+  const ev = async x => { const r = await send('Runtime.evaluate', { expression: x, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) throw Error(JSON.stringify(r.exceptionDetails)); return r.result && r.result.value; };
+  await send('Runtime.enable');await send('Page.enable');
 
+  const report=()=>ev(`(()=>{const t=document.querySelector('#modal .modal-title'),sl=document.querySelector('#batchn-n');return {标题:t?.textContent.trim(),shells:Game.invCount('beibi'),coins:Game.invCount('coin'),面板还在:!!document.querySelector('[data-exshell]'),批量面板:!!sl,最大:sl?.max,有确定:!!document.querySelector('#batchn-do'),快捷数:document.querySelectorAll('[data-bset]').length,提示:document.querySelector('.batch-hint')?.textContent||''};})()`);
+  const press=async(sel,long=false)=>{await pressElement(send,ev,sel,{long,touch:await ev('innerWidth<1000')});return report();};
   for (const s of SIZES) {
     await send('Emulation.setDeviceMetricsOverride', { width: s.w, height: s.h, deviceScaleFactor: 1, mobile: !!s.mobile });
     await send('Emulation.setTouchEmulationEnabled', { enabled: !!s.mobile });
@@ -158,13 +128,13 @@ const SIZES = [
     ck(s.n + '：面板在' + s.n + '不横向溢出', boot.横向溢出 === false);
 
     // ① 轻点「贝壳换金币」= 立刻换 1 份，不弹确认
-    const tap1 = await ev(TAP('#modal [data-exshell="1"]'));
+    const tap1 = await press('#modal [data-exshell="1"]');
     console.log('  轻点贝壳换金币：' + JSON.stringify(tap1));
     ck(s.n + '：轻点一下贝壳 125→75、金币 0→1，且不弹确认框',
       tap1.shells === 75 && tap1.coins === 1 && !/确认/.test(tap1.标题 || '') && tap1.面板还在 === true, JSON.stringify(tap1));
 
     // ② 长按 = 批量面板，且此时一枚都还没扣
-    const long1 = await ev(LONG('#modal [data-exshell="1"]'));
+    const long1 = await press('#modal [data-exshell="1"]',true);
     console.log('  长按贝壳换金币：' + JSON.stringify(long1));
     ck(s.n + '：长按弹批量面板（数量条 + 快捷 + 确定）',
       long1.批量面板 === true && long1.有确定 === true && long1.快捷数 === 3 && /兑换/.test(long1.标题 || ''), JSON.stringify(long1));
@@ -185,14 +155,9 @@ const SIZES = [
       cancel.shells === 75 && cancel.coins === 1 && cancel.批量面板已关 === true, JSON.stringify(cancel));
 
     // ④ 重开面板、补足贝壳后再长按 → 拖到 2 份 → 确定 → 真的换 2 枚
-    const batch2 = await ev(`(async () => {
-      const w = ms => new Promise(r => setTimeout(r, ms));
-      if (!await window.__openShop()) return { __err: '重开老潮面板失败' };
-      Game.addItem('beibi', 105, true);        // 75 + 105 = 180 → 能换 3 枚
-      const b = document.querySelector('#modal [data-exshell="1"]'); if (!b) return { __err: 'no exshell' };
-      const r = b.getBoundingClientRect(); const opt = { bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
-      b.dispatchEvent(new PointerEvent('pointerdown', opt)); await w(520);
-      b.dispatchEvent(new PointerEvent('pointerup', opt)); await w(400);
+    await ev(`(async()=>{await window.__openShop();Game.addItem('beibi',105,true);})()`);
+    await press('#modal [data-exshell="1"]',true);
+    const batch2 = await ev(`(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms));
       const sl = document.querySelector('#batchn-n'); if (!sl) return { __err: '没有批量面板' };
       sl.value = 2; sl.dispatchEvent(new Event('input', { bubbles: true })); await w(150);
       const 合计 = (document.querySelector('#batchn-total') || {}).textContent;
@@ -207,13 +172,13 @@ const SIZES = [
     ck(s.n + '：换完仍留在老潮面板', batch2.回到老潮面板 === true);
 
     // ⑤ 反向：轻点「金币换贝壳」→ 金币 -1、贝壳 +30
-    const tap2 = await ev(TAP('#modal [data-exgold="1"]'));
+    const tap2 = await press('#modal [data-exgold="1"]');
     console.log('  轻点金币换贝壳：' + JSON.stringify(tap2));
     ck(s.n + '：轻点一下金币 3→2、贝壳 80→110，且不弹确认框',
       tap2.coins === 2 && tap2.shells === 110 && !/确认/.test(tap2.标题 || '') && tap2.面板还在 === true, JSON.stringify(tap2));
 
     // ⑥ 反向长按：批量面板汇率是 1→30，上限 = 现有金币
-    const long2 = await ev(LONG('#modal [data-exgold="1"]'));
+    const long2 = await press('#modal [data-exgold="1"]',true);
     console.log('  长按金币换贝壳：' + JSON.stringify(long2));
     ck(s.n + '：长按金币行也是批量面板、上限 = 现有 2 枚金币、汇率 1 金币 → 30 贝壳',
       long2.批量面板 === true && long2.最大 === '2' && /1 金币 → 30 贝壳/.test(long2.提示 || ''), JSON.stringify(long2));
@@ -232,13 +197,12 @@ const SIZES = [
   if (poor.__err) {
     ck('钱不够的场景可测', false, JSON.stringify(poor));
   } else {
+    await press('#modal [data-exshell="1"]',true);
     const step = await ev(`(async () => {
       const w = ms => new Promise(r => setTimeout(r, ms));
       const b = document.querySelector('#modal [data-exshell="1"]');
       const g = document.querySelector('#modal [data-exgold="1"]');
       const before = { s: Game.invCount('beibi'), c: Game.invCount('coin') };
-      if (b) { const r = b.getBoundingClientRect(); const opt = { bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
-        b.dispatchEvent(new PointerEvent('pointerdown', opt)); await w(520); b.dispatchEvent(new PointerEvent('pointerup', opt)); await w(400); }
       const t = document.querySelector('#modal .modal-title');
       return { 贝壳按钮置灰: !!b && b.disabled, 金币按钮置灰: !!g && g.disabled,
                标题: t ? t.textContent.trim() : null, 批量面板: !!document.querySelector('#batchn-n'),
@@ -257,4 +221,4 @@ const SIZES = [
   if (bad.length) console.log('失败项：\n- ' + bad.join('\n- '));
   console.log('RESULT:' + (bad.length ? 'FAIL' : 'PASS'));
   process.exit(bad.length ? 1 : 0);
-})();
+})().catch(error=>{console.error(error.stack);console.log('RESULT:FAIL');activeSocket?.close();activeBrowser?.kill();process.exitCode=1;});

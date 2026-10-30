@@ -32,13 +32,14 @@ let passed=0,fail=0,ws,ch;const errors=[];
  await send('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:1,mobile:true});await send('Page.navigate',{url:require('url').pathToFileURL(path.join(root,'孤屿遗章-游戏 - 发布/index.html')).href});await sleep(3000);
  await ev(`Game.newGame('fisher','normal');Game.S().tut=null;Game.S().difficulty='nightmare';UI.begin();document.querySelector('#modal .modal-x')?.click();`);await ready();
  await touchTap('[data-nav="save"]');await touchTap('[data-savemenu="mail"]');await touchTap('[data-mailtab="event"]');
- await check('征集活动最上方且奖励与评价无关 '+w,`(()=>{const a=document.querySelector('.event-feedback');return a&&a.parentElement.firstElementChild===a&&a.textContent.includes('300 魂点 + 30 广告币')&&a.textContent.includes('无需提交评价截图或链接');})()`);
+ await check('下载入口后为征集活动，奖励与评价无关 '+w,`(()=>{const a=document.querySelector('.event-feedback');return a&&a.previousElementSibling?.classList.contains('event-download')&&a.nextElementSibling?.classList.contains('event-review')&&a.textContent.includes('300 魂点 + 30 '+Game.adCurrencyName())&&a.textContent.includes('无需提交评价截图或链接');})()`);
  await check('真实评价邀请独立，保留原广告和兑换码 '+w,`!!document.querySelector('.event-review')&&document.querySelector('.event-ad').textContent.includes('1840585640')&&document.querySelector('#modal').textContent.includes('QQ1014679931')`);await shot('activity-feedback-'+w+'.png');await tap('#modal .modal-x');
  await ev(`[...document.querySelectorAll('#hotspots .hotspot')].find(e=>e.textContent.includes('营地建造')).id='test-camp';`);await touchTap('#test-camp');
  await check('噩梦家具在营地家具末尾 '+w,`(()=>{const a=[...document.querySelectorAll('.furn-grid .furn')].map(e=>e.textContent);return a.slice(-2).some(x=>x.includes('噩梦汲取仪'))&&a.slice(-2).some(x=>x.includes('解魂器'));})()`);await touchTap('[data-help="furn"]');
  await check('噩梦家具说明排在末尾 '+w,`(()=>{const a=[...document.querySelectorAll('.camp-help-list .help-item')].map(e=>e.textContent);return a.slice(-2).some(x=>x.includes('噩梦汲取仪'))&&a.slice(-2).some(x=>x.includes('解魂器'));})()`);await tap('#modal .modal-x');
  await touchTap('[data-nav="craft"]');await check('手工常用工具优先，背包配方靠后 '+w,`(()=>{const a=[...document.querySelectorAll('[data-recipe]')].map(e=>e.dataset.recipe);return a[0]==='r_axestone'&&a.indexOf('r_reedpack')>a.indexOf('r_arrow');})()`);await tap('#modal .modal-x');
- if(w===568){for(const [code,soul,coins]of [['laobandaqi',10000,1000],['ganxiepingjia',300,30]]){
+ if(w===568){for(const [code,soul,coins]of [['GY-TEST-FEEDBACK',300,30]]){
+ await ev(`window.fetch=async()=>({status:200,json:async()=>({ok:true,receipt:'remote:'+'4'.repeat(32),gift:{soul:300,adCoins:30}})});`);
  await ev(`Game.S().difficulty='normal';`);const before=await ev(`({soul:Game.metaState().soul,coins:Game.adCoinBalance()})`);
  await touchTap('[data-nav="save"]');await touchTap('[data-savemenu="mail"]');await touchTap('[data-mailtab="code"]');await ev(`document.querySelector('#redeem-code').value='${code}';`);await touchTap('#redeem-do');await touchTap('[data-mailtab="mail"]');
  await check('兑换邮件同时显示魂点和广告币 '+code,`document.querySelector('#modal').textContent.includes('魂点 ×${soul} + 广告币 ×${coins}')`);await touchTap('[data-claimmail]');await check('手机领取双币实际入账 '+code,`Game.metaState().soul===${before.soul+soul}&&Game.adCoinBalance()===${before.coins+coins}`);await tap('#modal .modal-x');

@@ -184,6 +184,9 @@ const errors = [];
         '首次打开仓库保留弹窗动画 ' + w,
         `getComputedStyle(document.querySelector('#modal .modal-content')).animationName==='modalin'`
       );
+      // 等本次打开动画真实结束，再判断存入是否重新播放；固定400ms在繁忙机器上可能仍处于上一动画的末帧。
+      await ev(`Promise.all(document.querySelector('#modal .modal-content').getAnimations().map(a=>a.finished))`);
+      await ev(`new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))`);
       await ev(
         `(()=>{const panes=[...document.querySelectorAll('.inventory-pane .work-scroll')];panes[0].scrollTop=10;panes[1].scrollTop=120;window.warehouseBefore=panes.map(p=>p.scrollTop);window.warehouseModalNode=document.querySelector('#modal .modal-content');document.querySelector('[data-item="bamboo"]').click();window.warehouseFrames=[];const sample=()=>{const m=document.querySelector('#modal .modal-content');warehouseFrames.push({sameNode:m===warehouseModalNode,animations:m.getAnimations().filter(a=>a.playState==='running'||a.pending).length,opacity:getComputedStyle(m).opacity,scroll:[...document.querySelectorAll('.inventory-pane .work-scroll')].map(p=>p.scrollTop)});if(warehouseFrames.length<4)requestAnimationFrame(sample);};sample();})()`
       );

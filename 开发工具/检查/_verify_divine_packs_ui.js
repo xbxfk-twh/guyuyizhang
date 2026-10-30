@@ -13,23 +13,23 @@ let passed=0,fail=0,ws,ch;const errors=[];
  const ev=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(JSON.stringify(r.exceptionDetails));return r.result?.value;};
  const check=async(name,expr)=>{const ok=await ev(expr);if(!ok){await shot('mobile-ui-failure.png');console.error(await ev(`JSON.stringify([...document.querySelectorAll('[data-separate], .room-sprite')].map(e=>({name:e.getAttribute('aria-label')||e.title,rect:e.getBoundingClientRect().toJSON(),hit:document.elementFromPoint(e.getBoundingClientRect().x+e.offsetWidth/2,e.getBoundingClientRect().y+e.offsetHeight/2)?.outerHTML.slice(0,180)})))`));}assert.ok(ok,name);passed++;console.log('OK '+name);};
  const shot=async(name)=>{const r=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(out,name),Buffer.from(r.data,'base64'));};
- await send('Runtime.enable');await send('Page.enable');
+ await send('Runtime.enable');await send('Page.enable');await send('Page.addScriptToEvaluateOnNewDocument',{source:'localStorage.clear();'});
 
 
 
  const ready=async()=>{for(let i=0;i<80;i++){if(await ev(`(()=>{const e=document.querySelector('#scene-img');return e?.complete&&e.naturalWidth>0&&!document.querySelector('#loading')?.classList.contains('show');})()`))return;await sleep(100);}throw Error('场景图未就绪');};
 
 
- const tap=async selector=>{await sleep(260);await ev(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'nearest'})`);const q=await ev(`document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect().toJSON()`),x=q.x+q.width/2,y=q.y+q.height/2;await send('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});await send('Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});await sleep(260);};
+ const tap=async selector=>{await sleep(450);await ev(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'nearest'})`);const q=await ev(`document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect().toJSON()`),x=q.x+q.width/2,y=q.y+q.height/2;await send('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});await send('Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});await sleep(260);};
  for(const [w,h]of [[667,375],[844,390],[1366,768]]){
   await ev(`try{localStorage.clear()}catch{}`);await send('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:1,mobile:w<1000});await send('Page.navigate',{url:require('url').pathToFileURL(path.join(root,'孤屿遗章-游戏 - 发布/index.html')).href});await sleep(4500);
-  await ev(`Game.newGame('fisher','normal');Game.S().tut=null;Game.metaState().adWallet={test:{coins:30}};UI.begin();document.querySelector('#modal .modal-x')?.click();`);await sleep(3200);
+  await ev(`Game.newGame('fisher','normal');Game.S().tut=null;Game.metaState().adWallet={test:{coins:30}};Game.save();window.fetch=async()=>({status:200,json:async()=>({ok:true,receipt:'remote:'+'3'.repeat(32),gift:{soul:0,adCoins:0,item:'divineSuperPack',qty:1}})});UI.begin();document.querySelector('#modal .modal-x')?.click();`);await sleep(3200);
   await tap('[data-nav="save"]');await tap('[data-savemenu="adshop"]');
   await check('神之包商品15币独立彩图，超级大包不出售 '+w,`(()=>{const e=document.querySelector('[data-adbuy="divinePack"]'),i=e?.querySelector('img');return e?.textContent.includes('15')&&i?.complete&&i.naturalWidth>0&&i.src.includes('items-accent/divinePack.png')&&!document.querySelector('[data-adbuy="divineSuperPack"]');})()`);await check('新增商品后售物柜仍为三排四列 '+w,`(()=>{const e=[...document.querySelectorAll('.shop-cabinet>.cabinet-cell')],ys=new Set(e.map(x=>Math.round(x.getBoundingClientRect().top))),xs=new Set(e.map(x=>Math.round(x.getBoundingClientRect().left)));return e.length===12&&ys.size===3&&xs.size===4;})()`);await shot('divine-pack-shop-'+w+'.png');
   await tap('[data-adbuy="divinePack"]');await check('实际购买扣15币且送邮箱 '+w,`Game.adCoinBalance()===15&&Game.mailboxList().some(m=>m.item==='divinePack')`);
   await tap('#modal .modal-x');await tap('[data-nav="save"]');await tap('[data-savemenu="mail"]');let idx=await ev(`Game.mailboxList().find(m=>m.item==='divinePack').i`);await tap('[data-claimmail="'+idx+'"]');
-  await tap('[data-mailtab="code"]');await ev(`document.querySelector('#redeem-code').value='xiexielaoban'`);await tap('#redeem-do');idx=await ev(`Game.mailboxList().find(m=>m.item==='divineSuperPack').i`);await tap('[data-claimmail="'+idx+'"]');
-  await check('实际兑换领取超级大包且不能重复兑 '+w,`Game.invCount('divineSuperPack')===1&&!Game.redeemCode('xiexielaoban').ok`);
+  await tap('[data-mailtab="code"]');await ev(`document.querySelector('#redeem-code').value='xiexielaoban'`);await tap('#redeem-do');await tap('[data-mailtab="mail"]');idx=await ev(`Game.mailboxList().find(m=>m.item==='divineSuperPack').i`);await tap('[data-claimmail="'+idx+'"]');
+  await check('实际兑换领取超级大包且不能重复兑 '+w,`(async()=>Game.invCount('divineSuperPack')===1&&!(await Game.redeemCode('xiexielaoban')).ok)()`);
   await tap('#modal .modal-x');await tap('[data-nav="equip"]');await tap('[data-eqpick="pack"]');
   await check('选择页两种包彩色图及容量/外出存仓说明 '+w,`['divinePack','divineSuperPack'].every(id=>{const e=document.querySelector('[data-pack="'+id+'"]'),i=e?.querySelector('img');return i?.complete&&i.naturalWidth>0&&e.textContent.includes('外出存仓')&&e.textContent.includes(id==='divinePack'?'15':'100');})`);await shot('divine-pack-select-'+w+'.png');
   await tap('[data-pack="divinePack"]');await check('实际装备神之包容量30 '+w,`Game.S().backpack==='divinePack'&&Game.capacity()===30`);
@@ -46,9 +46,9 @@ let passed=0,fail=0,ws,ch;const errors=[];
   await check('真实点击存1件保留原装备耐久与索引 '+w,`Game.invCount('ironSword')===3&&Game.S().equipIdx.weapon===1&&Game.durOf('ironSword',1)===33&&Game.warehouseState().inv.ironSword===1`);
   await tap('[data-ware-transfer="ironSword"][data-qty="all"]');
   await check('真实点击全部存入仅存备用件 '+w,`Game.invCount('ironSword')===1&&Game.warehouseState().inv.ironSword===3&&Game.S().equipment.weapon==='ironSword'&&Game.S().equipIdx.weapon===0&&Game.durOf('ironSword',0)===33&&Game.durMaxOf('ironSword',0)===130&&!document.querySelector('[data-ware-transfer="ironSword"]')`);
-  await tap('#modal-back');await tap('#modal .modal-x');await ev(`Game.addItem('axeIron',3,true);Game.S().toolDurs.axeIron=[35,7,50];Game.equipTool('axeIron');UI.render();`);await tap('[data-nav="inv"]');await tap('[data-item="axeIron"]');await tap('[data-ware-transfer="axeIron"][data-qty="all"]');
+  await tap('.item-detail-modal .modal-x');await tap('#modal .modal-x');await ev(`Game.addItem('axeIron',3,true);Game.S().toolDurs.axeIron=[35,7,50];Game.equipTool('axeIron');UI.render();`);await tap('[data-nav="inv"]');await tap('[data-item="axeIron"]');await tap('[data-ware-transfer="axeIron"][data-qty="all"]');
   await check('真实点击工具全部存入保留正在使用的一件 '+w,`Game.invCount('axeIron')===1&&Game.durOf('axeIron',0)===7&&Game.S().toolkit.includes('axeIron')&&Game.warehouseState().inv.axeIron===2`);
-  await tap('#modal-back');await tap('#modal .modal-x');await tap('[data-nav="equip"]');
+  await tap('.item-detail-modal .modal-x');await tap('#modal .modal-x');await tap('[data-nav="equip"]');
   await check('存备用后装备页仍显示武器和工具实际耐久 '+w,`document.querySelector('[data-equipped-slot="weapon"]').textContent.includes('33/130')&&[...document.querySelectorAll('.loadout-slot[data-eqpick="tool"]')].some(e=>e.textContent.includes('铁斧')&&e.textContent.includes('7/50'))`);
   await shot('warehouse-equipped-kept-'+w+'.png');
   await ev(`Game.save();Game.load();`);

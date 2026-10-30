@@ -44,7 +44,11 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
   await shot('lottery-mobile');
   check('submit fits the mobile viewport without scrolling',await ev(`(()=>{const b=document.querySelector('#lottery-submit'),r=b.getBoundingClientRect();return r.bottom<=innerHeight&&document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===b;})()`));
   await ev(`document.querySelector('[data-lottery-pool]').click()`);
-  check('pool lists three equal-item tiers and tenth-draw guarantee',await ev(`document.querySelector('#modal').textContent.includes('第 10 抽')&&document.querySelectorAll('.lottery-pool section').length===3&&document.querySelector('.lottery-pool').textContent.includes('广告币')&&document.querySelector('.lottery-pool').textContent.includes('70%')`));
+  check('pool lists three equal-item tiers and tenth-draw guarantee',await ev(`document.querySelector('#modal').textContent.includes('第 10 抽')&&document.querySelectorAll('.lottery-pool section').length===3&&document.querySelector('.lottery-pool').textContent.includes(Game.adCurrencyName())&&document.querySelector('.lottery-pool').textContent.includes('70%')`));
+  for(const [channel,name]of [['standalone','星之点'],['taptap','广告币']]){
+   await ev(`window.GUYU_CHANNEL=${JSON.stringify(channel)};document.querySelector('[data-lottery-back]').click();document.querySelector('[data-lottery-pool]').click();`);
+   check('奖池按渠道显示正确货币 '+channel,await ev(`document.querySelector('.lottery-pool').textContent.includes(${JSON.stringify(name)})`));
+  }
   await shot('lottery-pool-mobile');
   await ev(`document.querySelector('[data-lottery-back]').click();document.querySelector('#lottery-submit').click();window.oldConfirm=document.querySelector('[data-choice="0"]');oldConfirm.click();oldConfirm.click();`);
   check('large charge does not draw or double-consume',await ev(`Game.lotteryState().uses===0&&Game.invCount('honey')===199&&Game.lotteryState().credit===3535&&!!document.querySelector('#lottery-submit')`));

@@ -13,7 +13,7 @@ const path = require('path');
 const http = require('http');
 const os = require('os');
 const CHROME = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const ROOT = process.env.GUYU_GAME_ROOT || 'C:\\Users\\34297\\Desktop\\孤屿遗章\\孤屿遗章-游戏 - 发布';
+const ROOT = process.env.GUYU_GAME_ROOT || path.join(__dirname,'../..','孤屿遗章-游戏 - 发布');
 const OUT = path.join(__dirname, '_out', 'furnslot');
 const PORT = 9503;
 const PROFILE = path.join(os.tmpdir(), 'guyu_furn_' + process.pid);
@@ -22,13 +22,14 @@ const getJSON = u => new Promise((res, rej) => { http.get(u, r2 => { let b = '';
 let ok = 0; const bad = [];
 const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —— ' + e : '')); } else { bad.push(l); console.log('  FAIL ' + l + (e ? '  —— ' + e : '')); } };
 
+let activeBrowser,activeSocket;
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  const ch = spawn(CHROME, ['--headless=new', '--disable-gpu', '--no-first-run', '--allow-file-access-from-files',
+  const ch = activeBrowser = spawn(CHROME, ['--headless=new', '--disable-gpu', '--no-first-run', '--allow-file-access-from-files',
     '--remote-debugging-port=' + PORT, '--user-data-dir=' + PROFILE, 'about:blank'], { stdio: 'ignore' });
   let t = null;
   for (let i = 0; i < 60 && !t; i++) { await sleep(250); try { t = (await getJSON('http://127.0.0.1:' + PORT + '/json/list')).find(x => x.type === 'page'); } catch (e) {} }
-  const ws = new WebSocket(t.webSocketDebuggerUrl);
+  const ws = activeSocket = new WebSocket(t.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
   let id = 0; const pend = new Map(); const errs = [];
   ws.onmessage = e => {
@@ -37,7 +38,8 @@ const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —
     if (m.method === 'Runtime.exceptionThrown') errs.push((((m.params.exceptionDetails || {}).exception) || {}).description || '');
   };
   const send = (me, p) => new Promise((res, rej) => { const i = ++id; pend.set(i, m => (m.error ? rej(new Error(me + ':' + JSON.stringify(m.error))) : res(m.result))); ws.send(JSON.stringify({ id: i, method: me, params: p || {} })); });
-  const ev = async x => { const r = await send('Runtime.evaluate', { expression: x, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) return { __err: JSON.stringify(r.exceptionDetails).slice(0, 320) }; return r.result && r.result.value; };
+  const ev = async x => { const r = await send('Runtime.evaluate', { expression: x, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) throw Error(JSON.stringify(r.exceptionDetails)); return r.result && r.result.value; };
+  await send('Runtime.enable');await send('Page.enable');
 
   await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false });
   await send('Page.navigate', { url: 'file:///' + encodeURI(ROOT.replace(/\\/g, '/') + '/index.html') });
@@ -121,9 +123,11 @@ const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —
     ck('⑤ 点占位家具会先弹确认框', /确认打造/.test(askSlot.标题 || ''), askSlot.标题);
     ck('⑤ 确认前**还没开始造**（家具位没变、草床不存在）',
        askSlot.after && askSlot.after.used === askSlot.before.used && askSlot.after.有草床 === false, JSON.stringify(askSlot.after));
-    ck('⑤ 文案写明"会占用 1 格家具空间"', /会占用 1 格家具空间/.test(askSlot.正文 || ''));
-    ck('⑤ 文案写明 现在几格 / 打完几格 / 还剩几格',
-       /现在：家具位 \d+\/\d+（还剩 \d+ 格）/.test(askSlot.正文 || '') && /打造后：\d+\/\d+/.test(askSlot.正文 || ''));
+    ck('⑤ 简洁文案写明占1格家具位', /占1格家具位/.test(askSlot.正文 || ''));
+    const slots=(askSlot.正文||'').match(/(\d+)\/(\d+) → (\d+)\/(\d+)/);
+    ck('⑤ 显示真实建造前后数量，选项提示剩余格数',
+       !!slots && +slots[1]===askSlot.before.used && +slots[3]===+slots[1]+1 && slots[2]===slots[4] &&
+       askSlot.选项[0].includes(`还剩 ${+slots[2]-+slots[3]} 格`));
     ck('⑤ 有「继续打造」和「取消」两个选择', (askSlot.选项 || []).length === 2 && /继续打造/.test(askSlot.选项[0]) && /取消/.test(askSlot.选项[1]), JSON.stringify(askSlot.选项));
 
     // 点取消 → 回到营地，什么都没发生
@@ -254,4 +258,4 @@ const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —
   console.log('\n通过 ' + ok + ' 项，失败 ' + bad.length + ' 项');
   console.log('RESULT:' + (bad.length ? 'FAIL' : 'PASS'));
   process.exit(bad.length ? 1 : 0);
-})();
+})().catch(error=>{console.error(error.stack);console.log('RESULT:FAIL');activeSocket?.close();activeBrowser?.kill();process.exitCode=1;});

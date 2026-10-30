@@ -1,4 +1,4 @@
-/* Independent browser checks for divine pack shop, code, art and outdoor deposits. */
+/* 隔离Chrome：同一手指长按拖量、制作、食之包与图纸操作。 */
 const {spawn}=require('child_process'),fs=require('fs'),path=require('path'),http=require('http'),os=require('os'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'../..'),out=path.join(root,'回归测试/_out'),profile=fs.mkdtempSync(path.join(os.tmpdir(),'guyu-mobile-')),port=9624;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -20,7 +20,7 @@ let passed=0,fail=0,ws,ch;const errors=[];
  const ready=async()=>{for(let i=0;i<80;i++){if(await ev(`(()=>{const e=document.querySelector('#scene-img');return e?.complete&&e.naturalWidth>0&&!document.querySelector('#loading')?.classList.contains('show');})()`))return;await sleep(100);}throw Error('场景图未就绪');};
 
 
- const tap=async selector=>{await sleep(260);await ev(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'nearest'})`);const q=await ev(`document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect().toJSON()`),x=q.x+q.width/2,y=q.y+q.height/2;await send('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});await send('Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});await sleep(260);};
+ const tap=async selector=>{await sleep(450);await ev(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'nearest'})`);const q=await ev(`document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect().toJSON()`),x=q.x+q.width/2,y=q.y+q.height/2;await send('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});await send('Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});await sleep(260);};
  const hold=async selector=>{await sleep(200);await ev(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'nearest'})`);const q=await ev(`document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect().toJSON()`),x=q.x+q.width/2,y=q.y+q.height/2;await send('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});await sleep(620);await send('Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});await sleep(250);};
 
  await send('Emulation.setDeviceMetricsOverride',{width:667,height:375,deviceScaleFactor:1,mobile:true});
@@ -34,7 +34,7 @@ let passed=0,fail=0,ws,ch;const errors=[];
  await dragHold('[data-ware-transfer="wood"][data-qty="1"]');
  await check('手机同一手指长按存入后拖动选量',`+document.querySelector('#batchn-n').value>20&&Game.timeFrozen()`);const qty=await ev(`+document.querySelector('#batchn-n').value`);await shot('storage-touch-deposit.png');await tap('#batchn-do');
  await check('存入实际数量一致',`Game.warehouseState().inv.wood===${qty}`);
- await tap('#modal .modal-x');await tap('[data-nav="inv"]');await tap('[data-warehouse-open]');await tap('[data-warehouse-item="wood"]');await dragHold('[data-ware-transfer="wood"][data-qty="1"]');
+ await tap('#modal .modal-x');await tap('[data-nav="inv"]');await ev(`document.querySelector('#modal .modal-x')?.click();[...document.querySelectorAll('#hotspots .hotspot')].find(e=>/仓库|海底储物箱/.test(e.textContent)).click();`);await sleep(450);await dragHold('[data-warehouse-item="wood"]');
  const outQty=await ev(`+document.querySelector('#batchn-n').value`);await check('手机同一手指长按取出后拖动选量',`+document.querySelector('#batchn-n').value>10`);await tap('#batchn-do');await check('取出实际数量一致',`Game.warehouseState().inv.wood===${qty-outQty}`);
  await tap('#modal .modal-x');await tap('[data-nav="craft"]');await sleep(600);
  await check('制作行成品贴图加载并排在文字左侧',`(()=>{const r=document.querySelector('[data-recipe="r_axestone"]').closest('.recipe'),i=r.querySelector('.recipe-artwork img'),t=r.querySelector('.recipe-info');return i?.complete&&i.naturalWidth>0&&i.getBoundingClientRect().right<=t.getBoundingClientRect().left;})()`);await shot('craft-output-mobile.png');
@@ -42,7 +42,7 @@ let passed=0,fail=0,ws,ch;const errors=[];
  await check('批量制作显示动作动画',`document.querySelector('#busy').classList.contains('open')`);await sleep(3500);await check('动画结束批量产物实际入包',`Game.invCount('axeStone')>1`);
  await tap('#modal .modal-x');
  await check('野猪黑白和彩色贴图均能加载',`(async()=>{for(const colored of [false,true]){const i=new Image();i.src=CombatStage.cutout('assets/img/boar.png',colored);await new Promise(r=>{i.onload=r;i.onerror=r});if(!i.naturalWidth)return false;}return true;})()`);
- await ev(`Game.S().relics=['satchel'];Game.S().relicEquip=['satchel'];Game.S().relicSlots=1;UI.render();`);await tap('[data-nav="equip"]');await hold('[data-satchel-settings]');await tap('[data-satchel-only]');await check('仅指定开关保存设置',`Game.S().satchelOnlySpecified===true`);await shot('satchel-safe-settings-mobile.png');
+ await ev(`Game.S().relics=['satchel'];Game.S().relicEquip=['satchel'];Game.S().relicSlots=1;UI.render();`);await tap('[data-nav="equip"]');await hold('[data-satchel-settings]');await check('食之包仅保留三个选择按钮',`document.querySelectorAll('.satchel-menu button').length===3&&!document.querySelector('[data-satchel-only]')`);await tap('[data-satchel="food"]');await tap('[data-satchelpick="food:berry"]');await check('优先食物保留默认候补规则',`Game.satchelSelections('food').includes('berry')`);await shot('satchel-safe-settings-mobile.png');
 
  await tap('#modal .modal-x');await ev(`Game.addItem('bpOmelette',1,true);UI.render();`);await tap('[data-nav="inv"]');await tap('[data-item="bpOmelette"]');await tap('[data-learn="bpOmelette"]');await check('手机图纸详情学习按钮实际生效',`Game.S().learnedBlueprints.bpOmelette===true&&document.querySelector('[data-learn="bpOmelette"]').disabled`);
  await tap('.item-detail-modal .modal-x');await hold('[data-item="bpOmelette"]');await tap('#batchn-do');await check('长按丢弃后食谱仍然学会',`Game.invCount('bpOmelette')===0&&Game.knowsBlueprint('bpOmelette')`);

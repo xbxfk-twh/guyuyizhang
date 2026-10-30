@@ -56,10 +56,10 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
       }return {fail,scenes,points};})()`);
     console.log('FIT '+width,JSON.stringify(report));check('scene crop preserves aspect and original hotspots '+width,report.fail.length===0 && report.points>30);
     await ev(`Game.S().scene='camp';Game.S().zone=null;Game.S().statuses.bleed=3;Game.S().statuses.nauseaUntil=Game.S().tick+700;Game.S().buffs={atk:{v:3,until:Game.S().tick+700}};UI.render();`);
-    check('all buffs share top-right container '+width,await ev(`(()=>{const b=document.querySelector('#status-badges'),r=b.getBoundingClientRect();return r.right<=innerWidth&&r.left>innerWidth/2&&b.textContent.includes('反胃')&&b.textContent.includes('攻击')&&!b.textContent.includes('+3');})()`));
+    check('紧凑状态入口保留所有buff '+width,await ev(`(()=>{const b=document.querySelector('#status-badges'),r=b.getBoundingClientRect();return r.right<=innerWidth&&r.left>innerWidth/2&&!!b.querySelector('[data-buff-info="all"]')&&!b.textContent.includes('+3');})()`));
     await shot('simplify-camp-'+width);
   }
-  check('强化徽标点击显示数值与持续时间',await ev(`(()=>{const b=[...document.querySelectorAll('[data-buff-info]')].find(e=>e.textContent==='攻击');if(!b)return false;b.click();const t=document.querySelector('#modal').textContent,ok=t.includes('+3')&&t.includes('分');document.querySelector('#modal-close')?.click();return ok;})()`));
+  check('强化徽标点击显示数值与持续时间',await ev(`(()=>{const b=document.querySelector('[data-buff-info="all"]');if(!b)return false;b.click();const t=document.querySelector('#modal').textContent,ok=t.includes('反胃')&&t.includes('攻击')&&t.includes('+3')&&t.includes('分');document.querySelector('#modal-close')?.click();return ok;})()`));
   await send('Emulation.setDeviceMetricsOverride',{width:667,height:375,deviceScaleFactor:1,mobile:true});await sleep(300);
   check('裁切只保留原位篝火且无左上角复制入口',await ev(`(()=>{Game.S().scene='camp';Game.S().zone=null;UI.render();const p=[...document.querySelectorAll('#hotspots>.hotspot')].find(e=>e.textContent.includes('篝火'));if(!p||document.querySelector('#crop-shortcuts')||getComputedStyle(p).display==='none')return false;p.click();const ok=!!document.querySelector('.work-modal');document.querySelector('#modal .modal-x')?.click();return ok;})()`));
   await send('Emulation.setDeviceMetricsOverride',{width:844,height:390,deviceScaleFactor:1,mobile:true});
@@ -71,7 +71,7 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
   check('mobile craft buttons reduced to 29px',await ev(`[...document.querySelectorAll('.recipe-actions .mini-btn')].filter(b=>b.offsetHeight>0).every(b=>b.getBoundingClientRect().height<=30)&&document.querySelectorAll('.recipe-actions .mini-btn').length>0`));
   await shot('simplify-craft-mobile');
   await ev(`document.querySelector('#modal .modal-x').click();document.querySelector('#nav [data-nav="save"]').click();document.querySelector('[data-savemenu="mail"]').click();document.querySelector('[data-mailtab="guide"]').click();`);
-  check('mail guide no obsolete crop +2',await ev(`!document.querySelector('#modal').textContent.includes('统一 +2')&&document.querySelector('#modal').textContent.includes('2~3 个药草')`));
+  check('攻略逐页可读且没有错误的统一+2说明',await ev(`(()=>{const pages=[...document.querySelectorAll('[data-guide-page] option')].map(o=>({value:o.value,title:o.textContent}));if(pages.length<3)return false;for(const p of pages){const select=document.querySelector('[data-guide-page]');select.value=p.value;select.dispatchEvent(new Event('change'));if(document.querySelector('.guide-page h3')?.textContent!==p.title||document.querySelector('.guide-page').textContent.includes('统一 +2'))return false;}return true;})()`));
   await ev(`document.querySelector('[data-mailtab="event"]').click();`);
   check('event ad last and concise namecard',await ev(`(()=>{const m=document.querySelector('#modal'),t=m.textContent;return t.indexOf('小广告')>t.indexOf('命名牌')&&!t.includes('伤害永久+1');})()`));
   await ev(`document.querySelector('#modal-close').click();Game.S().scene='atlantis';Game.S().zone='shipwreck';UI.render();[...document.querySelectorAll('.hotspot')].find(b=>b.textContent.includes('神秘人鱼')).click();`);

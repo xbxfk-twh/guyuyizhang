@@ -67,7 +67,7 @@ if (args.includes('--browser')) checks.push('开发工具/检查/_verify_downloa
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_android_host.js', '开发工具/检查/_verify_storage_spoil.js', '开发工具/检查/_verify_camp_art.js', '开发工具/检查/_verify_inventory_compact.js', '开发工具/检查/_verify_mobile_refresh.js', '开发工具/检查/_verify_player_tabs_build.js', '开发工具/检查/_verify_language.js', '开发工具/检查/_verify_warehouse_feedback.js', '开发工具/检查/_verify_combat_resume.js', '开发工具/检查/_verify_camp_inventory_ui.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_activity_order_mobile.js', '开发工具/检查/_verify_focus_cellar_camp.js', '开发工具/检查/_verify_rain_inventory.js', '开发工具/检查/_verify_storage_recipe_touch.js', '开发工具/检查/_verify_october07_ui.js', '开发工具/检查/_verify_divine_packs_ui.js', '开发工具/检查/_verify_plain_controls.js', '开发工具/检查/_verify_scene_crop_storage.js', '开发工具/检查/_verify_warehouse_feedback_ui.js', '开发工具/检查/_verify_scenes.js', '开发工具/检查/_verify_feedback_ui.js', '开发工具/检查/_verify_ui_layout.js', '开发工具/检查/_verify_newgame_confirm.js', '开发工具/检查/_verify_camp_panel.js', '开发工具/检查/_verify_atl_light.js', '开发工具/检查/_verify_third_batch.js', '开发工具/检查/_verify_status_badges.js', '开发工具/检查/_verify_settle_entry.js', // 老潮兑换：2026-09-25 定稿成"沿用出售那一套"（点一下换 1 份 / 长按批量，删掉「全部」+二次确认），
 // 所以旧的 _verify_shell_confirm.js 改名成 _verify_exchange_flow.js，断言的契约跟着换。
-'开发工具/检查/_verify_exchange_flow.js', '开发工具/检查/_verify_skins.js', '开发工具/检查/_verify_furn_slot.js', '开发工具/检查/_verify_guide.js', '开发工具/检查/_verify_craft_panel.js', '开发工具/检查/_verify_ui_compact.js', '开发工具/检查/_verify_share.js');
+'开发工具/检查/_verify_exchange_flow.js', '开发工具/检查/_verify_skins.js', '开发工具/检查/_verify_furn_slot.js', '开发工具/检查/_verify_guide.js', '开发工具/检查/_verify_craft_panel.js', '开发工具/检查/_verify_share.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_plank_processing.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_progression_ui.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_season_backgrounds.js');
@@ -95,6 +95,7 @@ if (only && !picked.length) { console.error('没有匹配 --only=' + only + ' �
 for (const file of picked) {
   const result = spawnSync(process.execPath, [path.join(root, file)], {
     cwd: root, encoding: 'utf8', timeout: 180000, windowsHide: true,
+    env: {...process.env, GUYU_GAME_ROOT: path.join(root, '孤屿遗章-游戏 - 发布')},
     maxBuffer: 10 * 1024 * 1024,
   });
   const output = (result.stdout || '') + (result.stderr || '') + (result.error ? '\n' + result.error.message : '');

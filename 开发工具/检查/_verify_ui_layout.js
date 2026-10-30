@@ -40,7 +40,7 @@ async function main(){
     await send('Emulation.setTouchEmulationEnabled',{enabled:true});
     await send('Page.navigate',{url}); await sleep(2200);
     await ev(`Game.newGame('fisher','normal');Game.S().tut=null;Game.S().capacity=999;
-      
+
       const catKeys=Object.keys(ITEMS).filter(k=>ITEMS[k]&&ITEMS[k].cat);
       const seen={}; const mats=[],eqs=[];
       for(const k of catKeys){const it=ITEMS[k];const c=it.cat;
@@ -58,13 +58,14 @@ async function main(){
     await shot(`scene-${w}x${h}.png`);
 
     // ---- CRAFT ----
-    
+
     await tapSel('[data-nav="craft"]');
     await check('craft面板结构 '+w,`(()=>{const m=document.querySelector('.modal-content.work-modal');if(!m)return false;
       const head=m.querySelector(':scope>.work-head'),t=m.querySelector('.work-head>.work-title'),
       body=m.querySelector(':scope>.work-body'),side=body.querySelector('.work-side'),
       content=body.querySelector('.work-content'),scroll=content.querySelector('.work-scroll');
       return head&&t&&body&&side&&content&&scroll;})()`);
+    await check('制作卡片名称合并产出，材料独立且高度紧凑 '+w,`(()=>{const r=document.querySelector('.recipe'),i=r?.querySelector('.recipe-info');return !!r?.querySelector('.recipe-name .recipe-out')&&i?.children.length===2&&!/^产出：/.test(r.querySelector('.recipe-mats')?.textContent||'')&&r.getBoundingClientRect().height<170;})()`);
     await check('craft标题与关闭不重叠 '+w,`(()=>{const t=document.querySelector('.work-title').getBoundingClientRect();
       const x=document.querySelector('.modal-x');if(!x)return false;const r=x.getBoundingClientRect();
       return !(t.right>r.left&&t.left<r.right&&t.bottom>r.top&&t.top<r.bottom);})()`);
@@ -72,8 +73,8 @@ async function main(){
       return r.left>=-1&&r.top>=-1&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1;})()`);
     await check('craft左侧独立滚动 '+w,`(()=>{const s=document.querySelector('.work-side');const o=getComputedStyle(s);
       return (o.overflowY==='auto'||o.overflowY==='scroll');})()`);
-    await check('craft关闭32与标题对齐 '+w,`(()=>{const x=document.querySelector('.modal-x');if(!x)return false;const r=x.getBoundingClientRect();
-      const t=document.querySelector('.work-title').getBoundingClientRect();return r.width===32&&r.height===32&&Math.abs((r.top+r.bottom-t.top-t.bottom)/2)<=3;})()`);
+    await check('craft关闭34与紧凑页签标题对齐 '+w,`(()=>{const x=document.querySelector('.modal-x');if(!x)return false;const r=x.getBoundingClientRect();
+      const t=document.querySelector('.work-title').getBoundingClientRect();return r.width===34&&r.height===34&&Math.abs((r.top+r.bottom-t.top-t.bottom)/2)<=3;})()`);
     await check('craft内容无水平溢出 '+w,`(()=>{const s=document.querySelector('.work-scroll');const o=getComputedStyle(s);
       return (o.overflowX==='auto'||o.overflowX==='scroll'||o.overflowX==='hidden')&&s.scrollWidth<=s.clientWidth+1;})()`);
     await check('craft无伪溢出 '+w,`(()=>{const m=document.querySelector('.modal-content.work-modal');
@@ -132,8 +133,8 @@ async function main(){
     await ev(`document.querySelector('.modal-x')?.click();`); await sleep(150);
     await tapSel('[data-nav="inv"]');
     await check('inv面板结构 '+w,`!!document.querySelector('.modal-content.work-modal .work-side') && !!document.querySelector('.modal-content.work-modal .work-scroll')`);
-    await check('inv关闭32与标题对齐 '+w,`(()=>{const x=document.querySelector('.modal-x');if(!x)return false;const r=x.getBoundingClientRect();
-      const t=document.querySelector('.work-title').getBoundingClientRect();return r.width===32&&r.height===32&&Math.abs((r.top+r.bottom-t.top-t.bottom)/2)<=3;})()`);
+    await check('inv关闭34与标题对齐 '+w,`(()=>{const x=document.querySelector('.modal-x');if(!x)return false;const r=x.getBoundingClientRect();
+      const t=document.querySelector('.work-title').getBoundingClientRect();return r.width===34&&r.height===34&&Math.abs((r.top+r.bottom-t.top-t.bottom)/2)<=3;})()`);
     await check('inv外框界内 '+w,`(()=>{const r=document.querySelector('.modal-content.work-modal').getBoundingClientRect();
       return r.left>=-1&&r.top>=-1&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1;})()`);
     await check('inv内容无水平溢出 '+w,`(()=>{const s=document.querySelector('.work-scroll');return s.scrollWidth<=s.clientWidth+1;})()`);
@@ -149,7 +150,7 @@ async function main(){
     assert.equal(snap0,snap1,'inv选分类后快照不变'); passed++; console.log('OK inv选分类后快照不变');
 
     // ---- EQUIP ----
-    await ev(`document.querySelector('[data-invequip="1"]').click();`); await sleep(450);
+    await ev(`document.querySelector('[data-player-panel="equip"]').click();`); await sleep(450);
     for(const tabId of ['p1','skill','attr']) {
       await ev(`document.querySelector('[data-equiptab="${tabId}"]').click();`); await sleep(450);
       await check('equip分类内容与边界 '+w+' '+tabId, `(()=>{
@@ -190,7 +191,7 @@ async function main(){
     }
     await ev(`document.querySelector('.modal-x')?.click();`); await sleep(120);
   }
-  assert.ok(shots.length>=3,'已生成至少各面板三尺寸截图'); 
+  assert.ok(shots.length>=3,'已生成至少各面板三尺寸截图');
   assert.equal(errors.length,0,errors.join('\n'));
   console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);
 }

@@ -135,7 +135,7 @@ function mailboxModal() {
         // ⚠️ 兼容老存档：以前发出去的公告邮件里 body 可能是数组（没归一化），
         //    直接 String(数组) 会变成逗号拼成一整行 —— 这里统一按行拆。
         ? `<div class="help-item"><b>📣 ${esc(x.title)}${x.date ? ` <small>（${esc(x.date)}）</small>` : ''}</b><div class="mail-body">${(Array.isArray(x.body) ? x.body.join('\n') : String(x.body || '')).split('\n').map(t => `<div>${esc(t)}</div>`).join('')}</div>${btn}</div>`
-        : `<div class="help-item"><b>${x.item === 'divineBow' ? '◈ 限定 · ' : ''}${x.relic ? `◈ 神物 · ${esc(RELICS[x.relic].name)}` : (x.item ? `${ITEMS[x.item].glyph} ${esc(ITEMS[x.item].name)}×${x.qty}` : `魂点 ×${x.soul}${x.adCoins ? ` + 星之点 ×${x.adCoins}` : ''}`)}</b><span>${x.item === 'divineBow' ? esc(ITEMS.divineBow.desc) + (x.dur !== undefined ? `（剩余耐久 ${x.dur}）` : '') : (x.relic ? esc(RELICS[x.relic].desc) : '来自官方邮件')}</span>${why}${btn}</div>`;
+        : `<div class="help-item"><b>${x.item === 'divineBow' ? '◈ 限定 · ' : ''}${x.relic ? `◈ 神物 · ${esc(RELICS[x.relic].name)}` : (x.item ? `${ITEMS[x.item].glyph} ${esc(ITEMS[x.item].name)}×${x.qty}` : `魂点 ×${x.soul}${x.adCoins ? ` + ${esc(Game.adCurrencyName())} ×${x.adCoins}` : ''}`)}</b><span>${x.item === 'divineBow' ? esc(ITEMS.divineBow.desc) + (x.dur !== undefined ? `（剩余耐久 ${x.dur}）` : '') : (x.relic ? esc(RELICS[x.relic].desc) : '来自官方邮件')}</span>${why}${btn}</div>`;
       }).join('') : '<div class="hint">邮箱是空的。（兑换码/官方发放会送到这里）</div>';
 
     } else if (deps.mailTab === 'code') {
@@ -147,7 +147,7 @@ function mailboxModal() {
     } else {
       // 核心补偿那段文案已撤下（CORE4 这个码本身还在，可以私下发给受影响的玩家）
       // 作者 2026-09-25：在「活动」页挂一条朋友的小广告 + 反馈渠道说明。
-      inner = `<section class="overlay-text event-feedback"><b>🎁 攻略与反馈征集</b><p>欢迎大家分享自己的游戏心得！</p><p>在论坛发布原创攻略，或向我们提交有价值的 BUG、玩法建议与改进反馈，经确认后可获得：</p><p><b>300 魂点 + 30 星之点</b></p><p>奖励与评分、评价内容及星级无关。不要求发布评价，也无需提交评价截图或链接。</p><p>攻略或反馈可通过官方交流群提交，确认后发放奖励。</p></section><section class="overlay-text event-review"><b>欢迎留下真实评价</b><p>非常欢迎大家留下自己对《孤屿遗章》的真实评价。无论喜欢、吐槽还是建议，我们都会认真看，并用于后续版本改进。</p></section><div class="overlay-text"><b>【命名牌】</b><br>兑换码 <code>QQ1014679931</code> 可兑换 1 张命名牌。<br><br><code>GUYU2026</code> 可兑换 50 魂点。<br><br>QQ群：1014679931</div>`
+      inner = `<section class="overlay-text event-feedback"><b>🎁 攻略与反馈征集</b><p>欢迎大家分享自己的游戏心得！</p><p>在论坛发布原创攻略，或向我们提交有价值的 BUG、玩法建议与改进反馈，经确认后可获得：</p><p><b>300 魂点 + 30 ${esc(Game.adCurrencyName())}</b></p><p>奖励与评分、评价内容及星级无关。不要求发布评价，也无需提交评价截图或链接。</p><p>攻略或反馈可通过官方交流群提交，确认后发放奖励。</p></section><section class="overlay-text event-review"><b>欢迎留下真实评价</b><p>非常欢迎大家留下自己对《孤屿遗章》的真实评价。无论喜欢、吐槽还是建议，我们都会认真看，并用于后续版本改进。</p></section><div class="overlay-text"><b>【命名牌】</b><br>兑换码 <code>QQ1014679931</code> 可兑换 1 张命名牌。<br><br><code>GUYU2026</code> 可兑换 50 魂点。<br><br>QQ群：1014679931</div>`
         + `<div class="overlay-text event-ad"><b>【小广告】</b><br>中式心理咨询可加 QQ <code>1840585640</code>。</div>`;
       inner=`<section class="overlay-text event-download"><b>安卓独立测试版</b><p>可下载安装后离线游玩。迁移前，请在「菜单 → 备份·读档」导出完整进度，再到独立版导入。独立版的广告和平台功能有所不同。</p><p><a class="mini-btn" href="https://guyuyizhang.top:8443/download.html" target="_blank" rel="noopener noreferrer">打开官网下载页 ↗</a></p></section>`+inner;
 

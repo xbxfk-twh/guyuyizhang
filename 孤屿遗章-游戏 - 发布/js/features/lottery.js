@@ -1,6 +1,7 @@
 /* lottery：业务规则的唯一实现；Game 保留调用接口与装配。 */
 const LotteryRules = (() => {
   function create(deps) {
+    const adCurrencyName=(...args)=>deps.adCurrencyName(...args);
     const gameState=deps.gameState;
     const persistPair=(...args)=>deps.persistPair(...args);
     const log=(...args)=>deps.log(...args);
@@ -219,7 +220,7 @@ function lotteryTransact(id,qty,value,times) {
     });
     if(failure)return failure;
     const result=persistPair(next,meta,false);if(!result.ok)return result;
-    const text=rewards.map(r=>r.adCoins?`星之点×${r.adCoins}`:r.relic?RELICS[r.relic].name+(r.mailed?'（已存邮箱）':''):`${ITEMS[r.item].name}×${r.qty}`).join('、');
+    const text=rewards.map(r=>r.adCoins?`${adCurrencyName()}×${r.adCoins}`:r.relic?RELICS[r.relic].name+(r.mailed?'（已存邮箱）':''):`${ITEMS[r.item].name}×${r.qty}`).join('、');
     const msg=!draws?`存入 ${value} 价值，当前余额 ${credit}；满 100 即可抽奖。`:
       `抽了 ${draws} 次，${rewards.length?`中奖 ${rewards.length} 次：${text}`:'本次未中奖'}。剩余 ${lotteryState().credit} 价值。`;
     log(msg,rewards.length?'good':'sys');change();

@@ -5687,10 +5687,7 @@ section('21. 新手引导 / 家具位 / 体力上限 / 新菜谱');
     return ordinary && craftable && G.S().buildings.house === -1 && G.S().buildings.fire === -1 && G.S().buildings.storage === -1;
   })());
   ck('★ 21.21 建造页对"占位/不占位"两种都打了标', /slot-tag takes/.test(U) && /slot-tag free/.test(U) && /Game\.furnSlotInfo\(f\.id\)/.test(U));
-  ck('★ 21.22 建造前会对占位家具弹确认（不占位的直接造，不拿废话拦人）',
-     /if \(!si\.takes\) \{ doBuild\(\); return; \}/.test(U) && /title: '确认打造'/.test(U) && /会占用 1 格家具空间/.test(U));
-  ck('★ 21.23 简洁确认框写明打造前后家具位及剩余空间', U.includes('${si.used}/${si.cap} → ${si.used+1}/${si.cap}') && U.includes('占用 1 格（还剩 ${si.left} 格）') && /compact: true/.test(U));
-  ck('★ 21.24 确认框的"取消"回到营地（不是把面板关掉让人自己再找）', /label: '取消', hint: '回到营地', ok: \(\) => showModal\('camp'\)/.test(U));
+  // 确认/取消及实际剩余格数由 _verify_furn_slot.js 操作验证，不匹配源码中的旧文案或表达式。
   ck('★ 21.25 帮助页也讲了家具位规则，并逐件标占不占位',
      /<b>家具位<\/b><span>当前 \$\{Game\.furnitureUsed\(\)\}\/\$\{Game\.houseSlots\(\)\} 格/.test(U) &&
      /Game\.furnTakesSlot\(f\.id\) \? ' <b>（占 1 格）<\/b>' : ' <b>（不占家具位）<\/b>'/.test(U));
@@ -6027,7 +6024,7 @@ section('24. 种植砍半 / 美食家图纸 / 玄铁龙骨 / 制造栏可做性 
 
 // ============================================================
 // 25. 作者 2026-09-24 第三批：鱼人"已换过"误报 / UI 紧凑化 / 通关分享图
-//     界面行为由 _verify_ui_compact.js（14 项）与 _verify_share.js（10 项）实测。
+//     界面行为由 _verify_ui_layout.js、_verify_october07_ui.js与 _verify_share.js（10 项）实测。
 // ============================================================
 section('25. 鱼人已换过误报 / 装备图标 / UI 紧凑化 / 通关分享图');
 {

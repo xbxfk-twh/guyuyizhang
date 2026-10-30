@@ -41,4 +41,18 @@ async function openBrowser({width=667,height=375,init=''}={}){
   };
  }catch(e){ws?.close();ch.kill();throw e;}
 }
-module.exports={openBrowser,waitForGame,navigateGame};
+// CDP 产生可信输入；DOM 构造的 PointerEvent 默认 isPrimary=false，会被输入层拒绝。
+// 点击前滚动、检查中心命中，避免把被遮住的按钮也算成可操作。
+async function pressElement(send,ev,selector,{long=false,touch=true}={}){
+ for(let i=0;i<100&&await ev("!!document.querySelector('#loading')");i++)await sleep(100);
+ await sleep(400);
+ const point=await ev(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)throw Error('找不到控件：'+${JSON.stringify(selector)});e.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;if(!r.width||!r.height||x<0||y<0||x>=innerWidth||y>=innerHeight||!e.contains(document.elementFromPoint(x,y)))throw Error('控件不可点击：'+${JSON.stringify(selector)}+' '+JSON.stringify({r:r.toJSON(),hit:document.elementFromPoint(x,y)?.outerHTML.slice(0,200)}));return {x,y};})()`);
+ if(!Number.isFinite(point?.x)||!Number.isFinite(point?.y))throw Error('输入坐标读取失败：'+JSON.stringify(point));
+ if(touch)await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...point,id:1}]});
+ else await send('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',clickCount:1});
+ await sleep(long?540:70);
+ if(touch)await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ else await send('Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',clickCount:1});
+ await sleep(400);
+}
+module.exports={openBrowser,waitForGame,navigateGame,pressElement};
