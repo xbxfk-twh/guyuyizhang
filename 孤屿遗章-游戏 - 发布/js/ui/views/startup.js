@@ -70,7 +70,7 @@ function begin() {
         <button data-nav="craft">🔨 制造</button>
         <button data-nav="equip">⚔ 装备</button>
         <button data-nav="inv">🎒 背包</button>
-        <button data-nav="save">☰ 菜单</button>
+        <button data-nav="save">☰ 菜单${NoticeBadges.dot('menu')}</button>
       </div>
       <div id="modal"></div>
       <div id="busy"></div>
@@ -196,7 +196,7 @@ function showSafeMode(crashes) {
           if (r && r.ok) { begin(); addLog('已用备份存档打开。', 'good'); }
           else { centerToast('打不开备份：' + ((r && r.reason) || '未知')); }
         } },
-        { label: '导出存档码', hint: '保存完整备份文件，或生成临时取档码', ok: () => showModal('codex', { mode: 'export', code: Game.exportCode() }) },
+        { label: '备份与迁移', hint: '生成10分钟有效的取件码；电脑可保存备份文件', ok: () => showModal('codex', { mode: 'export', code: Game.exportCode() }) },
         { label: '继续进入游戏', hint: '我了解风险', ok: () => {} },
       ],
     });

@@ -980,3 +980,12 @@ html[data-language="en"] .language-control span{font-size:13px}
 
 /* English category names must fit the compact backpack/warehouse sidebar. */
 html[data-language="en"] #modal .inventory-side .tab{overflow-wrap:anywhere;word-break:normal;white-space:normal}
+/* 通知始终挂在所属按钮上；隐藏时不占位置，不让文字或滚动条跳动。 */
+[data-savemenu], [data-open], #btn-set, [data-nav="save"], .tabs .tab, .cabinet-gift { position:relative; }
+.notice-dot { position:absolute; right:3px; top:3px; width:8px; height:8px; border:1px solid var(--paper,#f4f0e4); border-radius:50%; background:#bd3229; box-shadow:0 0 0 1px #87312850; pointer-events:none; }
+.notice-dot[hidden] { display:none!important; }
+.shop-video-seal { display:grid; place-items:center; width:28px; height:28px; margin:0 auto 2px; border:2px double #725c2d; border-radius:50%; color:#5f4922; background:#ead9ae; box-shadow:inset 0 0 0 2px #f6edcf; font-size:16px; }
+#modal .cabinet-modal .cabinet-video:disabled, #modal .cabinet-modal .cabinet-gift:disabled { opacity:1; color:#8b8169; }
+.cabinet-video:disabled .shop-video-seal { filter:grayscale(.7); }
+.shop-gift-seal { font-size:32px; color:#8a642b; line-height:1; }
+@media(max-height:500px) { #modal .cabinet-modal .cabinet-cell.cabinet-video { padding:5px 12px; gap:1px; } .shop-video-seal { width:22px; height:22px; font-size:14px; } }

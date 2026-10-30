@@ -127,6 +127,8 @@ const StateMigrations = (() => {
       };
       for(const [key,value]of Object.entries(defaults))if(!S[key])S[key]=value;
       for(const key of ['farmExt','houseExt','gatherCount','craftCount','missStreak'])if(S[key]===undefined)S[key]=0;
+      if (!Number.isSafeInteger(S.diaryReadCount)) S.diaryReadCount=S.diary.length;
+      S.diaryReadCount=Math.max(0,Math.min(S.diary.length,S.diaryReadCount));
       if (S.coopExt === undefined) S.coopExt = 0;
       if (S.storeExt === undefined) S.storeExt = 0;
       if (S.pistolCalibrated === undefined) S.pistolCalibrated = false;

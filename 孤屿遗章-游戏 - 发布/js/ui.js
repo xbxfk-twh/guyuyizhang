@@ -500,13 +500,13 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   Game.bind({
     onLog: (text, cls) => addLog(text, cls),
     onChange: () => render(),
-    // 存档写不进去（配额满 / 浏览器限制）时，必须让玩家知道，并马上引导他导出存档码
+    // 存档写不进去（配额满 / 浏览器限制）时，必须让玩家知道，并马上引导他备份与迁移
     onSaveFail: (err) => {
-      addLog('⚠ 存档写入失败！请立刻到「菜单 → 备份·读档」导出存档码备份，然后刷新页面重试。', 'danger');
+      addLog('⚠ 存档写入失败！请到「菜单 → 备份·读档」生成取件码，在另一设备确认恢复后再刷新本页。电脑也可保存备份文件。', 'danger');
       try { centerToast('存档写入失败！'); } catch (e) {}
-      showModal('overlay', { title:'存档写入失败', text:`浏览器没能把存档写进本地存储（${(err && err.name) || '未知原因'}）。\n\n这通常是存储空间满了或被浏览器限制。\n\n请现在就去「菜单 → 备份·读档」导出存档码（复制到微信/备忘录都行），然后刷新页面；在修复前请不要再继续玩。`, choices:[
+      showModal('overlay', { title:'存档写入失败', text:`浏览器没能把存档写进本地存储（${(err && err.name) || '未知原因'}）。\n\n这通常是存储空间满了或被浏览器限制。\n\n请到「菜单 → 备份·读档」生成取件码，在另一设备的10分钟内确认恢复，再刷新本页。电脑也可保存备份文件；确认备份成功前请保留本页。`, choices:[
         { label:'知道了', ok:()=>{} },
-        { label:'去导出存档码', ok:()=>showModal('codex', { mode:'export', code: Game.exportCode() }) },
+        { label:'去备份进度', ok:()=>showModal('codex', { mode:'export', code: Game.exportCode() }) },
       ]});
     },
     // 另一个标签页/窗口写入了更新的进度：默认不覆盖，交给玩家决定

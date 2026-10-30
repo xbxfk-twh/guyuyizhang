@@ -17,7 +17,7 @@ const GameRenderView = (() => {
 function render() {
     try { renderInner(); restoreCombatView(); }
     catch (e) { onRenderCrash(e); }
-    finally { document.body.classList.toggle('modal-open', !!$('#modal.open')); }
+    finally { document.body.classList.toggle('modal-open', !!$('#modal.open')); NoticeBadges.refresh(); }
   }
 
 const BOOT_KEY = 'guyuyizhang_boot', CRASH_KEY = 'guyuyizhang_crashes', ERR_KEY = 'guyuyizhang_lasterr';
@@ -60,7 +60,7 @@ function onRenderCrash(e) {
       d.id = 'crash-toast';
       d.style.cssText = 'position:fixed;left:50%;bottom:calc(var(--navh,30px) + 8px);transform:translateX(-50%);z-index:3000;'
         + 'background:rgba(24,21,12,0.96);border:1px solid #c9b98a;color:#efe9d6;padding:6px 12px;border-radius:8px;font-size:12px;max-width:92vw';
-      d.textContent = '界面出错了（已记录，可在菜单→备份里导出存档码）：' + String(msg).slice(0, 90);
+      d.textContent = '界面出错了（已记录，可在菜单→备份中迁移进度）：' + String(msg).slice(0, 90);
       document.body.appendChild(d);
       setTimeout(() => { if (d.parentNode) d.parentNode.removeChild(d); }, 8000);
     }

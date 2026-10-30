@@ -37,22 +37,24 @@ class Transfers:
             if save is not None and (not isinstance(save,dict) or type(save.get('day')) is not int or save['day']<1 or not isinstance(save.get('stats'),dict)):raise ValueError()
             if not re.fullmatch('[0-9a-f]{8}',str(data.get('checksum',''))):raise ValueError()
         except (ValueError,TypeError,UnicodeError,binascii.Error):raise Failure(400,'存档格式不完整，原进度未改变') from None
-    def create(self,body):
+    def create(self,body,short=False):
         self.validate(body);packed=zlib.compress(body.encode('ascii'),6)
         with self.lock:
             self._purge()
             if len(self.entries)>=self.MAX_ENTRIES or self.used+len(packed)>self.MAX_BYTES:raise Failure(503,'临时取档空间暂满，请稍后重试或保存备份文件')
             while True:
-                token=''.join(secrets.choice(self.ALPHABET) for _ in range(16))
+                token=''.join(secrets.choice(self.ALPHABET) for _ in range(8 if short else 16))
+                if short and (token.isalpha() or token.isdigit()):continue
                 key=hashlib.sha256(token.encode()).digest()
                 if key not in self.entries:break
             expires=int(self.clock()+self.TTL)
             self.entries[key]=(packed,expires);self.used+=len(packed)
-        return {'ok':True,'code':'SAVE-'+'-'.join(token[i:i+4] for i in range(0,16,4)),'expiresAt':expires}
+        return {'ok':True,'code':token if short else 'SAVE-'+'-'.join(token[i:i+4] for i in range(0,16,4)),'expiresAt':expires}
     def read(self,code):
         token=re.sub(r'[\s-]','',str(code or '')).upper()
-        if not re.fullmatch('SAVE['+self.ALPHABET+']{16}',token):raise Failure(400,'请输入完整的临时取档码')
-        key=hashlib.sha256(token[4:].encode()).digest()
+        if re.fullmatch('SAVE['+self.ALPHABET+']{16}',token):token=token[4:]
+        elif not re.fullmatch('['+self.ALPHABET+']{8}',token):raise Failure(400,'请输入8位字母和数字取件码')
+        key=hashlib.sha256(token.encode()).digest()
         with self.lock:
             self._purge();entry=self.entries.get(key)
             if not entry:raise Failure(404,'取档码不存在或已过期，请在原设备重新生成')
@@ -70,6 +72,9 @@ class Store:
             CREATE INDEX IF NOT EXISTS session_account ON sessions(account);
             CREATE TABLE IF NOT EXISTS snapshots(account TEXT NOT NULL,version INTEGER NOT NULL,hash TEXT NOT NULL,data BLOB NOT NULL,created REAL NOT NULL,PRIMARY KEY(account,version));
             CREATE TABLE IF NOT EXISTS usage(id INTEGER PRIMARY KEY,bytes INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS transfer_usage(owner TEXT NOT NULL,request_id TEXT NOT NULL,created REAL NOT NULL,code TEXT NOT NULL,expires REAL NOT NULL,body_hash TEXT NOT NULL,PRIMARY KEY(owner,request_id));
+            CREATE INDEX IF NOT EXISTS transfer_owner_time ON transfer_usage(owner,created);
+            CREATE TABLE IF NOT EXISTS transfer_alias(owner TEXT PRIMARY KEY,account TEXT NOT NULL,updated REAL NOT NULL);
             INSERT OR IGNORE INTO usage VALUES(1,0);''')
     @contextmanager
     def connect(self):
@@ -108,6 +113,40 @@ class Store:
         row=c.execute('SELECT account FROM sessions WHERE token_hash=? AND expires>?',(hashlib.sha256(token.encode()).hexdigest(),self.clock())).fetchone()
         if not row:raise Failure(401,'备用存档登录已失效')
         return row['account']
+    def transfer(self,data,transfers):
+        """Only tiny quota receipts touch disk. Backup bodies remain ten-minute RAM entries."""
+        owner=data.get('owner');request_id=data.get('requestId');body=data.get('body')
+        if not isinstance(owner,str) or not re.fullmatch('[a-f0-9]{32}',owner):raise Failure(400,'迁移身份缺失，请重新生成')
+        if not isinstance(request_id,str) or not re.fullmatch('[a-f0-9]{32}',request_id):raise Failure(400,'迁移请求格式错误')
+        transfers.validate(body);body_hash=hashlib.sha256(body.encode()).hexdigest();now=self.clock()
+        guest='guest:'+hmac.new(self.config['account_key'].encode(),owner.encode(),hashlib.sha256).hexdigest()
+        with self.connect() as c:
+            c.execute('BEGIN IMMEDIATE')
+            c.execute('DELETE FROM transfer_usage WHERE created<=?',(now-3600,))
+            c.execute('DELETE FROM transfer_alias WHERE updated<=?',(now-86400,))
+            if data.get('session'):
+                account='tap:'+self.account(c,data['session'])
+                # 匿名应急与本设备验证后的账号共用计次，不能切换通道多领配额。
+                alias=c.execute('SELECT account FROM transfer_alias WHERE owner=?',(guest,)).fetchone()
+                if alias and alias[0]!=account:raise Failure(409,'本设备迁移身份已关联其他账号，请重新打开游戏')
+                if not alias and c.execute('SELECT count(*) FROM transfer_alias').fetchone()[0]>=30000:raise Failure(503,'临时迁移身份较多，请稍后再试')
+                c.execute('UPDATE transfer_usage SET owner=? WHERE owner=?',(account,guest))
+                c.execute('INSERT OR REPLACE INTO transfer_alias VALUES(?,?,?)',(guest,account,now))
+            else:
+                alias=c.execute('SELECT account FROM transfer_alias WHERE owner=?',(guest,)).fetchone()
+                account=alias[0] if alias else guest
+                if alias:c.execute('UPDATE transfer_alias SET updated=? WHERE owner=?',(now,guest))
+            previous=c.execute('SELECT * FROM transfer_usage WHERE owner=? AND request_id=?',(account,request_id)).fetchone()
+            if previous:
+                if previous['body_hash']!=body_hash:raise Failure(409,'迁移请求内容已变化，请重新生成')
+                transfers.read(previous['code'])
+                return {'ok':True,'code':previous['code'],'expiresAt':previous['expires']}
+            usage=c.execute('SELECT count(*),min(created) FROM transfer_usage WHERE owner=?',(account,)).fetchone()
+            if usage[0]>=3:raise Failure(429,'每账号每小时最多生成3次取件码，请稍后再试',retryAfter=max(1,int(usage[1]+3600-now)+1))
+            if c.execute('SELECT count(*) FROM transfer_usage').fetchone()[0]>=30000:raise Failure(503,'临时迁移请求较多，请稍后再试')
+            result=transfers.create(body,short=True)
+            c.execute('INSERT INTO transfer_usage VALUES(?,?,?,?,?,?)',(account,request_id,now,result['code'],result['expiresAt'],body_hash))
+        return result
     def load(self,token):
         with self.connect() as c:
             account=self.account(c,token)
@@ -185,7 +224,9 @@ class Handler(BaseHTTPRequestHandler):
                 creating=self.path.endswith('/create')
                 ip=self.headers.get('X-Real-IP',self.client_address[0])
                 if not self.server.transfer_slot(ip,creating):raise Failure(429,'操作过于频繁，请稍后重试')
-                return self.reply(200,self.server.transfers.create(data.get('body')) if creating else self.server.transfers.read(data.get('code')))
+                if not creating:return self.reply(200,self.server.transfers.read(data.get('code')))
+                # 已发布旧客户端继续使用旧格式；新客户端启用8位码与账号配额。
+                return self.reply(200,self.server.store.transfer(data,self.server.transfers) if data.get('format')=='short8' else self.server.transfers.create(data.get('body')))
             if self.path.endswith('/auth'):
                 # 短期内存限流只针对身份校验，不在保存路径调用Tap接口。
                 ip=self.headers.get('X-Real-IP',self.client_address[0]);now=time.time()

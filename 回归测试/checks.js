@@ -1173,7 +1173,7 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
   ck('皮肤包要花魂点解锁：深海琥珀 / 彩绘卡面 各 50 魂点',
      /data-askin=/.test(UI) && /function unlockSkin\(id\)/.test(_GAME_SRC) && /const SKIN_COST = 50;/.test(_GAME_SRC) &&
      /skinOwned\(s\.id\)/.test(UI));
-  ck('本地存档有导出提醒与小字版本号', UI.includes('<b>本地存档</b>') && UI.includes('请保存备份文件') && UI.includes('help-sub\">版本'));
+  ck('本地存档有迁移/导入入口与小字版本号', UI.includes('<b>本地存档</b>') && UI.includes('data-codex="export"') && UI.includes('data-codex="import"') && UI.includes('help-sub\">版本'));
   ck('音效是独立总线（不再跟着音乐开关一起哑）',
      /function toggleSfx\(\)/.test(AUDIO) && /sfxBus = ctx\.createGain\(\)/.test(AUDIO) && /if \(!ctx \|\| !sfxOn\) return;\s*\/\/ 音效跟着/.test(AUDIO));
   // 皮肤包：默认纯黑白木刻，另一套是"深海琥珀"上色皮肤（换肤靠覆盖 CSS 变量，不改布局）
@@ -4806,7 +4806,6 @@ section('9e. 独立版本地存档与旧平台接口兼容');
  ck('旧云接口调用不抛异常也不联网',G.cloudPush(true)===false&&G.cloudInit()===false);
  G.newGame('fisher','normal');ck('本地保存仍可写入',G.save().ok);
  ck('不再调用平台云管理器',!_GAME_SRC.includes('getCloudSaveManager')&&!_GAME_SRC.includes('createArchive('));
- ck('设置显示本地存档与导出提醒',UI.includes('<b>本地存档</b>')&&UI.includes('请保存备份文件'));
  ck('商城广告观看入口恢复，云检测和未恢复的复活入口不混入',UI.includes('watch-reward-ad')&&UI.includes('TapAds.enabled()')&&!UI.includes('data-cloudretry')&&!UI.includes('end-adrevive'));
  ck('商城双向兑换均有入口',UI.includes('data-soulexchange')&&UI.includes('data-adexchange')&&typeof G.exchangeSoulForStars==='function');
 }

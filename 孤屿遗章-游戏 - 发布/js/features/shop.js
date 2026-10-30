@@ -47,6 +47,25 @@ function adCurrencyName() {
     return standalone?'星之点':'广告币';
   }
 
+function dailyGiftState() {
+    const today=todayKey(), receipt='shop-daily:'+today;
+    return {today,canClaim:!metaState().adWallet?.[receipt]};
+  }
+const giftRolls=new Map();
+function claimDailyGift() {
+    const info=dailyGiftState();
+    if (!info.canClaim) return {ok:false,reason:'今天的赠礼已经领取。'};
+    if (!giftRolls.has(info.today)) {giftRolls.clear();giftRolls.set(info.today,rnd(1,10)<=3?5:1);}
+    const amount=giftRolls.get(info.today), meta=JSON.parse(JSON.stringify(metaState()));
+    walletEntry(meta,'shop-daily:'+info.today,amount);
+    const result=persistPair(gameState.run?JSON.parse(JSON.stringify(gameState.run)):null,meta,false);
+    if (!result.ok) return result;
+    giftRolls.delete(info.today);
+    if (gameState.run) change();
+    const unit=adCurrencyName()==='广告币'?'广告点':'星之点';
+    return {ok:true,amount,msg:(amount===5?'作者的小心意～':'')+`获得${unit}*${amount}。`};
+  }
+
 function adShopState() { return {coins:adCoinBalance(), goods:AD_SHOP.map(x=>({...x}))}; }
 
 function buyAdShop(id) {
@@ -145,7 +164,7 @@ function unlockSkin(id) {
     metaSave();
     return { ok:true, cost:SKIN_COST, soul:m.soul };
   }
-    return Object.freeze({todayKey,dailySignState,walletEntry,adCoinBalance,walletId,adCurrencyName,adShopState,buyAdShop,exchangeAdCoins,exchangeSoulForStars,adRewardState,claimAdReward,dailySign,backupPoints,skinCost,skinOwned,unlockSkin});
+    return Object.freeze({todayKey,dailySignState,dailyGiftState,claimDailyGift,walletEntry,adCoinBalance,walletId,adCurrencyName,adShopState,buyAdShop,exchangeAdCoins,exchangeSoulForStars,adRewardState,claimAdReward,dailySign,backupPoints,skinCost,skinOwned,unlockSkin});
   }
   return Object.freeze({create});
 })();

@@ -57,8 +57,8 @@ function renderBackup() {
     const rs = Game.rescueInfo();
     html += `<div class="help-item"><b>🛟 救援 · 找回被覆盖的存档</b><span>可扫描本机存档，选择进度恢复。${rs ? `<br>已自动保留：<b>第 ${rs.day} 天</b>（${new Date(rs.at).toLocaleString('zh-CN', { hour12: false }).slice(0, 16)}）` : ''}</span>
       <div class="modal-actions"><button class="mini-btn" data-rescue="scan">扫描本机存档</button></div></div>`;
-    html += `<div class="hint">换设备可生成10分钟有效的取档码；长期备份请保存文件。</div>
-      <div class="modal-actions"><button data-codex="export">取档码 / 文件备份</button><button data-codex="import">导入存档</button><button id="modal-close">关 闭</button></div>`;
+    html += `<div class="hint">换设备可生成8位取件码，10分钟有效，每账号每小时最多3次；电脑可保存备份文件。</div>
+      <div class="modal-actions"><button data-codex="export">取件码 / 文件备份</button><button data-codex="import">导入存档</button><button id="modal-close">关 闭</button></div>`;
     return html;
   }
 

@@ -25,7 +25,7 @@ function collectionModal() {
     const st = S() || { seen: {}, killCount: {}, flags: {} };
     const c = Game.collection();
     const tabs = [['res',`资源 ${c.res}/${c.resTotal}`],['tool','工具'],['items','物品'],['mon',`怪物 ${c.mon}/${c.monTotal}`],['rec',`配方 ${RECIPES.filter(r=>!r.legacyPlank).length}`],['boss','首领'],['ach','成就']];
-    let html = `<div class="modal-title">图 鉴</div><div class="tabs">${tabs.map(([k,l]) => `<button class="tab ${deps.colTab === k ? 'active' : ''}" data-ctab="${k}">${l}</button>`).join('')}</div>`;
+    let html = `<div class="modal-title">图 鉴</div><div class="tabs">${tabs.map(([k,l]) => `<button class="tab ${deps.colTab === k ? 'active' : ''}" data-ctab="${k}">${l}${NoticeBadges.dot(k)}</button>`).join('')}</div>`;
     // （原来这里有一行"标签上的数字是「已收录 / 图鉴总数」……"的说明，玩家要求删掉。
     //   标签上的 "已收录/总数" 本身就够直观，不用再解释一遍。）
     html += `<div class="col-body">`;

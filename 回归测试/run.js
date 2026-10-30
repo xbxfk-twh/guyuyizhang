@@ -19,7 +19,7 @@ fs.mkdirSync(out, { recursive: true });
 const checks = [
   '回归测试/platform-save.test.js', '回归测试/save-recovery.test.js',
   '回归测试/server-save.test.js',
-  '回归测试/temporary-save.test.js', '回归测试/platform-local-mode.test.js',
+  '回归测试/notification-shop.test.js', '回归测试/temporary-save.test.js', '回归测试/platform-local-mode.test.js',
   '回归测试/sword-unity.test.js', '回归测试/camp-inventory.test.js', '回归测试/language.test.js',
   '回归测试/redeem-transport.test.js', '回归测试/remote-redeem.test.js', '回归测试/one-time-redeem.test.js',
   '回归测试/legacy-latest.test.js',
@@ -59,6 +59,7 @@ const checks = [
   // 这类"数据对、界面没接上"的 bug 不会让别的测试变红，只有从数据反查入口才抓得到）
   '开发工具/检查/_audit_wiring.js',
 ];
+if (args.includes('--browser')) checks.push('开发工具/检查/_verify_notice_shop.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_character_voices.js', '开发工具/检查/_verify_one_time_redeem_ui.js', '开发工具/检查/_verify_weapon_ui.js', '开发工具/检查/_verify_lantern.js', '开发工具/检查/_verify_oct16_feedback.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_oct27_feedback.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_oct29_saves.js');

@@ -42,7 +42,7 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
    await ev(`Promise.all([...document.querySelectorAll('.cabinet-product img')].map(i=>i.complete?Promise.resolve():new Promise(r=>{i.onload=i.onerror=r})))`);
    const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync(path.join(out,'standalone-shop-'+width+'.png'),Buffer.from(shot.data,'base64'));
   }
-  await ev(`document.querySelector('#star-exchange-qty').value='13'`);await tap('[data-soulexchange]');await tap('[data-adbuy="divinePack"]');
+  await ev(`document.querySelector('#star-exchange-qty').value='13'`);await tap('[data-soulexchange]');await tap('[data-adbuy="divinePack"]');await tap('[data-choice="0"]');
   check('兑换后的星点可以购买并寄到邮箱',await ev(`Game.metaState().soul===75&&Game.adCoinBalance()===0&&Game.mailboxList().some(x=>x.item==='divinePack')`));
   await ev(`document.querySelector('#modal .modal-x').click();document.querySelector('#nav [data-nav="save"]').click();document.querySelector('[data-savemenu="backup"]').click();`);
   check('备份页无广告免费备份入口',await ev(`!document.querySelector('[data-adbackup]')&&!document.querySelector('#watch-reward-ad')`));

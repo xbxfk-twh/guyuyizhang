@@ -82,6 +82,7 @@ const DialogView = (() => {
     const showTitle=(...args)=>deps.showTitle(...args);
     const showJourneySelect=(...args)=>deps.showJourneySelect(...args);
     const begin=(...args)=>deps.begin(...args);
+const transferIdentity=ServerSaveStore.create({storage:localStorage,getHost:()=>window.tap});
 let comTab = 'p1';
 
 function brokenWeaponRows() {
@@ -116,6 +117,8 @@ function showModal(kind, cfg) {
     if(!samePanel)deps.panels.get(deps.modal?.kind).dispose?.();
     deps.modal = { kind, cfg };
     if(kind==='lootExpiry'){deps.lootExpiryQueued=false;cfg.onShown?.();}
+    if(kind==='diary' || kind==='collection')Game.markNoticeRead(kind,deps.colTab);
+    if(kind==='mailbox' && deps.mailTab==='event')Game.markNoticeRead('event');
     maybeBatchTip(kind);
     // 开管理面板 → 冻结时间；并重绘一次顶栏，让时间前的 ⏸ 标记立刻出现（否则要等下次渲染才看得到）
     if (Game.setTimeFreeze) {
@@ -173,7 +176,7 @@ function showModal(kind, cfg) {
     else if (kind === 'atlTrade') html = atlTradeModal();
     else if (kind === 'fishman') html = fishmanModal();
     else if (kind === 'repair') html = repairModal();
-    else if (kind === 'savemenu') html = `<div class="modal-title">菜单</div><div class="modal-actions save-menu"><button data-savemenu="guide">📖 攻略${deps.guideBadge()}</button><button data-savemenu="mail">✉ 邮箱 ${Game.mailboxCount() || ''}</button><button data-savemenu="adshop">◇ 商城</button><button data-savemenu="sign">📅 每日签到</button><button data-savemenu="diary">📖 日记</button><button data-savemenu="col">📜 图鉴</button><button data-savemenu="settings">⚙ 设置</button><button data-savemenu="save">💾 保存进度</button><button data-savemenu="backup">📦 备份·读档</button><button data-savemenu="title">🏠 回到主菜单</button></div>`;
+    else if (kind === 'savemenu') html = `<div class="modal-title">菜单</div><div class="modal-actions save-menu"><button data-savemenu="guide">📖 攻略${deps.guideBadge()}</button><button data-savemenu="mail">✉ 邮箱${NoticeBadges.dot('mailbox')} ${Game.mailboxCount() || ''}</button><button data-savemenu="adshop">◇ 商城${NoticeBadges.dot('adshop')}</button><button data-savemenu="sign">📅 每日签到${NoticeBadges.dot('sign')}</button><button data-savemenu="diary" ${!S()?'disabled':''}>📖 日记${NoticeBadges.dot('diary')}</button><button data-savemenu="col">📜 图鉴${NoticeBadges.dot('collection')}</button><button data-savemenu="settings">⚙ 设置</button><button data-savemenu="save" ${!S()?'disabled':''}>💾 保存进度</button><button data-savemenu="backup">📦 备份·读档</button><button data-savemenu="title" ${!S()?'disabled':''}>🏠 回到主菜单</button></div>`;
     else if (kind === 'settings') html = settingsModal();
     else if (kind === 'sleeppick') html = sleepModal();
     else if (kind === 'heirloom') html = renderHeirloom();
@@ -190,13 +193,14 @@ function showModal(kind, cfg) {
     else if (kind === 'buybp') html = `<div class="modal-title">购买备份点</div><div class="overlay-text">是否用 20 魂点购买一个备份点？</div><div class="modal-actions"><button data-buybp-yes="1">是</button><button data-buybp-no="1">否</button></div>`;
     else if (kind === 'buyslot') html = `<div class="modal-title">解锁第四存档位</div><div class="overlay-text">支付 100 魂点，永久解锁一个新的备份槽。购买后可消耗备份点向槽内备份。</div><div class="modal-actions"><button data-buyslot-yes="1">确认解锁</button><button data-buyslot-no="1">取消</button></div>`;
     else if (kind === 'codex') {
+      const mobile=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)||matchMedia('(pointer:coarse)').matches;
       html = cfg && cfg.mode === 'export'
-        ? `<div class="modal-title">临时取档码</div><div class="overlay-text">生成后10分钟有效，可在另一设备导入。永久备份请选择保存文件。</div>
-           <input id="codex-text" readonly aria-label="临时取档码" placeholder="点击生成取档码" style="width:100%;padding:10px;box-sizing:border-box;background:var(--paper);color:var(--ink);border:2px solid var(--ink);font-size:18px;text-align:center">
-           <div class="batch-hint" id="transfer-status" role="status">${esc(backupSummary(Game.inspectCode(cfg.code || '')))}</div><div class="modal-actions"><button id="codex-generate">生成取档码</button><button id="codex-copy" disabled>复制取档码</button><button id="codex-download">保存备份文件</button><button id="modal-close">关 闭</button></div>`
-        : `<div class="modal-title">导入存档</div><div class="overlay-text">输入临时取档码，或选择备份文件；也支持以前保存的长码。导入前会显示预览。</div>
-           <textarea id="codex-text" placeholder="粘贴 SAVE- 开头的取档码或旧存档码" style="width:100%;height:64px;font-size:13px;line-height:1.4;padding:8px;box-sizing:border-box;background:var(--paper);color:var(--ink);border:2px solid var(--ink)"></textarea>
-           <div class="batch-hint" id="codex-preview" aria-live="polite">请先粘贴存档码</div><input id="codex-file" type="file" accept=".txt,text/plain" hidden><div class="modal-actions"><button id="codex-file-pick">选择备份文件</button><button id="codex-current-backup">备份当前进度</button><button id="codex-do">预览并导入</button><button id="modal-close">取 消</button></div>`;
+        ? `<div class="modal-title">临时取件码</div><div class="overlay-text">8位字母和数字，10分钟有效；每账号每小时最多生成3次。</div>
+           <input id="codex-text" readonly aria-label="临时取件码" placeholder="点击生成取件码" style="width:100%;padding:10px;box-sizing:border-box;background:var(--paper);color:var(--ink);border:2px solid var(--ink);font-size:18px;text-align:center">
+           <div class="batch-hint" id="transfer-status" role="status">${esc(backupSummary(Game.inspectCode(cfg.code || '')))}</div><div class="modal-actions"><button id="codex-generate">生成取件码</button><button id="codex-copy" disabled>复制取件码</button>${mobile?'':'<button id="codex-download">保存备份文件</button>'}<button id="modal-close">关 闭</button></div>`
+        : `<div class="modal-title">导入存档</div><div class="overlay-text">输入8位取件码，预览后确认导入。</div>
+           <input id="codex-text" aria-label="取件码" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="8位字母和数字" style="width:100%;font-size:20px;letter-spacing:3px;padding:10px;box-sizing:border-box;background:var(--paper);color:var(--ink);border:2px solid var(--ink)">
+           <div class="batch-hint" id="codex-preview" aria-live="polite">请先输入取件码</div>${mobile?'':'<input id="codex-file" type="file" accept=".txt,text/plain" hidden>'}<div class="modal-actions">${mobile?'':'<button id="codex-file-pick">选择备份文件</button><button id="codex-current-backup">备份当前进度</button>'}<button id="codex-do">预览并导入</button><button id="modal-close">取 消</button></div>`;
     }
     else if (kind === 'devpw') html = devpwModal();
     else if (kind === 'daily') html = dailyReportModal();
@@ -247,6 +251,7 @@ function showModal(kind, cfg) {
     }
     if(kind==='guide' || (kind==='mailbox' && deps.mailTab==='guide')) deps.markGuideRead();
     bindModal(kind, cfg);
+    NoticeBadges.refresh();
   }
 
 function bindModal(kind, cfg) {
@@ -257,7 +262,14 @@ function bindModal(kind, cfg) {
       if(!info.canClaim){centerToast(info.reason);return;}
       watchAd(()=>Game.claimAdReward(run,info.today),r=>{showModal('adshop');centerToast(r.ok?`获得 ${r.amount} 广告币。`:r.reason);});
     };
-    m.querySelectorAll('[data-adbuy]').forEach(b=>b.onclick=()=>{const r=Game.buyAdShop(b.dataset.adbuy);centerToast(r.msg || r.reason);showModal('adshop');});
+    m.querySelectorAll('[data-adbuy]').forEach(b=>b.onclick=()=>{
+      const id=b.dataset.adbuy,goods=Game.adShopState().goods.find(g=>g.id===id);if(!goods)return;
+      showModal('overlay',{title:'确认购买',text:`${(ITEMS[id]||RELICS[id]).name} · ${goods.cost} ${Game.adCurrencyName()}\n是否确认购买？`,choices:[
+        {label:'确认购买',ok:()=>{const r=Game.buyAdShop(id);showModal('adshop');centerToast(r.msg||r.reason);}},
+        {label:'取消',ok:()=>showModal('adshop')}
+      ]});
+    });
+    const gift=m.querySelector('[data-shop-gift]');if(gift)gift.onclick=()=>{if(gift.disabled)return;gift.disabled=true;const r=Game.claimDailyGift();showModal('adshop');centerToast(r.msg||r.reason);};
     m.querySelectorAll('[data-adexchange]').forEach(b=>b.onclick=()=>{const r=Game.exchangeAdCoins(Number(m.querySelector('#star-exchange-qty').value));centerToast(r.msg || r.reason);showModal('adshop');});
     m.querySelectorAll('[data-soulexchange]').forEach(b=>b.onclick=()=>{const r=Game.exchangeSoulForStars(Number(m.querySelector('#star-exchange-qty').value));centerToast(r.msg || r.reason);showModal('adshop');});
     m.querySelectorAll('#modal-close').forEach(b => b.onclick = closeModal);
@@ -350,8 +362,8 @@ function bindModal(kind, cfg) {
     });
     m.querySelectorAll('[data-buybp]').forEach(b => b.onclick = () => { const r = Game.buyBackupPoint(); if (r.ok) { addLog('购买了 1 个备份点。', 'good'); } else addLog(r.reason, 'warn'); showModal('backup'); });
     m.querySelectorAll('[data-codex]').forEach(b => b.onclick = () => showModal('codex', { mode: b.dataset.codex, code: b.dataset.codex === 'export' ? Game.exportCode() : '' }));
-    const transfer=TemporarySaveTransfer.create({send:(url,data)=>RedeemTransport.send(window,url,data,{timeoutMs:12000}),inspect:code=>Game.inspectCode(code)});
-    const ccopy = m.querySelector('#codex-copy'); if (ccopy) ccopy.onclick = () => { const t = m.querySelector('#codex-text'); try { t.select(); if(!document.execCommand('copy'))throw Error('copy');centerToast('已复制取档码，请在10分钟内使用。'); } catch (e) { centerToast('复制失败，请长按文本框手动复制'); } };
+    const transfer=TemporarySaveTransfer.create({owner:()=>Game.transferOwner(),authorize:force=>transferIdentity.authorize(force),send:(url,data)=>RedeemTransport.send(window,url,data,{timeoutMs:12000}),inspect:code=>Game.inspectCode(code)});
+    const ccopy = m.querySelector('#codex-copy'); if (ccopy) ccopy.onclick = () => { const t = m.querySelector('#codex-text'); try { t.select(); if(!document.execCommand('copy'))throw Error('copy');centerToast('已复制取件码，请在10分钟内使用。'); } catch (e) { centerToast('复制失败，请长按文本框手动复制'); } };
     const cd=m.querySelector('#codex-download');if(cd)cd.onclick=()=>downloadBackup(cfg.code||Game.exportCode());
     const cb=m.querySelector('#codex-current-backup');if(cb)cb.onclick=()=>downloadBackup(Game.exportCode());
     const codeText=m.querySelector('#codex-text'),preview=m.querySelector('#codex-preview');
@@ -362,25 +374,26 @@ function bindModal(kind, cfg) {
       catch(e){if(codeText.isConnected)status.textContent=e.message;}
       finally{if(generate.isConnected)generate.disabled=false;}
     };
-    const updatePreview=()=>{if(preview){preview.textContent=TemporarySaveTransfer.isCode(codeText.value)?'点击「预览并导入」从服务器取档，确认后才会覆盖进度。':backupSummary(Game.inspectCode(codeText.value));window.Locale?.apply();}};
+    const updatePreview=()=>{if(preview){preview.textContent=codeText.dataset.fileBody?backupSummary(Game.inspectCode(codeText.dataset.fileBody)):TemporarySaveTransfer.isCode(codeText.value)?'点击「预览并导入」取档，确认后才会覆盖进度。':'请输入8位字母和数字取件码。';window.Locale?.apply();}};
     if(preview)codeText.onchange=updatePreview;
-    if(preview)codeText.oninput=updatePreview;
+    if(preview)codeText.oninput=()=>{delete codeText.dataset.fileBody;updatePreview();};
     const file=m.querySelector('#codex-file');
     if(file){m.querySelector('#codex-file-pick').onclick=()=>{if(window.GuyuFileBackup?.open)window.GuyuFileBackup.open();else file.click();};file.onchange=async()=>{
       const picked=file.files?.[0];if(!picked)return;
       if(picked.size>20*1024*1024){centerToast('备份文件过大，请确认选择的是存档文本文件。');return;}
-      try{const text=await picked.text();if(!codeText.isConnected)return;codeText.value=text;updatePreview();}catch(e){centerToast('无法读取文件，请重新选择或粘贴存档码。');}
+      try{const text=await picked.text();if(!codeText.isConnected)return;codeText.dataset.fileBody=text;codeText.value='';updatePreview();}catch(e){centerToast('无法读取文件，请重新选择或粘贴存档码。');}
     };}
     const cdo=m.querySelector('#codex-do');if(cdo)cdo.onclick=async()=>{
       if(cdo.disabled)return;cdo.disabled=true;
-      let code=codeText.value;
-      try{if(TemporarySaveTransfer.isCode(code)){preview.textContent='正在取档……';code=await transfer.download(code);}if(!codeText.isConnected)return;}
+      const inputCode=codeText.value, fileBody=codeText.dataset.fileBody;
+      let code=fileBody||inputCode;
+      try{if(!fileBody){preview.textContent='正在取档……';code=await transfer.download(inputCode);}if(!codeText.isConnected)return;}
       catch(e){if(codeText.isConnected){preview.textContent=e.message;centerToast(e.message);}return;}
       finally{if(cdo.isConnected)cdo.disabled=false;}
       const info=Game.inspectCode(code);if(!info.ok){preview.textContent=info.reason;centerToast(info.reason);return;}
       showModal('overlay',{title:'确认导入备份',text:backupSummary(info)+'\n导入会覆盖对应进度。需要保留当前档时，请先备份。',choices:[
         {label:'确认导入',ok:()=>{const r=Game.importCode(code);if(!r.ok){showModal('codex',{mode:'import'});centerToast(r.reason);return;}centerToast(`导入成功：魂点 ${r.soul}、传世 ${r.runs} 世、备份槽 ${r.slots} 个`);if(r.currentGame)begin();else showModal('backup');}},
-        {label:'返回',ok:()=>{showModal('codex',{mode:'import'});const t=document.querySelector('#codex-text');t.value=code;t.dispatchEvent(new Event('input'));}}
+        {label:'返回',ok:()=>{showModal('codex',{mode:'import'});const t=document.querySelector('#codex-text');t.value=inputCode;if(fileBody)t.dataset.fileBody=fileBody;t.dispatchEvent(new Event('change'));}}
       ]});
     };
     m.querySelectorAll('[data-titlebuybp]').forEach(b => b.onclick = () => showModal('buybp'));

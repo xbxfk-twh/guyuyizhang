@@ -1,7 +1,7 @@
 /* 本地读写、滚动备份与cookie恢复。迁移/业务通过显式适配器提供。 */
 const SaveRepository = (() => {
   const CK = { save: 'guyu_save', saveAt: 'guyu_saveAt', meta: 'guyu_meta', metaAt: 'guyu_metaAt' };
-  function create({storage,cookies,getState,setState,getMeta,setMeta,isStaging,transactions,LOG_KEEP,validSave,normalizeState,migrateSaltMeta,migrateRedeemReceipts,onConflict,onFailure,push}) {
+  function create({storage,cookies,getState,setState,getMeta,setMeta,isStaging,transactions,LOG_KEEP,validSave,normalizeState,migrateSaltMeta,migrateRedeemReceipts,migrateNotices=()=>{},onConflict,onFailure,push}) {
     function ckSet(k, v, days) {
       try { cookies.text = k + '=' + encodeURIComponent(v) + '; expires=' + new Date(Date.now() + days * 864e5).toUTCString() + '; path=/; SameSite=Lax'; } catch (e) {}
     }
@@ -163,6 +163,7 @@ const SaveRepository = (() => {
       if (!M.redeemed) M.redeemed = {};
       if (!M.ach) M.ach = {};
       if (!M.settledRuns || typeof M.settledRuns !== 'object') M.settledRuns = {};
+      migrateNotices(M);
       setMeta(M);
       migrateSaltMeta(M);
       migrateRedeemReceipts(M);

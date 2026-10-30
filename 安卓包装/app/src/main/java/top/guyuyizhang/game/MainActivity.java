@@ -194,7 +194,7 @@ public final class MainActivity extends Activity {
                         if (web == null || !ENTRY.equals(web.getUrl())) return;
                         web.evaluateJavascript("(()=>{const t=document.getElementById('codex-text');"
                             + "if(!t||t.readOnly||!document.getElementById('codex-preview'))return false;"
-                            + "t.value=" + JSONObject.quote(text) + ";t.dispatchEvent(new Event('input'));return true;})()",
+                            + "t.value='';t.dataset.fileBody=" + JSONObject.quote(text) + ";t.dispatchEvent(new Event('change'));return true;})()",
                             applied -> { if (!"true".equals(applied)) backupNotice("请重新打开导入存档窗口，再选择备份文件。"); });
                     });
                 }

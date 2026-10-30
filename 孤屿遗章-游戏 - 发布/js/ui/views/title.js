@@ -40,11 +40,12 @@ function showTitle() {
           ${has ? '<button id="btn-load">继续上次游戏</button>' : ''}
         <button id="btn-meta">◈ 历代遗章</button>
         <button id="btn-bak">📦 备份·读档</button>
-        <button id="btn-set">⚙ 设 置</button>
+        <button id="btn-set">☰ 大菜单${NoticeBadges.dot('menu')}</button>
         </div>
         <div id="title-tip">备份点 ${Game.backupPoints()}</div>
         <div id="modal"></div>
       </div>`;
+    NoticeBadges.refresh(app);
     // 事件委托：标题按钮（防首次渲染/重渲染丢绑定）
     app.onclick = (e) => {
       const btn = e.target && e.target.closest ? e.target.closest('button') : null;
@@ -61,7 +62,7 @@ function showTitle() {
       }
       else if (btn.id === 'btn-meta') { AudioFX.init(); showModal('heirloom'); }
       else if (btn.id === 'btn-bak') { AudioFX.init(); showModal('backup'); }
-      else if (btn.id === 'btn-set') { AudioFX.init(); showModal('settings'); }
+      else if (btn.id === 'btn-set') { AudioFX.init(); showModal('savemenu'); }
     };
     // 隐藏开发者模式：连点"章"×4 → 输密码
     let devClicks = 0;

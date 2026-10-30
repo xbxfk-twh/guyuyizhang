@@ -45,7 +45,7 @@ function settingsModal() {
     return `<div class="modal-title">设 置</div>
       <div class="help-list">
         <div class="help-item"><b>图鉴 · 每日签到</b><span>图鉴是账号级的，不开局也能翻；签到每天可领 魂点 ×${Game.dailySignState().soul} + 备份点 ×${Game.dailySignState().backup}。</span>
-          <div class="modal-actions"><button class="mini-btn" data-open="collection">📜 图 鉴</button><button class="mini-btn" data-open="sign">📅 每日签到${Game.dailySignState().canSign ? ' <b style="color:#e8c66a">· 可领</b>' : ''}</button></div></div>
+          <div class="modal-actions"><button class="mini-btn" data-open="collection">📜 图 鉴${NoticeBadges.dot('collection')}</button><button class="mini-btn" data-open="sign">📅 每日签到${NoticeBadges.dot('sign')}${Game.dailySignState().canSign ? ' <b style="color:#e8c66a">· 可领</b>' : ''}</button></div></div>
         <div class="help-item"><b>语言 / Language</b>${window.Locale?Locale.control():''}</div>
         ${S() ? `<div class="help-item"><b>自动取用工具</b><span>开启后使用背包或当前营地仓库里等级最高的可用工具，正常消耗耐久；不改变工具槽，野外不能借用仓库。</span><div class="set-inline">${tgl('autoTools','自动取用工具',Game.autoToolsEnabled())}</div></div>` : ''}
         <div class="help-item"><b>声音</b><span>音乐（配乐与氛围）/ 音效（咔哒、采集、战斗）/ 环境音（海浪、风、鸟虫、雨）</span>
@@ -62,7 +62,7 @@ function settingsModal() {
           <div class="set-inline">${deps.SKINS.filter(s => s.id !== 'ink' && (s.id!=='armory' || Game.skinOwned('armory'))).map(s => Game.skinOwned(s.id)
             ? btn('skin:' + s.id, s.id === 'seasons' ? s.name + ' · 免费' : s.name, skinOn(s.id))
             : `<button class="mini-btn" data-askin="${s.id}">🔒 ${s.name} · ${Game.skinCost()} 魂点</button>`).join('')}${btn('skinoff:1', '墨白原味（全部关闭）', deps.skinSet.size === 0)}</div></div>
-        <div class="help-item"><b>本地存档</b><span>进度保存在当前设备。卸载或清除数据会丢失，请保存备份文件。换设备可生成10分钟有效的取档码。</span><div class="set-inline"><button class="mini-btn" data-codex="export">取档码 / 文件备份</button><button class="mini-btn" data-codex="import">导入存档</button></div><span class="help-sub">版本 ${(typeof window !== 'undefined' && window.BUILD_VER) || '（未知版本）'}</span></div>
+        <div class="help-item"><b>本地存档</b><span>进度保存在当前设备。换设备请生成取件码，10分钟内导入；每账号每小时最多3次。</span><div class="set-inline"><button class="mini-btn" data-codex="export">取件码 / 文件备份</button><button class="mini-btn" data-codex="import">导入存档</button></div><span class="help-sub">版本 ${(typeof window !== 'undefined' && window.BUILD_VER) || '（未知版本）'}</span></div>
       </div>
       <div class="modal-actions"><button id="modal-close">关 闭</button></div>`;
   }
@@ -108,10 +108,11 @@ function watchAd(action, done) {
 function adShopModal() {
     const shop=Game.adShopState(), soul=Game.metaState().soul || 0,currency=Game.adCurrencyName();
     const reward=Game.adRewardState(), tapShop=typeof TapAds!=='undefined' && TapAds.enabled();
-    const video=tapShop ? `<button id="watch-reward-ad" class="cabinet-cell" ${!reward.canClaim || !adAvailable()?'disabled':''}><b>看广告领币</b><small>3～6 广告币 · ${reward.uses}/${reward.limit}</small><small>${reward.reason || (!adAvailable()?'请在 TapTap 内观看':'')}</small></button>` : '';
+    const gift=Game.dailyGiftState();
+    const video=tapShop ? `<button id="watch-reward-ad" class="cabinet-cell cabinet-video" title="${esc(reward.reason || (!adAvailable()?'请在 TapTap 内观看':''))}" ${!reward.canClaim || !adAvailable()?'disabled':''}><span class="shop-video-seal" aria-hidden="true">▶</span><b>看广告领币</b><small>${esc(reward.reason || (!adAvailable()?'请在 TapTap 内观看':`3～6 广告币 · ${reward.uses}/${reward.limit}`))}</small></button>` : '';
     return `<div class="modal-title shop-title"><b>售物柜</b><div class="shop-tools"><div class="cabinet-exchange"><div class="cabinet-controls"><input id="star-exchange-qty" aria-label="兑换数量" type="number" min="1" max="${Math.max(shop.coins,Math.floor(soul/15),1)}" value="1"><button data-soulexchange ${soul<15?'disabled':''}>换${currency}</button><button data-adexchange ${shop.coins<1?'disabled':''}>换魂点</button></div></div><span>◇ ${shop.coins} · 魂点 ${soul}</span>${inlineHelp(`15 魂点兑换 1 ${currency}；1 ${currency}兑换 15 魂点。输入兑换数量再选择方向。${currency}跨局保留，商品寄到邮箱；传奇档不能领取物资。`)}</div></div>
-      <div class="shop-cabinet">${shop.goods.map(g=>{const item=ITEMS[g.id] || RELICS[g.id];return `<button class="cabinet-cell cabinet-product" data-adbuy="${g.id}" aria-label="购买${esc(item.name)}，${g.cost}${currency}，发到邮箱" ${shop.coins<g.cost?'disabled':''}><span class="cabinet-item">${itemIcon(g.id)}<b>${esc(item.name)}</b></span><small class="cabinet-price">◇ ${g.cost}</small></button>`;}).join('')}
-      ${video}${Array.from({length:Math.max(0,12-shop.goods.length-(tapShop?1:0))},()=>'<div class="cabinet-cell cabinet-empty" aria-hidden="true"></div>').join('')}</div>`;
+      <div class="shop-cabinet">${video}${shop.goods.map(g=>{const item=ITEMS[g.id] || RELICS[g.id];return `<button class="cabinet-cell cabinet-product" data-adbuy="${g.id}" aria-label="购买${esc(item.name)}，${g.cost}${currency}，发到邮箱" ${shop.coins<g.cost?'disabled':''}><span class="cabinet-item">${itemIcon(g.id)}<b>${esc(item.name)}</b></span><small class="cabinet-price">◇ ${g.cost}</small></button>`;}).join('')}
+      ${Array.from({length:Math.max(0,11-shop.goods.length-(tapShop?1:0))},()=>'<div class="cabinet-cell cabinet-empty" aria-hidden="true"></div>').join('')}<button class="cabinet-cell cabinet-gift" data-shop-gift ${gift.canClaim?'':'disabled'}><span class="shop-gift-seal" aria-hidden="true">◇</span><b>每日赠礼</b><small>${gift.canClaim?'免费领取':'今日已领取'}</small>${NoticeBadges.dot('adshop')}</button></div>`;
   }
 
 function mailboxModal() {
@@ -149,11 +150,11 @@ function mailboxModal() {
       // 作者 2026-09-25：在「活动」页挂一条朋友的小广告 + 反馈渠道说明。
       inner = `<section class="overlay-text event-feedback"><b>🎁 攻略与反馈征集</b><p>欢迎大家分享自己的游戏心得！</p><p>在论坛发布原创攻略，或向我们提交有价值的 BUG、玩法建议与改进反馈，经确认后可获得：</p><p><b>300 魂点 + 30 ${esc(Game.adCurrencyName())}</b></p><p>奖励与评分、评价内容及星级无关。不要求发布评价，也无需提交评价截图或链接。</p><p>攻略或反馈可通过官方交流群提交，确认后发放奖励。</p></section><section class="overlay-text event-review"><b>欢迎留下真实评价</b><p>非常欢迎大家留下自己对《孤屿遗章》的真实评价。无论喜欢、吐槽还是建议，我们都会认真看，并用于后续版本改进。</p></section><div class="overlay-text"><b>【命名牌】</b><br>兑换码 <code>QQ1014679931</code> 可兑换 1 张命名牌。<br><br><code>GUYU2026</code> 可兑换 50 魂点。<br><br>QQ群：1014679931</div>`
         + `<div class="overlay-text event-ad"><b>【小广告】</b><br>中式心理咨询可加 QQ <code>1840585640</code>。</div>`;
-      inner=`<section class="overlay-text event-download"><b>安卓独立测试版</b><p>可下载安装后离线游玩。迁移前，请在「菜单 → 备份·读档」导出完整进度，再到独立版导入。独立版的广告和平台功能有所不同。</p><p><a class="mini-btn" href="https://guyuyizhang.top:8443/download.html" target="_blank" rel="noopener noreferrer">打开官网下载页 ↗</a></p></section>`+inner;
+      inner=`<section class="overlay-text event-download"><b>安卓独立测试版</b><p>可下载安装后离线游玩。迁移前，请在「菜单 → 备份·读档」生成取件码，在10分钟内到独立版输入并确认导入。独立版的广告和平台功能有所不同。</p><p><a class="mini-btn" href="https://guyuyizhang.top:8443/download.html" target="_blank" rel="noopener noreferrer">打开官网下载页 ↗</a></p></section>`+inner;
 
 
     }
-    return `<div class="modal-title">邮箱 · 兑换 · 活动 · 攻略</div><div class="tabs">${tabs.map(([k,l]) => `<button class="tab ${deps.mailTab===k?'active':''}" data-mailtab="${k}">${l}${k==='guide'?guideBadge():''}</button>`).join('')}</div><div class="overlay-text">内</div>`.replace('<div class="overlay-text">内</div>', `<div>${inner}</div>`) + `<div class="modal-actions"><button id="modal-close">关 闭</button></div>`;
+    return `<div class="modal-title">邮箱 · 兑换 · 活动 · 攻略</div><div class="tabs">${tabs.map(([k,l]) => `<button class="tab ${deps.mailTab===k?'active':''}" data-mailtab="${k}">${l}${k==='guide'?guideBadge():NoticeBadges.dot(k)}</button>`).join('')}</div><div class="overlay-text">内</div>`.replace('<div class="overlay-text">内</div>', `<div>${inner}</div>`) + `<div class="modal-actions"><button id="modal-close">关 闭</button></div>`;
   }
     return Object.freeze({guideBadge,markGuideRead,roadAmbushOn,backupSummary,downloadBackup,settingsModal,signModal,guideContent,guideModal,adAvailable,watchAd,adShopModal,mailboxModal});
   }

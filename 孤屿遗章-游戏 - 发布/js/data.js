@@ -1254,7 +1254,7 @@ const GUIDE = [
       "批量操作：长按制作、商人购买或出售按钮选择数量；交易窗口可上下滑动查看后面的商品与委托。",
       "长按食之包卡面，可选择优先食物、优先饮料与禁食物品，每类最多3种；优先物品用完后沿用默认规则。",
       "战斗先点击怪物选中目标再行动；装备→技能可展开技能树升级，图鉴可查看已发现物品和怪物的数值与说明。",
-      "保存与备份：退出前可在菜单保存进度；重要进度建议导出存档码并另存。备份点保存在当前设备，清除数据或卸载前先做好外部备份。"
+      "保存与备份：退出前可在菜单保存进度；换设备前生成取件码，并在10分钟内导入。备份点只保留在当前设备，清除数据或卸载前先完成迁移。"
     ],
     "enSteps": [
       "Open your backpack to check starting supplies. Tap an item for details; use food and medicine from that screen.",
@@ -1265,7 +1265,7 @@ const GUIDE = [
       "Hold crafting, merchant Buy or Sell buttons to choose a quantity. Scroll merchant windows vertically to see more goods and commissions.",
       "Hold the Food Satchel card to choose up to three preferred foods, drinks or excluded items per category. When preferred items run out, the default selection rules apply.",
       "In combat, tap an enemy to select it before acting. Open Equipment, then Skills to upgrade skill trees. The collection shows stats and descriptions for discovered items and enemies.",
-      "Save progress from the menu before leaving. Export important progress as a save code and keep it separately. Backup slots remain on this device; make an external backup before clearing data or uninstalling."
+      "Save progress from the menu before leaving. To move devices, generate a transfer code and import it within 10 minutes. Backup slots remain on this device; finish the transfer before uninstalling or clearing data."
     ]
   },
   {
@@ -1409,14 +1409,14 @@ const GUIDE = [
       "菜单→图鉴可查看已发现的物品与怪物。物品条目可点开，查看攻击、防御、速度、耐久、食用效果等数值。",
       "怪物图鉴可查看生命、攻击、防御、速度、特性与掉落；遇到陌生敌人前，先了解它擅长什么。",
       "生命与健康不同：简易药膏恢复20健康；草药膏恢复15生命、15健康并治疗感染；解毒剂解除中毒并恢复10健康，但不治疗感染。点击状态查看当前异常及其效果，带伤睡觉仍会结算。",
-      "菜单可保存进度、使用备份与读档，并导出存档码或下载文本文件。导入可粘贴或选文件，先预览再确认覆盖；取消不会替换进度。换设备前先备份，不要随意卸载或清除游戏数据。",
+      "菜单可保存进度、使用备份与读档。换设备可生成8位取件码，10分钟有效，每账号每小时最多生成3次；在新设备输入后先预览再确认，取消不覆盖进度。电脑还可保存和导入备份文件。迁移完成前不要卸载或清除数据。",
       "遇到不明白的操作，先看按钮旁的问号、灰色提示和日志；攻略也可从邮箱的攻略页打开，两处内容相同。"
     ],
     "enSteps": [
       "Open Collection from the menu to inspect discovered items and enemies. Tap items for attack, defense, speed, durability and use effects.",
       "Enemy entries show health, attack, defense, speed, traits and drops. Learn unfamiliar enemies before taking risks.",
       "HP and wellness are different. Simple Salve restores 20 wellness; Herbal Paste restores 15 HP and 15 wellness and cures infection. Antidote removes poison and restores 10 wellness, but does not cure infection. Tap Status to inspect ailments; they still progress during sleep.",
-      "The menu offers saving, backups and save-code or text-file export. Paste a code or choose a file to import, preview it, then confirm replacement; cancel keeps your current progress. Back up before switching devices, uninstalling or clearing data.",
+      "The menu saves progress and manages backup slots. Generate an 8-character code to move devices: valid for 10 minutes, up to 3 per account per hour. Preview before confirming; cancel keeps your current progress. Computers also support backup files. Finish the transfer before uninstalling or clearing data.",
       "Check question-mark help, disabled-action explanations and the log when unsure. The Guide tab in Mail uses the same pages as the menu guide."
     ]
   }

@@ -27,7 +27,30 @@ function unlockIdentity(id) {
     return persistPair(gameState.run ? JSON.parse(JSON.stringify(gameState.run)) : null,meta,false);
   }
 
+function transferOwner() {
+    const current=metaState(),key='guyuyizhang_transfer_owner',valid=id=>/^[a-f0-9]{32}$/.test(id||'');
+    if(valid(current.transferOwner))return current.transferOwner;
+    let id;try{id=localStorage.getItem(key);}catch(e){}
+    if(!valid(id)){
+      const bytes=new Uint8Array(16);globalThis.crypto.getRandomValues(bytes);
+      id=Array.from(bytes,n=>n.toString(16).padStart(2,'0')).join('');
+    }
+    // 身份随下次正常账号保存持久化；小键尽力保存。本地写满时仍能抢救进度，
+    // 不为生成取件码先写整档，也不触发存储失败弹窗的递归。
+    current.transferOwner=id;try{localStorage.setItem(key,id);}catch(e){}
+    return id;
+  }
+
 function preserveMetaGrowth(incoming, local) {
+    if(local.transferOwner)incoming.transferOwner=local.transferOwner;
+    if(local.noticeRead){
+      NotificationRules.migrate(incoming);
+      incoming.noticeRead.apkDownload=!!(incoming.noticeRead.apkDownload||local.noticeRead.apkDownload);
+      for(const [tab,ids] of Object.entries(local.noticeRead.collection||{})){
+        incoming.noticeRead.collection=incoming.noticeRead.collection||{};
+        incoming.noticeRead.collection[tab]=[...new Set([...(incoming.noticeRead.collection[tab]||[]),...ids])];
+      }
+    }
     incoming.challengeUnlocked = !!(incoming.challengeUnlocked || local.challengeUnlocked);
     incoming.nodes = incoming.nodes || {};
     let retainedUpgrade = false;
@@ -52,7 +75,7 @@ function metaSave(){return deps.repository.metaSave();}
 
 function metaReload(){return deps.repository.metaReload();}
 
-function cloudStatus() { return typeof window!=='undefined'&&window.GuyuSaveBridge ? window.GuyuSaveBridge.status() : {supported:false,msg:'本地存档已启用；请导出存档码作设备外备份。',at:0,applied:0,uuid:null,diag:'local-only',pending:false}; }
+function cloudStatus() { return typeof window!=='undefined'&&window.GuyuSaveBridge ? window.GuyuSaveBridge.status() : {supported:false,msg:'本地存档已启用；换设备请生成取件码，并在10分钟内导入。',at:0,applied:0,uuid:null,diag:'local-only',pending:false}; }
 
 function cloudPush() { return typeof window!=='undefined'&&window.GuyuSaveBridge ? window.GuyuSaveBridge.schedule() : false; }
 
@@ -300,7 +323,7 @@ function metaSettle() {
     _lastSettle = { gain, soul: meta.soul };
     return _lastSettle;
   }
-    return Object.freeze({identityUnlocked,unlockIdentity,preserveMetaGrowth,metaLoad,metaSave,metaReload,cloudStatus,cloudPush,cloudInit,readSaveCode,inspectCode,exportCode,importCode,redeemCode,redeemOnlineCode,metaNum,metaAllowed,metaBonus,metaBuy,longActWarn,metaLast,reviveToday,ensureRunId,legacySlotSettled,rememberSettledRun,metaSettle});
+    return Object.freeze({identityUnlocked,unlockIdentity,transferOwner,preserveMetaGrowth,metaLoad,metaSave,metaReload,cloudStatus,cloudPush,cloudInit,readSaveCode,inspectCode,exportCode,importCode,redeemCode,redeemOnlineCode,metaNum,metaAllowed,metaBonus,metaBuy,longActWarn,metaLast,reviveToday,ensureRunId,legacySlotSettled,rememberSettledRun,metaSettle});
   }
   return Object.freeze({create});
 })();

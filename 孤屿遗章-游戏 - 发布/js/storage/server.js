@@ -15,17 +15,18 @@ const ServerSaveStore=(()=>{
     const valid=s=>!!s&&/^[a-f0-9]{64}$/.test(s.token)&&Number.isFinite(s.expires)&&s.expires>Date.now()/1000+60;
     async function remember(s){session=s;try{storage.setItem(KEY,JSON.stringify(s));}catch(e){}if(fs)try{await call(fs,'writeFile',{filePath:root+'/guyu_backup_session.json',data:JSON.stringify(s),encoding:'utf8'});}catch(e){} }
     async function cached(){try{const s=JSON.parse(storage.getItem(KEY)||'null');if(valid(s))return s;}catch(e){}if(fs)try{const r=await call(fs,'readFile',{filePath:root+'/guyu_backup_session.json',encoding:'utf8'}),s=JSON.parse(r.data);if(valid(s))return s;}catch(e){}return null;}
-    async function identity(){
+    async function identity(force=false){
+      if(force){session=null;authenticated=false;}
       if(authenticated&&valid(session))return session;
       if(authTask)return authTask;
-      authTask=(async()=>{const previous=session||await cached(),host=getHost();
+      authTask=(async()=>{const previous=force?null:session||await cached(),host=getHost();
         try{if(!host?.login)throw Error('当前环境没有TapTap登录能力');const login=await call(host,'login',{timeout});if(typeof login.code!=='string'||!login.code)throw Error('TapTap没有返回登录凭证');const r=await request('/auth','POST',{code:login.code});if(!valid(r))throw Error('备用存档登录返回异常');await remember({token:r.token,expires:r.expires});authenticated=true;return session;}
         catch(e){if(e.status!==401&&valid(previous)){session=previous;authenticated=true;return session;}throw e;}
       })();try{return await authTask;}finally{authTask=null;}
     }
     async function load(){const s=await identity(),r=await request('/latest','GET',undefined,s.token);if(typeof r.found!=='boolean'||!Number.isSafeInteger(r.version)||r.version<0||r.found&&typeof r.body!=='string')throw Error('备用存档返回不完整');version=r.version;return r;}
     async function save(body){if(version===null)throw Error('备用存档尚未核对，未覆盖原记录');const s=await identity(),r=await request('/save','POST',{baseVersion:version,body},s.token);if(!Number.isSafeInteger(r.version)||r.version<1)throw Error('备用存档写入返回异常');version=r.version;return r;}
-    return Object.freeze({load,save,setFileSystem:(value,path)=>{fs=value;root=path;},supported:()=>!!getHost()?.login||!!session});
+    return Object.freeze({load,save,authorize:identity,setFileSystem:(value,path)=>{fs=value;root=path;},supported:()=>!!getHost()?.login||!!session});
   }
   return Object.freeze({create});
 })();

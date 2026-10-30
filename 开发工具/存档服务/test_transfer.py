@@ -35,7 +35,9 @@ class Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             store=m.Store(pathlib.Path(tmp)/'db.sqlite3',{'account_key':'test'},verify=lambda c:'test')
             r=self.s.create(code())
-            with store.connect() as c:self.assertFalse(c.execute("SELECT name FROM sqlite_master WHERE name LIKE '%transfer%'").fetchall())
+            with store.connect() as c:
+                self.assertFalse(c.execute('SELECT * FROM transfer_usage').fetchall())
+                self.assertFalse(any(row[1] in ('body','data','payload') for row in c.execute('PRAGMA table_info(transfer_usage)')))
             with self.assertRaises(m.Failure):m.Transfers().read(r['code'])
     def test_http_without_tap_login_and_cors(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -53,4 +55,40 @@ class Tests(unittest.TestCase):
                 for _ in range(5):self.assertTrue(server.transfer_slot('one',True))
                 self.assertFalse(server.transfer_slot('one',True));self.assertTrue(server.transfer_slot('one',False));self.assertTrue(server.transfer_slot('two',True))
             finally:server.server_close()
+    def test_short_code_and_per_account_rolling_quota(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store=m.Store(pathlib.Path(tmp)/'db',{'account_key':'test'},verify=lambda c:c,clock=lambda:self.now)
+            def payload(i,owner='a'*32):return {'body':code(),'owner':owner,'requestId':f'{i:032x}','format':'short8'}
+            r=store.transfer(payload(1),self.s);self.assertRegex(r['code'],r'^[A-Z0-9]{8}$');self.assertFalse(r['code'].isalpha());self.assertFalse(r['code'].isdigit())
+            self.assertEqual(store.transfer(payload(1),self.s),r)
+            store.transfer(payload(2),self.s);store.transfer(payload(3),self.s)
+            with self.assertRaises(m.Failure) as e:store.transfer(payload(4),self.s)
+            self.assertEqual(e.exception.status,429)
+            self.assertEqual(self.s.read(r['code'])['body'],code())
+            self.assertTrue(store.transfer(payload(4,'b'*32),self.s)['ok'])
+            self.now+=3600;self.assertTrue(store.transfer(payload(4),self.s)['ok'])
+    def test_quota_survives_restart_without_retaining_backup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg={'account_key':'test'};db=pathlib.Path(tmp)/'db';store=m.Store(db,cfg,clock=lambda:self.now)
+            for i in range(3):store.transfer({'body':code(),'owner':'a'*32,'requestId':f'{i:032x}'},self.s)
+            restarted=m.Store(db,cfg,clock=lambda:self.now)
+            with self.assertRaises(m.Failure) as e:restarted.transfer({'body':code(),'owner':'a'*32,'requestId':'f'*32},m.Transfers())
+            self.assertEqual(e.exception.status,429)
+            self.assertNotIn(code().encode(),db.read_bytes())
+    def test_verified_account_shares_quota_across_devices_and_fallback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store=m.Store(pathlib.Path(tmp)/'db',{'account_key':'test'},verify=lambda c:'same-player',clock=lambda:self.now)
+            token=store.auth('login')['token']
+            for i in range(3):store.transfer({'body':code(),'owner':f'{i:032x}','requestId':f'{i:032x}','session':token},self.s)
+            for owner,session in [('0'*32,None),('d'*32,token)]:
+                with self.assertRaises(m.Failure) as e:store.transfer({'body':code(),'owner':owner,'requestId':'f'*32,**({'session':session} if session else {})},self.s)
+                self.assertEqual(e.exception.status,429)
+    def test_concurrent_creates_are_atomic_and_failed_validation_is_free(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store=m.Store(pathlib.Path(tmp)/'db',{'account_key':'test'},clock=lambda:self.now)
+            with self.assertRaises(m.Failure):store.transfer({'body':'broken','owner':'a'*32,'requestId':'f'*32},self.s)
+            def create(i):
+                try:return store.transfer({'body':code(),'owner':'a'*32,'requestId':f'{i:032x}'},self.s)['ok']
+                except m.Failure as e:self.assertEqual(e.status,429);return False
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:self.assertEqual(sum(pool.map(create,range(8))),3)
 if __name__=='__main__':unittest.main(verbosity=2)

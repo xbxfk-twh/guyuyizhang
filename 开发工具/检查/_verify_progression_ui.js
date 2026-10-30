@@ -33,13 +33,18 @@ let passed=0,fail=0,ws,ch;const errors=[];
  await ev(`Locale.set('zh');`);await tap('[data-codex="export"]');
  await check('导出预览完整性校验 '+w,`document.querySelector('#modal').textContent.includes('完整性校验通过')`);
  await check('临时取档界面不再展示长码 '+w,`document.querySelector('#codex-text').value===''&&!!document.querySelector('#codex-generate')`);
+ await check('手机隐藏无法使用的文件入口 '+w,`!document.querySelector('#codex-download')`);
+ await tap('#modal-close');await send('Emulation.setTouchEmulationEnabled',{enabled:false});
+ await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');await tap('[data-codex="import"]');
+ // 先以手机条件实际验证，再切桌面条件覆盖永久文件备份。
+ await tap('#modal-close');await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');await tap('[data-codex="export"]');
  const code=await ev(`Game.exportCode()`);await tap('#codex-download');
  let saved;for(let i=0;i<30&&!saved;i++){await sleep(100);saved=fs.readdirSync(downloads).filter(x=>x.endsWith('.txt')).find(x=>fs.readFileSync(path.join(downloads,x),'utf8')===code);}
  assert.ok(saved,'下载文件内容与完整导出码一致');passed++;console.log('OK 实际下载完整备份 '+w);
  await shot('progression-export-'+w+'.png');
  await tap('#modal-close');await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');await tap('[data-codex="import"]');
  await ev(`document.querySelector('#codex-text').value='https://example.com';document.querySelector('#codex-text').dispatchEvent(new Event('input'));`);
- await check('错误类型在覆盖前显示原因 '+w,`document.querySelector('#codex-preview').textContent.includes('网址或兑换码')`);
+ await check('错误类型在覆盖前显示原因 '+w,`document.querySelector('#codex-preview').textContent.includes('8位字母和数字')`);
  const importCode=await ev(`(()=>{const day=Game.S().day;Game.S().day=23;const code=Game.exportCode();Game.S().day=day;return code;})()`);
  const file=path.join(downloads,'import-'+w+'.txt');fs.writeFileSync(file,importCode);
  const dom=await send('DOM.getDocument');const node=await send('DOM.querySelector',{nodeId:dom.root.nodeId,selector:'#codex-file'});await send('DOM.setFileInputFiles',{nodeId:node.nodeId,files:[file]});await sleep(350);
@@ -47,13 +52,14 @@ let passed=0,fail=0,ws,ch;const errors=[];
  await ev(`Locale.set('en');`);await sleep(150);await check('文件导入界面英文完整 '+w,`!/[\u4e00-\u9fff]/.test(document.querySelector('#modal').textContent)`);await check('英文导入按钮不被屏幕下沿裁切 '+w,`document.querySelector('#codex-do').getBoundingClientRect().bottom<=innerHeight-2`);await shot('progression-import-en-'+w+'.png');
  await tap('#codex-do');await check('确认前不覆盖并展示23天 '+w,`Game.S().day===1&&document.querySelector('#modal').textContent.includes('23')`);
  await shot('progression-confirm-en-'+w+'.png');
- await tap('[data-choice="1"]');await check('取消保留输入和当前档 '+w,`Game.S().day===1&&document.querySelector('#codex-text').value===${JSON.stringify(importCode)}`);
+ await tap('[data-choice="1"]');await check('取消保留输入和当前档 '+w,`Game.S().day===1&&document.querySelector('#codex-text').value===''&&document.querySelector('#codex-text').dataset.fileBody===${JSON.stringify(importCode)}`);
  // Native route uses only two fixed backup commands, not Blob downloads or file/content access.
  await ev(`window.__backupCalls=[];window.GuyuFileBackup={open:()=>window.__backupCalls.push(['guyu-backup:import']),save:code=>window.__backupCalls.push(['guyu-backup:export',code])};`);
  await tap('#codex-file-pick');await tap('#codex-current-backup');await check('安卓宿主导入导出接线 '+w,`window.__backupCalls[0][0]==='guyu-backup:import'&&window.__backupCalls[1][0]==='guyu-backup:export'&&Game.inspectCode(window.__backupCalls[1][1]).ok`);
  await ev(`window.GuyuFileBackup=null;`);
  await tap('#codex-do');await tap('[data-choice="0"]');await sleep(250);await check('确认后实际恢复进度与自动工具设置 '+w,`Game.S().day===23&&Game.autoToolsEnabled()`);
  for(let i=0;i<60 && await ev(`!!document.querySelector('#loading')`);i++)await sleep(100);
+ await send('Emulation.setTouchEmulationEnabled',{enabled:true});
  await ev(`Game.S().scene='forest';Game.S().zone=null;Game.S().weather='sun';Game.addItem('axeSteel',1,true);UI.render();`);await sleep(400);
  const spot=await ev(`document.querySelector('[data-point-id="forest_tree"]').getBoundingClientRect().toJSON()`);
  const wood=await ev(`Game.invCount('wood')`);await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:spot.x+spot.width/2,y:spot.y+spot.height/2}]});await sleep(600);await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await sleep(250);

@@ -59,6 +59,10 @@ jobs:
         run: node 回归测试/run.js --browser --only=_verify_trade_lottery
       - name: Advertising adapter and shop
         run: node 回归测试/run.js --browser --only=_verify_ads
+      - name: Unread badges and daily shop gift
+        run: node 回归测试/run.js --browser --only=_verify_notice_shop
+      - name: Desktop backup files and mobile controls
+        run: node 回归测试/run.js --browser --only=_verify_progression_ui
       - name: Retain verification evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -69,5 +73,7 @@ jobs:
             回归测试/_out/incremental-*.png
             回归测试/_out/oct29-*.png
             回归测试/_out/oct30-*.png
+            回归测试/_out/notice-shop-*.png
+            回归测试/_out/progression-*.png
           if-no-files-found: warn
           retention-days: 14

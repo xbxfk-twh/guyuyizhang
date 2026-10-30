@@ -139,7 +139,7 @@ function newGame(identity, difficulty) {
       laochao:{ nextVisit:5, arrived:false, arrivedDay:0, done:{}, accepted:{} },
       fame:0,
       exp:{ gather:0, craft:0, combat:0 },
-      flags:{}, diary:[], log:[], seen:{},   // tailorGift 是顶层字段（见 newGame 尾部）：新局不赠送裁缝台
+      flags:{}, diary:[], diaryReadCount:0, log:[], seen:{},   // tailorGift 是顶层字段（见 newGame 尾部）：新局不赠送裁缝台
       pointUses:{}, killCount:{}, sold:{}, hpLostTotal:0,
       livestock:{ pen:[], coop:[], autoFeed:true }, traps:{ placed:0 },
       death:null, ending:null, combat:null, pistolCalibrated:false,

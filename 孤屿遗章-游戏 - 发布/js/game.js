@@ -41,6 +41,7 @@ const Game = (() => {
     get backupPoints(){return backupPoints;},
     get validSave(){return validSave;}
   });
+  const noticeRules=NotificationRules.create({getMeta:()=>metaState(),getRun:()=>gameState.run,persistPair:(...a)=>persistPair(...a),dailySignState:()=>dailySignState(),dailyGiftState:()=>dailyGiftState(),mailboxCount:()=>mailboxCount()});
   const shopRules=ShopRules.create({
     gameState,
     get persistPair(){return persistPair;},
@@ -556,7 +557,7 @@ const Game = (() => {
     storage:{getItem:key=>storagePort.getItem(key),setItem:(key,value)=>storagePort.setItem(key,value),removeItem:key=>storagePort.removeItem(key)},
     cookies:{get text(){return document.cookie;},set text(value){document.cookie=value;}},
     getState:()=>gameState.run,setState:value=>{gameState.run=value;},getMeta:()=>gameState.profile,setMeta:value=>{gameState.profile=value;},isStaging:()=>gameState.staging,
-    transactions:saveTransactions,LOG_KEEP,validSave,normalizeState,migrateSaltMeta,migrateRedeemReceipts,
+    transactions:saveTransactions,LOG_KEEP,validSave,normalizeState,migrateSaltMeta,migrateRedeemReceipts,migrateNotices:NotificationRules.migrate,
     onConflict:revision=>{if(typeof onSaveConflict==='function')onSaveConflict(revision);},
     onFailure:error=>{if(typeof onSaveFail==='function')onSaveFail(error);},push:()=>cloudPush(false)
   });
@@ -1531,6 +1532,7 @@ function change() {
   // 存档码：把「历代遗章 + 已解锁存档槽」打包，兼容旧版三个槽。
   function readSaveCode(...args){return accountRules.readSaveCode(...args);}
   function inspectCode(...args){return accountRules.inspectCode(...args);}
+  function transferOwner(){return accountRules.transferOwner();}
   function exportCode(...args){return accountRules.exportCode(...args);}
   function importCode(...args){return accountRules.importCode(...args);}
   function redeemCode(...args){return accountRules.redeemCode(...args);}
@@ -1635,6 +1637,10 @@ function change() {
   // 作者 2026-09-19：每日签到奖励下调为 魂点 ×10 + 备份点 ×1
   
   function todayKey(...args){return shopRules.todayKey(...args);}
+  function noticeState(){return noticeRules.state();}
+  function markNoticeRead(kind,tab){return noticeRules.read(kind,tab);}
+  function dailyGiftState(){return shopRules.dailyGiftState();}
+  function claimDailyGift(){return shopRules.claimDailyGift();}
   function dailySignState(...args){return shopRules.dailySignState(...args);}
   // 星之点为账号钱包，流水合并保留领取与消费，读旧码不能恢复已花余额。
   function walletEntry(...args){return shopRules.walletEntry(...args);}
@@ -1692,7 +1698,7 @@ function change() {
     onceRewardMissing,
     buildChain, canBuildFurniture, buildFurniture, buildHouseExt, houseExtMax, houseExtMats, buildStoreExt, storeExtMax, storeExtMats, storeExtCap, atlantisCamp, atlantisFurnitureUsed, buildAtlantisFurniture, repairDive, repairDiveCost, demolishFurniture, collectRainWater, collectHiveHoney, canCraft, craft, exchangeShells, exchangeGold, SHELL_PER_COIN, SHELL_FOR_COIN, shrinePool, shrineChoices, triggerShrine,
     liveInfo, liveCap, coopCap, coopExtMats, buildCoopExt, addSheep, addChick, toggleAutoFeed, deliverToBag,
-    plant, harvest, consume, useMed, equipToSlot, equip, rest, sleep, farmPlots, farmExt, tillPlot, loosenPlot, FARM_EXTRA_MAX, raidWolves, continueRun, syncToolkit, drainTool, drainById, restoreBackupSave, dailySign, dailySignState,
+    plant, harvest, consume, useMed, equipToSlot, equip, rest, sleep, farmPlots, farmExt, tillPlot, loosenPlot, FARM_EXTRA_MAX, raidWolves, continueRun, syncToolkit, drainTool, drainById, restoreBackupSave, dailySign, dailySignState, dailyGiftState, claimDailyGift, noticeState, markNoticeRead,
     dryOf, dryLeftMin, dryCollect, fmtLeft,
     hasDivineBowAnywhere, storeDivineBow, hasMailboxDivineBow,
     collectDailyReport, claimDailyTrap, resolveTrapDaily,
@@ -1701,7 +1707,7 @@ function change() {
     startFight, fightAction, useItemInFight, pointReason, furnSlotFull, furnSlotInfo, furnTakesSlot, houseSlots, bedStamBonus, furnitureUsed, tailorGifted, farmLiveSlots, farmLiveUsed, farmLiveFree, farmLiveInfo, FARM_LIVESTOCK_IDS,
     laochaoAvailable, signalFlag, doFirstTrade, completeCommission, commissions, commissionDone, commissionAccepted,
     sellToMerchant, buyFromMerchant, priceOf, fishmanDeals, fishmanBarter, fishmanTraded,
-    checkEndingActions, doEnding, doPeakRitual, settleEnding, collection, currentObjective, metaState, identityUnlocked, unlockIdentity, metaBuy, metaBonus, metaSettle, metaNum, metaLast, reviveInfo, reviveToday, redeemCode, mailboxList, claimMailbox, mailboxCount, batchTipSeen, markBatchTipSeen, devEnabled, unlockDev, hasRelic, hpMax, gainRandomRelic, durOf, durMaxOf, sleepQuality, sleepForecast, unlockRelicSlot, equipRelic, unequipRelic, relicSlotCost, atlVendorInfo, buyRelicFromVendor, lotusLeft, backupPoints, slotList, extraSlotUnlocked, buyExtraSlot, buyBackupPoint, backupSlot, loadSlot, delSlot, exportCode, inspectCode, importCode, metaReload, raidDay, acceptCommission, sharpen, repairWeapon, nameWeapon, repairMatOf, wNameOf, selectedTool, autoToolsEnabled, setAutoTools, pointMinutes, craftRecipe, craftMax, craftMinutes, craftBatch, repairPistol, fixBrokenPistol, travelCost, zoneSwimCost, equipTool, unequipTool, capUsed, unequip, newGame, achCheck, achClaim, achUnlocked, achState,
+    checkEndingActions, doEnding, doPeakRitual, settleEnding, collection, currentObjective, metaState, identityUnlocked, unlockIdentity, metaBuy, metaBonus, metaSettle, metaNum, metaLast, reviveInfo, reviveToday, redeemCode, mailboxList, claimMailbox, mailboxCount, batchTipSeen, markBatchTipSeen, devEnabled, unlockDev, hasRelic, hpMax, gainRandomRelic, durOf, durMaxOf, sleepQuality, sleepForecast, unlockRelicSlot, equipRelic, unequipRelic, relicSlotCost, atlVendorInfo, buyRelicFromVendor, lotusLeft, backupPoints, slotList, extraSlotUnlocked, buyExtraSlot, buyBackupPoint, backupSlot, loadSlot, delSlot, exportCode, transferOwner, inspectCode, importCode, metaReload, raidDay, acceptCommission, sharpen, repairWeapon, nameWeapon, repairMatOf, wNameOf, selectedTool, autoToolsEnabled, setAutoTools, pointMinutes, craftRecipe, craftMax, craftMinutes, craftBatch, repairPistol, fixBrokenPistol, travelCost, zoneSwimCost, equipTool, unequipTool, capUsed, unequip, newGame, achCheck, achClaim, achUnlocked, achState,
     // 技能树（B1）
     skillTreeInfo, skillUpTrunk, skillNodeLearn, skillNodeForget, nodeLv, trunkPicks, trunkLv, nodeCheck, nodeIsLeaf, nodeForgetGain, craftIn,
     trunkForgetInfo, skillTrunkForget,          // 主干遗忘（只能从末端退，返还一半）
