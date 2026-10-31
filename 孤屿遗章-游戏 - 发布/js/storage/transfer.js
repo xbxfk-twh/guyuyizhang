@@ -3,7 +3,7 @@ const TemporarySaveTransfer = (() => {
   const BASE='https://guyuyizhang.top:8443/backup/v1/transfer';
   function newId(){const bytes=new Uint8Array(16);globalThis.crypto.getRandomValues(bytes);return Array.from(bytes,n=>n.toString(16).padStart(2,'0')).join('');}
   function normalize(code){return String(code||'').normalize('NFKC').toUpperCase().replace(/[\s-]/g,'');}
-  function isCode(code){return /^[A-Z0-9]{8}$/.test(normalize(code))||/^SAVE/.test(normalize(code));}
+  function isCode(code){return /^[A-Z0-9]{8}$/.test(normalize(code));}
   function create({send,inspect,owner,authorize=async()=>null,randomId=newId,clock=Date.now}){
     let pending=null;
     async function request(path,payload){
@@ -31,7 +31,7 @@ const TemporarySaveTransfer = (() => {
     }
     async function download(code){
       const normalized=normalize(code);
-      if(!/^[A-Z0-9]{8}$/.test(normalized)&&!/^SAVE[2-9A-HJ-NP-Z]{16}$/.test(normalized))throw Error('请输入8位字母和数字取件码');
+      if(!/^[A-Z0-9]{8}$/.test(normalized))throw Error('请输入8位字母和数字取件码');
       const r=await request('/read',{code:normalized});
       if(typeof r.body!=='string'||!inspect(r.body).ok)throw Error('下载的存档未通过校验，原进度未改变');
       return r.body;

@@ -139,7 +139,7 @@ async function connect() {
     );
     screenshot('android-apk-camp.png');
     if(process.env.GUYU_LIVE_TRANSFER_CHECK==='1'){
-      await check('独立APK通过真实HTTPS生成并取回临时码，未改本局',`(async()=>{const before=Game.exportCode(),client=TemporarySaveTransfer.create({send:(url,data)=>RedeemTransport.send(window,url,data,{timeoutMs:15000}),inspect:c=>Game.inspectCode(c)}),r=await client.upload(before),body=await client.download(r.code);return r.code.length===24&&body===before&&Game.inspectCode(body).day===Game.S().day;})()`);
+      await check('独立APK通过真实HTTPS生成并取回8位取件码，未改本局',`(async()=>{const before=Game.exportCode(),client=TemporarySaveTransfer.create({owner:()=>Game.transferOwner(),send:(url,data)=>RedeemTransport.send(window,url,data,{timeoutMs:15000}),inspect:c=>Game.inspectCode(c)}),r=await client.upload(before),body=await client.download(r.code);return /^[A-Z0-9]{8}$/.test(r.code)&&body===before&&Game.inspectCode(body).day===Game.S().day;})()`);
     }
     await evaluate("document.querySelector('[data-nav=inv]').click()");
     await check(
