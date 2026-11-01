@@ -21,14 +21,9 @@ const TapAds = (() => {
     try {
       ad = window.tap.createRewardedVideoAd({adUnitId:SPACE_ID});
       ad.onLoad(() => {});
-      // onError 可能来自预加载；播放失败由 show/load 的恢复链统一收尾。
-      ad.onError(() => {
-        if (pending && pending.phase === 'shown') {
-          // 播放中断后宿主仍可能回传上一次 onClose，不能让它发放下一次奖励。
-          awaitingLateClose = true;
-          finish({ok:false, reason:'广告播放中断，未领取奖励，请关闭广告后重试。'});
-        }
-      });
+      // onError 是素材拉取失败，也可能来自下一条广告的预加载。
+      // 不能据此否定当前观看；发奖只认 onClose，展示失败由 show/load 恢复链收尾。
+      ad.onError(() => {});
       ad.onClose(res => {
         if (awaitingLateClose) { awaitingLateClose = false; return; }
         finish(res && res.isEnded === true
@@ -43,7 +38,7 @@ const TapAds = (() => {
     if (pending) return false;
     if (awaitingLateClose) { done({ok:false, reason:'上次广告尚未返回，请关闭广告或重新打开游戏。'}); return false; }
     if (!init()) { done({ok:false, reason:'广告暂不可用，请在 TapTap 内打开游戏后重试。'}); return false; }
-    const request = {done, reward:rewardCallback, timer:null, phase:'show'};
+    const request = {done, reward:rewardCallback, timer:null};
     rewardCallback = null;
     pending = request;
     // 防止宿主丢失关闭回调后永远锁住入口；超时不发奖励，迟到回调无效。
@@ -53,12 +48,10 @@ const TapAds = (() => {
     }, 180000);
     const fail = () => { if (pending === request) finish({ok:false, reason:'暂无可播放的广告，请稍后再试。'}); };
     try {
-      const shown = () => { if (pending === request) request.phase = 'shown'; };
-      Promise.resolve(ad.show()).then(shown).catch(() => {
+      Promise.resolve(ad.show()).catch(() => {
         if (pending !== request) return;
-        request.phase = 'recover';
         return Promise.resolve(ad.load()).then(() => {
-          if (pending === request) return Promise.resolve(ad.show()).then(shown);
+          if (pending === request) return ad.show();
         }).catch(fail);
       }).catch(fail);
     } catch (e) { fail(); }

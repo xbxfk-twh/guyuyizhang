@@ -22,8 +22,18 @@ async function check(name,fn){await fn();passed++;console.log('OK '+name);}
   const m=mock();let result,rewards=0;m.api.onReward(()=>rewards++);m.failShows(1);m.api.showRewardedVideo(r=>result=r);await tick();assert.equal(m.counts().shows,2);assert.equal(m.counts().loads,2);m.handlers.close({isEnded:true});assert.equal(result.ok,true);assert.equal(rewards,1);
   m.failShows(2);m.api.onReward(()=>rewards++);m.api.showRewardedVideo(r=>result=r);await tick();assert.equal(result.ok,false);assert.equal(rewards,1);assert.equal(m.api.busy(),false);
  });
- await check('播放中断和超时的迟到关闭不发奖或串到下一次',async()=>{
-  for(const cause of ['error','timeout']){const m=mock();let rewards=0,result;m.api.onReward(()=>rewards++);m.api.showRewardedVideo(r=>result=r);await tick();if(cause==='error')m.handlers.error({});else m.timeout();assert.equal(result.ok,false);assert.equal(rewards,0);assert.equal(m.api.showRewardedVideo(()=>{}),false);m.handlers.close({isEnded:true});assert.equal(rewards,0);m.api.onReward(()=>rewards++);m.api.showRewardedVideo(()=>{});await tick();m.handlers.close({isEnded:true});assert.equal(rewards,1);}
+ await check('素材加载报错不替代关闭结果，完整观看仍发一次奖励且可继续观看',async()=>{
+  const m=mock();let rewards=0,result;m.api.onReward(()=>rewards++);m.api.showRewardedVideo(r=>result=r);await tick();
+  m.handlers.error({errMsg:'next creative failed'});assert.equal(result,undefined);assert.equal(rewards,0);assert.equal(m.api.busy(),true);
+  m.handlers.close({isEnded:true});m.handlers.close({isEnded:true});assert.equal(result.ok,true);assert.equal(rewards,1);assert.equal(m.api.busy(),false);
+  m.handlers.error({errMsg:'idle preload failed'});m.api.onReward(()=>rewards++);m.api.showRewardedVideo(r=>result=r);await tick();m.handlers.close({isEnded:true});assert.equal(result.ok,true);assert.equal(rewards,2);
+ });
+ await check('加载报错后提前关闭不发奖，不阻塞下一次观看',async()=>{
+  const m=mock();let rewards=0,result;m.api.onReward(()=>rewards++);m.api.showRewardedVideo(r=>result=r);await tick();m.handlers.error({});m.handlers.close({isEnded:false});
+  assert.equal(result.ok,false);assert.equal(rewards,0);assert.equal(m.api.busy(),false);m.api.onReward(()=>rewards++);m.api.showRewardedVideo(r=>result=r);await tick();m.handlers.close({isEnded:true});assert.equal(result.ok,true);assert.equal(rewards,1);
+ });
+ await check('超时的迟到关闭不发奖或串到下一次',async()=>{
+  const m=mock();let rewards=0,result;m.api.onReward(()=>rewards++);m.api.showRewardedVideo(r=>result=r);await tick();m.timeout();assert.equal(result.ok,false);assert.equal(rewards,0);assert.equal(m.api.showRewardedVideo(()=>{}),false);m.handlers.close({isEnded:true});assert.equal(rewards,0);m.api.onReward(()=>rewards++);m.api.showRewardedVideo(()=>{});await tick();m.handlers.close({isEnded:true});assert.equal(rewards,1);
  });
  await check('没有SDK正常启动并返回不可用，不模拟发奖',()=>{const window={GUYU_CHANNEL:'taptap'};const api=new Function('window','location',source+';return TapAds;')(window,{hostname:'localhost'});assert.equal(api.supported(),false);let result;api.showRewardedVideo(r=>result=r);assert.equal(result.ok,false);});
  console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);
