@@ -24,7 +24,7 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
   check('topbar no guide/mail, objectives hidden initially',await ev(`!document.querySelector('#topbar #btn-guide,#topbar #btn-mail')&&!document.querySelector('#objective').textContent.trim()`));
   await ev(`document.querySelector('#nav [data-nav="save"]').click();`);
   check('menu entries guide mail and no restart',await ev(`!!document.querySelector('[data-savemenu="guide"]')&&!!document.querySelector('[data-savemenu="mail"]')&&!document.querySelector('[data-savemenu="restart"]')`));
-  await ev(`document.querySelector('[data-savemenu="settings"]').click();document.querySelector('[data-set="sceneScroll"]').click();document.querySelector('#modal-close').click();`);
+  await ev(`document.querySelector('[data-savemenu="settings"]').click();document.querySelector('[data-set="sceneScroll"]').click();for(let i=0;i<12&&document.querySelector('#modal.open');i++)UI.handleBack();`);
   check('scroll setting persists off',await ev(`localStorage.getItem('guyuyizhang_scene_scroll')==='0'`));
   check('关闭小场景滑动后大地图仍可上下拖动',await ev(`(async()=>{document.querySelector('#btn-backmap').click();const img=document.querySelector('#map-img');if(!img.complete)await new Promise(r=>{img.addEventListener('load',r,{once:true})});await new Promise(r=>setTimeout(r,300));const before=img.getBoundingClientRect().top;document.querySelector('#map-wrap').dispatchEvent(new WheelEvent('wheel',{deltaY:80,bubbles:true,cancelable:true}));const first=img.getBoundingClientRect().top;document.querySelector('#map-wrap').dispatchEvent(new WheelEvent('wheel',{deltaY:-80,bubbles:true,cancelable:true}));const after=img.getBoundingClientRect().top;document.querySelector('#btn-backmap').click();return Math.max(Math.abs(after-before),Math.abs(first-before))>5;})()`));
 
@@ -63,18 +63,18 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
   await send('Emulation.setDeviceMetricsOverride',{width:667,height:375,deviceScaleFactor:1,mobile:true});await sleep(300);
   check('裁切只保留原位篝火且无左上角复制入口',await ev(`(()=>{Game.S().scene='camp';Game.S().zone=null;UI.render();const p=[...document.querySelectorAll('#hotspots>.hotspot')].find(e=>e.textContent.includes('篝火'));if(!p||document.querySelector('#crop-shortcuts')||getComputedStyle(p).display==='none')return false;p.click();const ok=!!document.querySelector('.work-modal');document.querySelector('#modal .modal-x')?.click();return ok;})()`));
   await send('Emulation.setDeviceMetricsOverride',{width:844,height:390,deviceScaleFactor:1,mobile:true});
-  await ev(`document.querySelector('#nav [data-nav="save"]').click();document.querySelector('[data-savemenu="settings"]').click();document.querySelector('[data-set="sceneScroll"]').click();document.querySelector('#modal-close').click();`);
+  await ev(`document.querySelector('#nav [data-nav="save"]').click();document.querySelector('[data-savemenu="settings"]').click();document.querySelector('[data-set="sceneScroll"]').click();for(let i=0;i<12&&document.querySelector('#modal.open');i++)UI.handleBack();`);
   check('scroll enabled still has no duplicate underwater map hotspot',await ev(`(async()=>{const s=Game.S();for(const zone of Object.keys(Game.sceneOf('atlantis').zones)){s.scene='atlantis';s.zone=zone;UI.render();await new Promise(r=>setTimeout(r,140));if([...document.querySelectorAll('.hotspot')].some(p=>p.textContent.includes('大地图')))return false;}return localStorage.getItem('guyuyizhang_scene_scroll')==='1';})()`));
   await shot('simplify-underwater-no-map-mobile');
   await ev(`Game.S().scene='camp';Game.S().zone=null;UI.render();`);
   await ev(`document.querySelector('#nav [data-nav="craft"]').click();`);
   check('mobile craft buttons reduced to 29px',await ev(`[...document.querySelectorAll('.recipe-actions .mini-btn')].filter(b=>b.offsetHeight>0).every(b=>b.getBoundingClientRect().height<=30)&&document.querySelectorAll('.recipe-actions .mini-btn').length>0`));
   await shot('simplify-craft-mobile');
-  await ev(`document.querySelector('#modal .modal-x').click();document.querySelector('#nav [data-nav="save"]').click();document.querySelector('[data-savemenu="mail"]').click();document.querySelector('[data-mailtab="guide"]').click();`);
+  await ev(`for(let i=0;i<12&&document.querySelector('#modal.open');i++)UI.handleBack();document.querySelector('#nav [data-nav="save"]').click();document.querySelector('[data-savemenu="mail"]').click();document.querySelector('[data-mailtab="guide"]').click();`);
   check('攻略逐页可读且没有错误的统一+2说明',await ev(`(()=>{const pages=[...document.querySelectorAll('[data-guide-page] option')].map(o=>({value:o.value,title:o.textContent}));if(pages.length<3)return false;for(const p of pages){const select=document.querySelector('[data-guide-page]');select.value=p.value;select.dispatchEvent(new Event('change'));if(document.querySelector('.guide-page h3')?.textContent!==p.title||document.querySelector('.guide-page').textContent.includes('统一 +2'))return false;}return true;})()`));
   await ev(`document.querySelector('[data-mailtab="event"]').click();`);
   check('event ad last and concise namecard',await ev(`(()=>{const m=document.querySelector('#modal'),t=m.textContent;return t.indexOf('小广告')>t.indexOf('命名牌')&&!t.includes('伤害永久+1');})()`));
-  await ev(`document.querySelector('#modal-close').click();Game.S().scene='atlantis';Game.S().zone='shipwreck';UI.render();[...document.querySelectorAll('.hotspot')].find(b=>b.textContent.includes('神秘人鱼')).click();`);
+  await ev(`for(let i=0;i<12&&document.querySelector('#modal.open');i++)UI.handleBack();Game.S().scene='atlantis';Game.S().zone='shipwreck';UI.render();[...document.querySelectorAll('.hotspot')].find(b=>b.textContent.includes('神秘人鱼')).click();`);
   check('no listen button and portrait is accessible',await ev(`!document.querySelector('.voice-replay')&&!!document.querySelector('.merchant-portrait[role=button][tabindex="0"]')`));
   await ev(`window.voiceBefore=testVoices.length;document.querySelector('.merchant-portrait').click();`);
   check('portrait speaks merchant line',await ev(`testVoices.length===voiceBefore+1`));

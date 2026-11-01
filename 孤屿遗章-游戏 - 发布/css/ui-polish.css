@@ -965,7 +965,6 @@ body:has(#modal.open .player-panel-tabs) #nav{z-index:1001}
 
 .title-language{position:absolute;right:max(12px,env(safe-area-inset-right,0px));top:12px;z-index:20}
 .language-control{display:inline-flex;align-items:center;gap:8px;color:var(--paper);font:14px/1.4 sans-serif}
-.language-control select{background:var(--paper);color:var(--ink);border:1px solid var(--ink);padding:7px;min-height:36px}
 .help-item .language-control{color:var(--ink)}
 html[data-language="en"] #title-name .tt{display:none}
 html[data-language="en"] #title-name::after{content:"Isle of Lost Chapters";font-size:clamp(24px,5vw,54px);letter-spacing:.03em}
@@ -976,7 +975,6 @@ html[data-language="en"] .camp-building-button b{font-size:12px;overflow-wrap:an
 
 html[data-language="en"] .inventory-side{width:90px;flex:0 0 90px}
 html[data-language="en"] .inventory-side .tab{font-size:11px;padding:6px 3px;word-break:normal;overflow-wrap:normal}
-html[data-language="en"] .language-control span{font-size:13px}
 
 /* English category names must fit the compact backpack/warehouse sidebar. */
 html[data-language="en"] #modal .inventory-side .tab{overflow-wrap:anywhere;word-break:normal;white-space:normal}
@@ -989,3 +987,48 @@ html[data-language="en"] #modal .inventory-side .tab{overflow-wrap:anywhere;word
 .cabinet-video:disabled .shop-video-seal { filter:grayscale(.7); }
 .shop-gift-seal { font-size:32px; color:#8a642b; line-height:1; }
 @media(max-height:500px) { #modal .cabinet-modal .cabinet-cell.cabinet-video { padding:5px 12px; gap:1px; } .shop-video-seal { width:22px; height:22px; font-size:14px; } }
+
+/* 图鉴：紧凑图标卡；怪物淡化背景不影响文字阅读。 */
+.col-list.col-item-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));align-items:stretch;gap:8px}
+.col-item-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:105px;padding:10px 5px;text-align:center;letter-spacing:0}
+.col-item-tile .item-icon{width:48px;height:48px;flex-shrink:0;object-fit:contain}
+.col-item-tile b{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.col-mon-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));align-items:start}
+.col-mon-grid .unseen{min-height:54px;display:grid;place-items:center}
+.col-mon-card{position:relative;isolation:isolate;overflow:hidden;min-height:160px;padding:12px;background:var(--paper)}
+.col-mon-art{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:.18;filter:grayscale(1);pointer-events:none;z-index:-1}
+.col-mon-content{position:relative;text-shadow:0 1px 2px var(--paper)}
+.col-mon-content b{font-size:16px}
+.col-mon-content small{font-size:12px;color:var(--ink);line-height:1.65}
+button.language-control{display:inline-flex;align-items:center;justify-content:center;min-width:36px;min-height:32px;padding:3px 7px;border:1px solid currentColor;background:transparent;color:var(--paper);font-family:inherit;font-size:14px;line-height:1.2;letter-spacing:0;opacity:.8;cursor:pointer}
+button.language-control:hover,button.language-control:focus-visible{background:transparent;opacity:1;outline:1px solid currentColor}
+.help-item button.language-control{color:var(--ink)}
+
+.modal-content.collection-modal{display:flex;flex-direction:column;max-height:calc(100dvh - 28px);overflow:hidden}
+.collection-modal>.modal-title,.collection-modal>.tabs,.collection-modal>.modal-actions{flex-shrink:0}
+.collection-modal>.tabs{flex-wrap:nowrap;overflow-x:auto;gap:6px;padding:2px 1px 6px}
+.collection-modal>.tabs>.tab{flex:0 0 auto;padding:8px 10px;font-size:14px;white-space:nowrap}
+.collection-modal>.col-body{flex:1;min-height:0;max-height:none;overscroll-behavior:contain}
+
+.modal-content.collection-modal>.modal-x{position:absolute;top:12px;right:12px;margin:0;align-self:flex-end}
+.collection-modal>.modal-title{padding-right:42px}
+.collection-modal>.modal-actions{margin-top:4px}
+.collection-modal>.modal-actions>button{padding:6px 16px;font-size:14px}
+
+.collection-modal>.tabs{scrollbar-width:none}
+.collection-modal>.tabs::-webkit-scrollbar{display:none}
+@media(max-height:400px){
+ .modal-content.collection-modal{padding:10px 14px}
+ .collection-modal>.modal-title{font-size:20px;margin-bottom:6px;padding-bottom:8px;min-height:30px}
+ .collection-modal>.tabs>.tab{min-height:34px;padding:5px 8px;font-size:13px}
+ .collection-modal>.modal-actions{margin-top:2px}
+ .collection-modal>.modal-actions>button{min-height:32px;padding:4px 14px}
+ .collection-modal .col-item-tile{min-height:82px;padding:6px 4px;gap:3px}
+ .collection-modal .col-item-tile .item-icon{width:40px;height:40px}
+ .collection-modal .col-item-tile b{font-size:13px}
+}
+
+/* APK下载：保留可长按的网址，不将TapTap玩家导向内置浏览器。 */
+.download-address{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.download-address input{flex:1 1 280px;min-width:0;width:100%;padding:9px;border:1px solid var(--ink);background:var(--paper);color:var(--ink);font-size:14px;user-select:text;-webkit-user-select:text}
+.download-address button{flex:0 0 auto;min-height:40px;padding:8px 14px;font-size:14px}

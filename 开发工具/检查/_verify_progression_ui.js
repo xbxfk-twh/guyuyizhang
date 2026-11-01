@@ -20,6 +20,7 @@ let passed=0,fail=0,ws,ch;const errors=[];
  const downloads=fs.mkdtempSync(path.join(out,'progression-files-'));
  await send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:downloads});
  const tap=async selector=>{if(!await ev(`!!document.querySelector(${JSON.stringify(selector)})`)){await shot('progression-missing.png');console.error(await ev(`document.querySelector('#modal')?.textContent`));throw Error('Missing '+selector);}await sleep(400);await ev(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'center'});`);const r=await ev(`document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect().toJSON()`);await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:r.x+r.width/2,y:r.y+r.height/2}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await sleep(450);};
+ const dismissPanels=async()=>{await ev(`for(let i=0;i<12&&document.querySelector('#modal.open');i++)UI.handleBack()`);assert.equal(await ev(`!!document.querySelector('#modal.open')`),false,'先逐级退出迁移设置再操作主界面');};
  for(const [w,h] of [[667,375],[926,428]]) {
  await send('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:1,mobile:true});await send('Emulation.setTouchEmulationEnabled',{enabled:true});
  await send('Page.navigate',{url:require('url').pathToFileURL(path.join(root,'孤屿遗章-游戏 - 发布/index.html')).href});await sleep(1400);
@@ -34,15 +35,15 @@ let passed=0,fail=0,ws,ch;const errors=[];
  await check('导出预览完整性校验 '+w,`document.querySelector('#modal').textContent.includes('完整性校验通过')`);
  await check('临时取档界面不再展示长码 '+w,`document.querySelector('#codex-text').value===''&&!!document.querySelector('#codex-generate')`);
  await check('手机隐藏无法使用的文件入口 '+w,`!document.querySelector('#codex-download')`);
- await tap('#modal-close');await send('Emulation.setTouchEmulationEnabled',{enabled:false});
+ await dismissPanels();await send('Emulation.setTouchEmulationEnabled',{enabled:false});
  await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');await tap('[data-codex="import"]');
  // 先以手机条件实际验证，再切桌面条件覆盖永久文件备份。
- await tap('#modal-close');await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');await tap('[data-codex="export"]');
+ await dismissPanels();await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');await tap('[data-codex="export"]');
  const code=await ev(`Game.exportCode()`);await tap('#codex-download');
  let saved;for(let i=0;i<30&&!saved;i++){await sleep(100);saved=fs.readdirSync(downloads).filter(x=>x.endsWith('.txt')).find(x=>fs.readFileSync(path.join(downloads,x),'utf8')===code);}
  assert.ok(saved,'下载文件内容与完整导出码一致');passed++;console.log('OK 实际下载完整备份 '+w);
  await shot('progression-export-'+w+'.png');
- await tap('#modal-close');await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');await tap('[data-codex="import"]');
+ await dismissPanels();await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');await tap('[data-codex="import"]');
  await ev(`document.querySelector('#codex-text').value='https://example.com';document.querySelector('#codex-text').dispatchEvent(new Event('input'));`);
  await check('错误类型在覆盖前显示原因 '+w,`document.querySelector('#codex-preview').textContent.includes('8位字母和数字')`);
  const importCode=await ev(`(()=>{const day=Game.S().day;Game.S().day=23;const code=Game.exportCode();Game.S().day=day;return code;})()`);

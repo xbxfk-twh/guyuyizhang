@@ -14,6 +14,22 @@ const check=async(name,expr)=>{assert.ok(await b.ev(expr),name);pass++;console.l
  }
  b=await openBrowser({width:844,height:390});for(let n=0;n<100&&!await b.ev(`!!document.querySelector('#btn-new')`);n++)await b.sleep(100);
  await b.ev(`Game.newGame('fisher','normal');Game.S().tut=null;UI.begin()`);for(let n=0;n<60&&await b.ev(`!!document.querySelector('#loading')`);n++)await b.sleep(100);await b.ev('UI.handleBack()');await b.tap('[data-nav="save"]');await b.tap('[data-savemenu="mail"]');await b.tap('[data-mailtab="event"]');
- await check('游戏活动页真实提供官网下载入口和迁移说明',`(()=>{const a=document.querySelector('.event-download a');return a.href==='https://guyuyizhang.top:8443/download.html'&&a.target==='_blank'&&a.rel.includes('noopener')&&document.querySelector('.event-download').textContent.includes('生成取件码')&&document.querySelector('.event-download').textContent.includes('10分钟内')})()`);await b.shot('oct29-game-download-entry.png');assert.deepEqual(b.errors,[]);
+ await check('游戏活动页真实提供官网下载入口和迁移说明',`(()=>{const a=document.querySelector('.event-download [data-apk-url]');return a?.value==='https://guyuyizhang.top:8443/download.html'&&a.readOnly&&!!document.querySelector('[data-copy-apk-url]')&&!document.querySelector('.event-download a[href]')&&document.querySelector('.event-download').textContent.includes('生成取件码')&&document.querySelector('.event-download').textContent.includes('10分钟内')})()`);await b.shot('oct29-game-download-entry.png');
+ for(const [width,height] of [[568,320],[844,390],[1280,720]]){
+  await b.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<1000});
+  await b.ev(`window.__opened=0;window.__copied='';window.open=()=>{__opened++};window.__oldCopy=document.execCommand;Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.__copied=text;}}});window.__eventLocation=location.href;`);
+  await b.tap('[data-copy-apk-url]');
+  await check(width+' 实际点击只复制正确网址、不打开TapTap网页',`__copied==='https://guyuyizhang.top:8443/download.html'&&__opened===0&&location.href===__eventLocation&&document.querySelector('[data-apk-copy-status]').textContent.includes('网址已复制')&&!document.querySelector('[data-copy-apk-url]').disabled`);
+  await check(width+' 网址框与按钮在手机及桌面不横向溢出',`(()=>{const e=document.querySelector('.download-address'),r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&e.scrollWidth<=e.clientWidth+1})()`);
+  await b.ev(`Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:()=>Promise.reject(Error('denied'))}});document.execCommand=()=>false;`);
+  await b.tap('[data-copy-apk-url]');
+  await check(width+' 复制被拦截时明确提示手动复制、完整网址可选取',`(()=>{const e=document.querySelector('[data-apk-url]');return document.querySelector('[data-apk-copy-status]').textContent.includes('自动复制失败')&&e.readOnly&&e.value==='https://guyuyizhang.top:8443/download.html'&&e.selectionStart===0&&e.selectionEnd===e.value.length&&__opened===0&&!document.querySelector('[data-copy-apk-url]').disabled})()`);
+  await b.ev(`document.execCommand=command=>command==='copy';`);await b.tap('[data-copy-apk-url]');
+  await check(width+' 浏览器标准复制方式成功后才显示成功反馈',`document.querySelector('[data-apk-copy-status]').textContent.includes('网址已复制')&&__opened===0`);
+  await b.ev(`document.execCommand=window.__oldCopy;Locale.set('en')`);await b.sleep(100);
+  await check(width+' 英文复制按钮与提示完整且网址不变',`document.querySelector('[data-copy-apk-url]').textContent==='Copy download URL'&&document.querySelector('[data-apk-copy-status]').textContent.includes('system browser')&&document.querySelector('[data-apk-url]').value==='https://guyuyizhang.top:8443/download.html'`);
+  await b.ev(`Locale.set('zh')`);await b.shot('apk-copy-entry-'+width+'.png');
+ }
+ assert.deepEqual(b.errors,[]);
  console.log('通过 '+pass+' 项，失败 0 项\nRESULT:PASS');
 }catch(e){console.error(e.stack);await b?.shot('oct29-download-failure.png');process.exitCode=1;console.log('RESULT:FAIL');}finally{await b?.close();}})();

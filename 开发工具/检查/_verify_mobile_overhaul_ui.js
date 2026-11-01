@@ -61,7 +61,7 @@ let passed=0,fail=0,ws,ch;const errors=[];
   await ev(`document.querySelector('#modal .modal-x')?.click();[...document.querySelectorAll('.hotspot')].find(e=>e.textContent.includes('营地建造')).click();document.querySelector('[data-help="furn"]').click();`);await sleep(300);
   await check('家具作用名称说明分行 '+w,`(()=>{const e=document.querySelector('.camp-help-list .help-item');return !!e&&(innerWidth>820&&innerHeight>520||getComputedStyle(e).display==='block');})()`);
   await shot('mobile-furniture-help-'+w+'.png');
-  await ev(`document.querySelector('#modal .modal-x')?.click();Game.S().roomLayout={floorRest:[78,30]};[...document.querySelectorAll('.hotspot')].find(e=>e.textContent.includes('进屋')).click();`);await sleep(1200);
+  await ev(`for(let i=0;i<12&&document.querySelector('#modal.open');i++)UI.handleBack();Game.S().roomLayout={floorRest:[78,30]};[...document.querySelectorAll('.hotspot')].find(e=>e.textContent.includes('进屋')).click();`);await sleep(1200);
   await check('室内保留简洁界面及旧档家具位置 '+w,`!document.querySelector('#room-arrange,#room-reset')&&document.querySelector('[data-furniture="floorRest"]').style.left==='78%'`);
   await ev(`Game.save();Game.load();UI.render();`);
   await check('保存重载保留已有家具布局且不绑定拖动 '+w,`Game.S().roomLayout.floorRest[0]===78&&Game.S().roomLayout.floorRest[1]===30&&typeof document.querySelector('[data-furniture="floorRest"]').onpointerdown!=='function'`);

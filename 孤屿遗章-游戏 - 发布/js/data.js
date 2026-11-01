@@ -173,7 +173,7 @@ const ITEMS = {
   ironShield:{ id:'ironShield', name:'铁盾', cat:'shield', glyph:'盾', def:4, block:0.25, desc:'铸铁盾，可靠。', stack:1, price:60 },
   steelShield:{ id:'steelShield', name:'钢盾', cat:'shield', glyph:'盾', def:6, block:0.30, desc:'钢制塔盾，几乎无懈可击。', stack:1, price:140 },
   // ---- 药品 ----
-  herbPaste:{ id:'herbPaste', name:'草药膏', cat:'med', healthRestore:15, cureInfection:1, glyph:'膏', heal:15, desc:'生命+15、健康+15，治疗感染。兼顾伤势与体质。', stack:20, price:15 },
+  herbPaste:{ id:'herbPaste', name:'草药膏', cat:'med', healthRestore:5, cureInfection:1, glyph:'膏', heal:5, desc:'生命+5、健康+5，治疗感染。兼顾伤势与体质。', stack:20, price:15 },
   bandage:{ id:'bandage', name:'止血绷带', cat:'med', glyph:'绷', heal:15, stopBleed:1, desc:'生命+15并止血。不恢复健康，适合紧急包扎。', stack:20, price:12 },
   antidote:{ id:'antidote', name:'解毒剂', cat:'med', healthRestore:10, glyph:'解', curePoison:1, desc:'解除中毒、健康+10。不回血、不治疗感染。', stack:20, price:25 },
   tea:    { name:'提神茶', cat:'med', glyph:'茶', spirit:14, desc:'草药蜂蜜煮的茶，恢复 14 点精神。', stack:20, price:18 },
@@ -1408,7 +1408,7 @@ const GUIDE = [
     "steps": [
       "菜单→图鉴可查看已发现的物品与怪物。物品条目可点开，查看攻击、防御、速度、耐久、食用效果等数值。",
       "怪物图鉴可查看生命、攻击、防御、速度、特性与掉落；遇到陌生敌人前，先了解它擅长什么。",
-      "生命与健康不同：简易药膏恢复20健康；草药膏恢复15生命、15健康并治疗感染；解毒剂解除中毒并恢复10健康，但不治疗感染。点击状态查看当前异常及其效果，带伤睡觉仍会结算。",
+      "生命与健康不同：简易药膏恢复20健康；草药膏恢复5生命、5健康并治疗感染；解毒剂解除中毒并恢复10健康，但不治疗感染。点击状态查看当前异常及其效果，带伤睡觉仍会结算。",
       "菜单可保存进度、使用备份与读档。换设备可生成8位取件码，10分钟有效，每账号每小时最多生成3次；在新设备输入后先预览再确认，取消不覆盖进度。电脑还可保存和导入备份文件。迁移完成前不要卸载或清除数据。",
       "遇到不明白的操作，先看按钮旁的问号、灰色提示和日志；攻略也可从邮箱的攻略页打开，两处内容相同。"
     ],

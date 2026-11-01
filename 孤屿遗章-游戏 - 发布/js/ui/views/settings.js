@@ -1,5 +1,6 @@
 /* settings：只读游戏查询并发送操作，拥有本功能的视图实现。 */
 const SettingsView = (() => {
+  const APK_DOWNLOAD_URL='https://guyuyizhang.top:8443/download.html';
   function create(deps) {
     const itemIcon=(...args)=>deps.itemIcon(...args);
     const S=(...args)=>deps.S(...args);
@@ -150,13 +151,33 @@ function mailboxModal() {
       // 作者 2026-09-25：在「活动」页挂一条朋友的小广告 + 反馈渠道说明。
       inner = `<section class="overlay-text event-feedback"><b>🎁 攻略与反馈征集</b><p>欢迎大家分享自己的游戏心得！</p><p>在论坛发布原创攻略，或向我们提交有价值的 BUG、玩法建议与改进反馈，经确认后可获得：</p><p><b>300 魂点 + 30 ${esc(Game.adCurrencyName())}</b></p><p>奖励与评分、评价内容及星级无关。不要求发布评价，也无需提交评价截图或链接。</p><p>攻略或反馈可通过官方交流群提交，确认后发放奖励。</p></section><section class="overlay-text event-review"><b>欢迎留下真实评价</b><p>非常欢迎大家留下自己对《孤屿遗章》的真实评价。无论喜欢、吐槽还是建议，我们都会认真看，并用于后续版本改进。</p></section><div class="overlay-text"><b>【命名牌】</b><br>兑换码 <code>QQ1014679931</code> 可兑换 1 张命名牌。<br><br><code>GUYU2026</code> 可兑换 50 魂点。<br><br>QQ群：1014679931</div>`
         + `<div class="overlay-text event-ad"><b>【小广告】</b><br>中式心理咨询可加 QQ <code>1840585640</code>。</div>`;
-      inner=`<section class="overlay-text event-download"><b>安卓独立测试版</b><p>可下载安装后离线游玩。迁移前，请在「菜单 → 备份·读档」生成取件码，在10分钟内到独立版输入并确认导入。独立版的广告和平台功能有所不同。</p><p><a class="mini-btn" href="https://guyuyizhang.top:8443/download.html" target="_blank" rel="noopener noreferrer">打开官网下载页 ↗</a></p></section>`+inner;
+      inner=`<section class="overlay-text event-download"><b>安卓独立测试版</b><p>可下载安装后离线游玩。迁移前，请在「菜单 → 备份·读档」生成取件码，在10分钟内到独立版输入并确认导入。独立版的广告和平台功能有所不同。</p><div class="download-address"><input data-apk-url data-no-translate type="text" readonly inputmode="none" spellcheck="false" aria-label="APK下载网址" value="${APK_DOWNLOAD_URL}"><button type="button" data-copy-apk-url>复制下载网址</button></div><p data-apk-copy-status role="status" aria-live="polite">复制后，到系统浏览器粘贴打开下载。</p></section>`+inner;
 
 
     }
     return `<div class="modal-title">邮箱 · 兑换 · 活动 · 攻略</div><div class="tabs">${tabs.map(([k,l]) => `<button class="tab ${deps.mailTab===k?'active':''}" data-mailtab="${k}">${l}${k==='guide'?guideBadge():NoticeBadges.dot(k)}</button>`).join('')}</div><div class="overlay-text">内</div>`.replace('<div class="overlay-text">内</div>', `<div>${inner}</div>`) + `<div class="modal-actions"><button id="modal-close">关 闭</button></div>`;
   }
-    return Object.freeze({guideBadge,markGuideRead,roadAmbushOn,backupSummary,downloadBackup,settingsModal,signModal,guideContent,guideModal,adAvailable,watchAd,adShopModal,mailboxModal});
+    function bindDownload(root) {
+      const button=root.querySelector('[data-copy-apk-url]'),input=root.querySelector('[data-apk-url]');
+      if(!button || !input)return;
+      const select=()=>{input.focus({preventScroll:true});input.select();input.setSelectionRange(0,input.value.length);};
+      input.onclick=select;
+      button.onclick=async()=>{
+        if(button.disabled)return;
+        button.disabled=true;
+        let copied=false;
+        try {
+          if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(APK_DOWNLOAD_URL);copied=true;}catch{}}
+          if(!copied){select();try{copied=document.execCommand('copy');}catch{}}
+          if(!button.isConnected)return;
+          const message=copied?'网址已复制，请到系统浏览器粘贴打开下载。':'自动复制失败，请长按网址复制，再到系统浏览器打开。';
+          const status=root.querySelector('[data-apk-copy-status]');
+          if(status){if(window.Locale)Locale.syncText(status,message);else status.textContent=message;}
+          centerToast(message);
+        } finally {button.disabled=false;}
+      };
+    }
+    return Object.freeze({guideBadge,markGuideRead,roadAmbushOn,backupSummary,downloadBackup,settingsModal,signModal,guideContent,guideModal,adAvailable,watchAd,adShopModal,mailboxModal,bindDownload});
   }
   return Object.freeze({create});
 })();

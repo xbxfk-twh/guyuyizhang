@@ -124,7 +124,7 @@ function begin() {
       if (e.target !== modalEl) return;
       const k = deps.modal && deps.modal.kind;
       // 面板类都支持"点外面关闭"（战斗、剧情选择、结局、命名输入、掷骰子这种不能误关的除外）
-      if (deps.panels.get(k).dismiss) closeModal();
+      if (deps.panels.get(k).dismiss) deps.backModal();
     });
     // 移动端：不预加载全部大图，改为按需加载（切换场景时才读取对应图），降低内存与首屏压力
     render();
@@ -211,7 +211,7 @@ function setHostSuspended(on) {
 
 function handleBack() {
     if (deps.uiBusy || deps.traveling) return true;
-    if (deps.modal || deps.battleView) { closeModal(); return true; }
+    if (deps.modal || deps.battleView) { deps.backModal(); return true; }
     if (deps.roomView) { deps.roomView = false; render(); return true; }
     if (deps.view === 'map' && Game.S()) { deps.view = 'scene'; render(); return true; }
     return false; // 由原生壳弹出保存并退出确认。

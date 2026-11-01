@@ -18,6 +18,8 @@ async function main(){
   await send('Runtime.enable');await send('Page.enable');await send('Emulation.setDeviceMetricsOverride',{width:926,height:428,deviceScaleFactor:1,mobile:true});await send('Emulation.setTouchEmulationEnabled',{enabled:true});
   const url=require('url').pathToFileURL(path.join(process.env.GUYU_GAME_ROOT||path.join(root,'孤屿遗章-游戏 - 发布'),'index.html')).href;await send('Page.navigate',{url});await sleep(2200);
   await ev(`Game.newGame('fisher','normal');Game.S().tut=null;Game.S().capacity=999;UI.begin();document.querySelector('#modal [data-choice]')?.click();`);await sleep(2700);
+  for(let i=0;i<120&&!await ev(`!!document.querySelector('[data-nav="craft"]')&&!document.querySelector('#loading')`);i++)await sleep(100);
+  await check('初始场景实际完成加载',`!!document.querySelector('[data-nav="craft"]')&&!document.querySelector('#loading')`);
   // 已有弹窗时触发危险提醒，不能顶掉玩家正在看的内容。
   await ev(`document.querySelector('[data-nav="craft"]').click();Game.S().stats.hp=20;Game.S().stats.hunger=20;Game.change();`);await sleep(250);
   await check('危险提醒不会顶掉已打开的制造面板',`document.querySelector('#modal').classList.contains('open')&&!document.querySelector('#modal').textContent.includes('状态危殆')&&document.querySelector('#floating-notice').classList.contains('show')&&document.querySelector('#floating-notice').textContent.includes('生命只剩')`);

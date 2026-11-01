@@ -50,7 +50,8 @@ async function pressElement(send,ev,selector,{long=false,touch=true}={}){
  if(!Number.isFinite(point?.x)||!Number.isFinite(point?.y))throw Error('输入坐标读取失败：'+JSON.stringify(point));
  if(touch)await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...point,id:1}]});
  else await send('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',clickCount:1});
- await sleep(long?540:70);
+ // 等待浏览器自身的长按计时器，避免后台节流时Node计时已过而页面计时尚未执行。
+ if(long)await ev(`new Promise(resolve=>setTimeout(resolve,540))`);else await sleep(70);
  if(touch)await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
  else await send('Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',clickCount:1});
  await sleep(400);

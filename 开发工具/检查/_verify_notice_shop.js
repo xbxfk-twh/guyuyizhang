@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),{openBrowser}=require('../../回归测试/helpers/browser');
 let b,count=0;
 async function check(name,expr){assert.ok(await b.ev(expr),name);count++;console.log('OK '+name);}
-async function menu(){await b.ev(`document.querySelector('#modal .modal-x')?.click()`);await b.tap('[data-nav="save"]');}
+async function menu(){await b.ev(`for(let i=0;i<12&&document.querySelector('#modal.open');i++)UI.handleBack()`);assert.equal(await b.ev(`!!document.querySelector('#modal.open')`),false,'测试准备须逐级退出旧菜单');await b.tap('[data-nav="save"]');}
 (async()=>{try{
  b=await openBrowser({init:`window.GUYU_CHANNEL='taptap';localStorage.setItem('guyuyizhang_language','zh-CN');`});await b.sleep(600);
  await check('标题右侧改为大菜单且有汇总红点',`document.querySelector('#btn-set').textContent.includes('大菜单')&&!document.querySelector('#btn-set [data-notice]').hidden`);
@@ -13,7 +13,7 @@ async function menu(){await b.ev(`document.querySelector('#modal .modal-x')?.cli
  await b.tap('[data-savemenu="diary"]');await check('打开日记后该项红点消除',`!Game.noticeState().diary`);
  await menu();await b.tap('[data-savemenu="mail"]');
  await check('邮箱活动页有一次提醒，外层邮箱也继承',`!document.querySelector('[data-mailtab="event"] [data-notice]').hidden&&Game.noticeState().mailbox`);
- await b.tap('[data-mailtab="event"]');await check('看过活动后标记持久化并仍提供APK下载',`!Game.noticeState().event&&document.querySelector('[data-mailtab="event"] [data-notice]').hidden&&!!document.querySelector('.event-download a')`);
+ await b.tap('[data-mailtab="event"]');await check('看过活动后标记持久化并仍提供APK下载',`!Game.noticeState().event&&document.querySelector('[data-mailtab="event"] [data-notice]').hidden&&!!document.querySelector('.event-download [data-copy-apk-url]')`);
  await menu();await b.ev(`delete Game.S().seen.ironore;delete Game.metaState().seenItems.ironore;for(const t of ['res','tool','items','mon','boss','ach'])Game.markNoticeRead('collection',t);Game.S().seen.ironore=1;UI.render();`);
  await check('新收录物品向图鉴及菜单传播',`Game.noticeState().res&&Game.noticeState().items&&Game.noticeState().collection&&!document.querySelector('[data-nav="save"] [data-notice]').hidden`);
  await b.tap('[data-savemenu="col"]');await check('只消除已打开页的提示，物品页仍亮点',`!Game.noticeState().res&&!document.querySelector('[data-ctab="items"] [data-notice]').hidden`);

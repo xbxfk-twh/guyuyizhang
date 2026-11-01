@@ -4,7 +4,7 @@ const {openBrowser}=require('../../回归测试/helpers/browser');
 let b,python,count=0;const root=path.resolve(__dirname,'../..'),temp=fs.mkdtempSync(path.join(os.tmpdir(),'guyu-transfer-test-'));
 const check=async(name,expr)=>{assert.ok(await b.ev(expr),name);count++;console.log('OK '+name);};
 async function until(expr){for(let n=0;n<100;n++){if(await b.ev(expr))return;await b.sleep(100);}throw Error('等待界面失败：'+await b.ev('document.body.innerText.slice(0,600)'));}
-async function openCode(mode){await b.tap('[data-nav="save"]');await b.tap('[data-savemenu="backup"]');await b.tap('[data-codex="'+mode+'"]');}
+async function openCode(mode){await b.ev(`for(let i=0;i<12&&document.querySelector('#modal.open');i++)UI.handleBack()`);assert.equal(await b.ev(`!!document.querySelector('#modal.open')`),false,'先逐级退出旧弹窗');await b.tap('[data-nav="save"]');await b.tap('[data-savemenu="backup"]');await b.tap('[data-codex="'+mode+'"]');}
 function unavailable(kind){return `
  Object.defineProperty(navigator,'userAgent',{value:'Mozilla/5.0 (Linux; Android 15; ${kind==='oppo'?'OPPO Find X8':'Honor 400 Pro'}) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36 TapTap'});
  window.__cloudWrites=0;window.__deviceWrites=0;

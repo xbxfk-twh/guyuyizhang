@@ -3,6 +3,7 @@ const CollectionView = (() => {
   function create(deps) {
     const S=(...args)=>deps.S(...args);
     const esc=(...args)=>deps.esc(...args);
+    const itemIcon=(...args)=>deps.itemIcon(...args);
 function diaryModal() {
     const st = S();
     let html = `<div class="modal-title">我的日记</div><div class="diary-list">`;
@@ -40,51 +41,28 @@ function collectionModal() {
     return html;
   }
 
+function itemTile(id) {
+    return `<button class="col-item col-item-button col-item-tile" data-iteminfo="${esc(id)}">${itemIcon(id)}<b>${esc(ITEMS[id].name)}</b></button>`;
+  }
+
 function colRes(st) {
-    const mm = Game.metaState();
-    const ids = Game.resIds();   // 和标题的总数用同一份名单
-    let html = '<div class="col-list">';
-    for (const id of ids) {
-      const it = ITEMS[id];
-      const seen = st.seen[id] || mm.seenItems[id];
-      html += seen ? `<button class="col-item col-item-button" data-iteminfo="${id}">${it.glyph} ${esc(it.name)}<small>${esc(it.desc || '点击查看数值与用途')}</small></button>` : `<div class="col-item unseen">？？？</div>`;
-    }
-    return html + '</div>';
+    const seen=Game.metaState().seenItems;
+    return `<div class="col-list col-item-grid">${Game.resIds().map(id=>(st.seen[id] || seen[id])?itemTile(id):'<div class="col-item unseen">未发现</div>').join('')}</div>`;
   }
 
 function colTool() {
-    const ids = Object.keys(ITEMS).filter(k => ['weapon','tool','armor','cloth'].includes(ITEMS[k].cat));
-    let html = '<div class="col-list tools">';
-    for (const id of ids) {
-      const it = ITEMS[id];
-      const parts = [];
-      parts.push(COL_CAT_N[it.cat] || it.cat);
-      if (it.tool && it.tool.kind) parts.push(`类型：${it.tool.kind === 'axe' ? '斧' : it.tool.kind === 'pick' ? '镐' : it.tool.kind === 'knife' ? '刀' : it.tool.kind === 'hoe' ? '锄' : it.tool.kind === 'net' ? '网' : it.tool.kind === 'rod' ? '钓竿' : it.tool.kind === 'bow' ? '弓' : it.tool.kind}`);
-      if (it.atk) parts.push(`攻击 ${it.atk}`);
-      if (it.def) parts.push(`防御 ${it.def}`);
-      if (it.warm) parts.push(`保暖 ${it.warm}`);
-      if (DURA[id] !== undefined) parts.push(`耐久 ${DURA[id]}`);
-      if (it.ranged) parts.push('弓箭');
-      if (it.throw) parts.push('可投掷');
-      if (it.dur) parts.push('持续');
-      html += `<button class="col-item col-item-button" data-iteminfo="${id}"><b>${it.glyph} ${esc(it.name)}</b><small>${parts.join(' · ')}</small>${it.desc ? `<small>${esc(it.desc)}</small>` : ''}</button>`;
-    }
-    return html + '</div>';
+    return `<div class="col-list col-item-grid">${Object.keys(ITEMS).filter(id=>['weapon','tool','armor','cloth'].includes(ITEMS[id].cat)).map(itemTile).join('')}</div>`;
   }
 
 function colItems(st) {
-    const seen=(Game.metaState().seenItems || {});
+    const seen=Game.metaState().seenItems || {};
     const ids=Object.keys(ITEMS).filter(id=>st.seen[id] || seen[id]);
-    if (!ids.length) return '<div class="hint">发现物品后，可在这里查看数值。</div>';
-    return `<div class="col-list tools">${ids.map(id=>{
-      const it=ITEMS[id];
-      return `<button class="col-item col-item-button" data-iteminfo="${id}"><b>${it.glyph} ${esc(it.name)}</b><small>${COL_CAT_N[it.cat] || it.cat} · 点击查看详细数值</small></button>`;
-    }).join('')}</div>`;
+    return ids.length?`<div class="col-list col-item-grid">${ids.map(itemTile).join('')}</div>`:'<div class="hint">尚未发现物品。</div>';
   }
 
 function itemInfoModal(id) {
     const it=ITEMS[id];
-    if (!it) return '<div class="modal-title">物品不存在</div><div class="modal-actions"><button id="modal-back">返回图鉴</button></div>';
+    if (!it) return '<div class="modal-title">物品不存在</div><div class="modal-actions"><button id="modal-close">关闭</button></div>';
     const stats=[];
     const keys={atk:'攻击',atkBonus:'额外攻击',def:'防御',spd:'速度',warm:'保暖',food:'饱食',water:'水分',sta:'体力',spirit:'精神',heal:'生命回复',healthRestore:'健康回复',packCapacity:'装备后背包容量',crit:'暴击',acc:'命中',dodge:'闪避',block:'格挡',dive:'耐压等级',diveO2:'供氧',light:'照明等级',spoil:'保鲜时长（小时）',stack:'堆叠上限',price:'基础价值'};
     for (const [key,label] of Object.entries(keys)) if (it[key] !== undefined && it[key] !== null && (key !== 'price' || it[key]>0)) stats.push(`${label}：${['acc','dodge','crit','block'].includes(key) && Math.abs(it[key])<1 ? Math.round(it[key]*100)+'%' : it[key]}`);
@@ -92,22 +70,23 @@ function itemInfoModal(id) {
     if (it.ranged) stats.push('远程武器');
     if(it.twoHand)stats.push('双手武器，占用主副手');
     if(it.hitHeal) stats.push(`受击回复 ${it.hitHeal} 生命`);
-    if (it.tool && it.tool.kind) stats.push(`工具：${it.tool.kind}${it.tool.tier ? ' · 等阶 '+it.tool.tier : ''}`);
+    if (it.tool && it.tool.kind) stats.push(`工具：${({axe:'斧',pick:'镐',knife:'刀',hoe:'锄',net:'渔网',rod:'鱼竿',bow:'弓',lantern:'提灯'})[it.tool.kind] || '特殊工具'}${it.tool.tier ? ' · 等阶 '+it.tool.tier : ''}`);
     const recipes=RECIPES.filter(r=>!r.legacyPlank && r.out && r.out[id]).slice(0,4);
     const made=recipes.map(r=>`${esc(r.name)}（${COL_STATION_N[r.station] || r.station}）`).join('、');
-    return `<div class="modal-title">${it.glyph} ${esc(it.name)}</div><div class="overlay-text">${esc(it.desc || '暂无额外说明。')}</div><div class="help-list"><b>数值</b><div>${stats.length ? stats.join(' · ') : '无直接属性；可作材料、交易品或任务物品。'}</div>${made ? `<div>制造：${made}</div>` : ''}</div><div class="modal-actions"><button data-item-back>返回图鉴</button><button id="modal-close">关闭</button></div>`;
+    return `<div class="modal-title">${it.glyph} ${esc(it.name)}</div><div class="overlay-text">${esc(it.desc || '暂无额外说明。')}</div><div class="help-list"><b>数值</b><div>${stats.length ? stats.join(' · ') : '无直接属性；可作材料、交易品或任务物品。'}</div>${made ? `<div>制造：${made}</div>` : ''}</div><div class="modal-actions"><button id="modal-close">关闭</button></div>`;
+  }
+
+function monsterTile(k,st,mm) {
+    const e=ENEMIES[k],seen=st.seen['mon_'+k] || mm.seenMon[k];
+    if(!seen)return '<div class="col-item unseen">未发现</div>';
+    const killed=st.killCount[k] || 0;
+    const art=e.img?`<img class="col-mon-art" src="${esc(CombatStage.cutout(e.img))}" alt="" loading="lazy" aria-hidden="true">`:'';
+    return `<div class="col-item col-mon-card" data-monster="${esc(k)}">${art}<div class="col-mon-content"><b>${esc(e.name)}</b><small>生命 ${e.hp} · 攻击 ${e.atk} · 防御 ${e.def} · 速度 ${e.spd}${e.traits?.length?' · '+e.traits.map(t=>TRAIT_CN[t] || '特殊能力').join('/') : ''}</small>${e.drops?.length?`<small>掉落：${e.drops.map(d=>`${esc(ITEMS[d.id]?.name || '未知物品')}${d.ch?' '+Math.round(d.ch*100)+'%':''}`).join('、')}</small>`:''}${e.desc?`<small>${esc(e.desc)}</small>`:''}${killed?`<small class="col-times">击败 ×${killed}</small>`:''}</div></div>`;
   }
 
 function colMon(st) {
-    const mm = Game.metaState();
-    let html = '<div class="col-list">';
-    for (const k of Game.monIds()) {   // 与标题总数同一份名单（自动排除 noDex 变体）
-      const e = ENEMIES[k];
-      const seen = st.seen['mon_' + k] || mm.seenMon[k];
-      const killed = st.killCount[k] || 0;
-      html += `<div class="col-item ${seen ? '' : 'unseen'}">${seen ? `<b>${e.name}</b><small>血量 ${e.hp} · 攻 ${e.atk} · 防 ${e.def} · 速 ${e.spd}${e.traits && e.traits.length ? ' · ' + e.traits.map(t => TRAIT_CN[t] || t).join('/') : ''}</small>${e.drops && e.drops.length ? `<small>掉落：${e.drops.map(d => d.ch ? `${ITEMS[d.id].name} ${Math.round(d.ch * 100)}%` : ITEMS[d.id].name).join('、')}</small>` : ''}${e.desc ? `<small>${e.desc}</small>` : ''}` : '？？？'}${killed ? `<small class="col-times">击败 ×${killed}</small>` : ''}</div>`;
-    }
-    return html + '</div>';
+    const mm=Game.metaState();
+    return `<div class="col-list col-mon-grid">${Game.monIds().map(k=>monsterTile(k,st,mm)).join('')}</div>`;
   }
 
 function colRec() {
@@ -123,15 +102,8 @@ function colRec() {
   }
 
 function colBoss(st) {
-    const mm = Game.metaState();
-    let html = '<div class="col-list">';
-    const bosses = Game.monIds().filter(k => ENEMIES[k].boss).map(k => [k, ENEMIES[k]]);
-    for (const [k, e] of bosses) {
-      const seen = st.seen['mon_' + k] || mm.seenMon[k];
-      const killed = st.killCount[k] || 0;
-      html += `<div class="col-item ${seen ? '' : 'unseen'}">${seen ? `<b>${e.name}</b><small>血量 ${e.hp} · 攻 ${e.atk} · 防 ${e.def} · 速 ${e.spd}${e.traits && e.traits.length ? ' · ' + e.traits.map(t => TRAIT_CN[t] || t).join('/') : ''}</small>${e.drops && e.drops.length ? `<small>掉落：${e.drops.map(d => `${ITEMS[d.id].name}${d.ch ? ' ' + Math.round(d.ch*100) + '%' : ''}`).join('、')}</small>` : ''}${e.desc ? `<small>${e.desc}</small>` : ''}` : '？？？'}${killed ? `<small class="col-times">击败 ×${killed}</small>` : ''}</div>`;
-    }
-    return html + '</div>';
+    const mm=Game.metaState();
+    return `<div class="col-list col-mon-grid">${Game.monIds().filter(k=>ENEMIES[k].boss).map(k=>monsterTile(k,st,mm)).join('')}</div>`;
   }
 
 function colAch() {

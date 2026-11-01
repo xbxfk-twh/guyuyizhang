@@ -73,7 +73,7 @@ ck('工具每高一级快 20%', /\(1 - \(tt - 1\) \* 0\.2\)/.test(GAME));
 // 作者 2026-09-19：造价略微提高（6藤蔓+3木 → 8藤蔓+4木；耐久仍 10）
 ck('渔网造价 藤蔓9+木材4、耐久 10（受 2026-09-22 配方配比调整影响：藤蔓≥5 份 ×1.1）', RECIPES.find(r => r.id === 'r_net').in.vine === 9 && RECIPES.find(r => r.id === 'r_net').in.wood === 4 && DURA.net === 10);
 ck('夜袭：首次之后才有随机 + 50 天 5 匹', /gameState\.run\.flags\.firstRaidDone \|\| gameState\.run\.day > raidDay\(\)/.test(GAME) && /1 \+ Math\.floor\(d \/ 12\.5\)/.test(GAME) && /Math\.min\(5, 1 \+ Math\.floor\(d \/ 12\.5\)\)/.test(GAME));
-ck('草药膏生命健康各15 / 绷带生命15+止血 / 大煎蛋10', ITEMS.herbPaste.heal === 15 && ITEMS.herbPaste.healthRestore === 15 && ITEMS.bandage.heal === 15 && !ITEMS.bandage.healthRestore && !!ITEMS.bandage.stopBleed && ITEMS.bigOmelette.heal === 10);
+ck('草药膏生命健康各5 / 绷带生命15+止血 / 大煎蛋10', ITEMS.herbPaste.heal === 5 && ITEMS.herbPaste.healthRestore === 5 && ITEMS.bandage.heal === 15 && !ITEMS.bandage.healthRestore && !!ITEMS.bandage.stopBleed && ITEMS.bigOmelette.heal === 10);
 ck('熏鱼/熏肉 需要 2 树枝', RECIPES.find(r => r.id === 'r_smokedfish').in.branch === 2 && RECIPES.find(r => r.id === 'r_smokedmeat').in.branch === 2);
 ck('精神恢复下调（床 6/7/9/10、提神茶 14）', ['bed1','bed2','bed3','bed4'].map(b => FURNITURE.find(f => f.id === b).spirit).join(',') === '6,7,9,10' && ITEMS.tea.spirit === 14);
 ck('河畔撒网 = 竭泽而渔 4 天', /riverNetBan/.test(GAME) && /先前竭泽而渔了/.test(GAME));

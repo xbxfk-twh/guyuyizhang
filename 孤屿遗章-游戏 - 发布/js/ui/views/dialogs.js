@@ -84,6 +84,19 @@ const DialogView = (() => {
     const begin=(...args)=>deps.begin(...args);
 const transferIdentity=ServerSaveStore.create({storage:localStorage,getHost:()=>window.tap});
 let comTab = 'p1';
+const modalHistory=[];
+let restoringParent=false;
+const scrollSnapshot=()=>[...$('#modal').querySelectorAll('.modal-content,.col-body,.work-scroll,.recipe-list,.help-list')].map(e=>e.scrollTop);
+function backModal() {
+    if(deps.modal?.cfg?.requiredChoice)return;
+    if(restoreCombatView()){modalHistory.length=0;return;}
+    const previous=modalHistory.pop();
+    if(!previous){closeModal();return;}
+    restoringParent=true;
+    try{showModal(previous.kind,previous.cfg);}finally{restoringParent=false;}
+    $('#modal').querySelectorAll('.modal-content,.col-body,.work-scroll,.recipe-list,.help-list').forEach((e,i)=>{e.scrollTop=previous.scroll[i] || 0;});
+  }
+
 
 function brokenWeaponRows() {
     if (!S().furniture.grindstone || S().scene!=='camp') return '';
@@ -109,6 +122,13 @@ function showModal(kind, cfg) {
     const openedNow = Date.now();   // 记下"刚打开"的时刻，配合防点击穿透（见文件末尾的捕获监听）
     const wasOpen = m.classList.contains('open');
     const samePanel = wasOpen && deps.modal && deps.modal.kind === kind;
+    if(!wasOpen)modalHistory.length=0;
+    if(wasOpen && deps.modal && !samePanel && !restoringParent){
+      const ancestor=modalHistory.findIndex(p=>p.kind===kind);
+      const siblings=['inv','warehouse','equip','craft'];
+      if(ancestor>=0)modalHistory.splice(ancestor);
+      else if(!(siblings.includes(kind) && siblings.includes(deps.modal.kind)))modalHistory.push({...deps.modal,scroll:scrollSnapshot()});
+    }
     if(!samePanel)deps.modalOpenedAt=openedNow;
     const previousCategory=m.dataset.category || '';
     const category=kind==='warehouse'?deps.warehouseCat:kind==='craft'?deps.craftTab:kind==='inv'?deps.invCat:kind==='equip'?deps.equipTab:'';
@@ -226,7 +246,7 @@ function showModal(kind, cfg) {
     m.classList.toggle('work-open', workPanel);
     // winter-modal 这个类只用来给「冬季来临」在横屏手机上压紧排版（见 css/ui-polish.css）：
     // 4 条提醒 + 两个按钮要塞进 375px 高，默认的 .help-item 内边距会让第 4 条藏进内滚动里。
-    const panelMarkup = `<div class="modal-content${workPanel ? ' work-modal' : ''}${kind==='overlay' && (cfg?.compact || (cfg?.text?.length<160 && cfg?.choices?.length<=2))?' compact-prompt':''}${['inv','warehouse','cellar'].includes(kind)?' inventory-modal':''}${kind==='warehouse'?' warehouse-dual-modal':''}${['inv','equip','craft'].includes(kind)?' player-panel-modal':''}${merchantId ? ' merchant-modal' : ''}${['lottery','lotteryPick','lotteryPool','lotteryResult'].includes(kind) ? ' lottery-modal' : ''}${kind === 'equipPick' ? ' equipment-pick-modal' : ''}${kind === 'settings' ? ' set-wide' : ''}${kind === 'nightmareInfusion' ? ' infusion-modal' : ''}${kind === 'adshop' ? ' cabinet-modal' : ''}${kind === 'winter' ? ' winter-modal' : ''}${kind === 'guide' ? ' guide-modal' : ''}" role="dialog" aria-modal="true">${html}</div>`;
+    const panelMarkup = `<div class="modal-content${workPanel ? ' work-modal' : ''}${kind==='overlay' && (cfg?.compact || (cfg?.text?.length<160 && cfg?.choices?.length<=2))?' compact-prompt':''}${['inv','warehouse','cellar'].includes(kind)?' inventory-modal':''}${kind==='warehouse'?' warehouse-dual-modal':''}${['inv','equip','craft'].includes(kind)?' player-panel-modal':''}${merchantId ? ' merchant-modal' : ''}${['lottery','lotteryPick','lotteryPool','lotteryResult'].includes(kind) ? ' lottery-modal' : ''}${kind === 'equipPick' ? ' equipment-pick-modal' : ''}${kind === 'settings' ? ' set-wide' : ''}${kind === 'nightmareInfusion' ? ' infusion-modal' : ''}${kind === 'adshop' ? ' cabinet-modal' : ''}${kind === 'winter' ? ' winter-modal' : ''}${kind === 'guide' ? ' guide-modal' : ''}${kind === 'collection' ? ' collection-modal' : ''}" role="dialog" aria-modal="true">${html}</div>`;
     // 关闭按钮属于面板外壳，必须在比较之前加入，避免每次重建。
     const withClose=(!cfg || !cfg.requiredChoice)?panelMarkup.replace('aria-modal="true">','aria-modal="true"><button class="modal-x" aria-label="关闭">×</button>'):panelMarkup;
     if(samePanel)deps.dom.html(m,withClose,merchantId?prepareMerchant:undefined);
@@ -239,7 +259,8 @@ function showModal(kind, cfg) {
     m.querySelectorAll('[data-voice]').forEach(b=>b.onclick=()=>AudioFX.playVoice(b.dataset.voice,deps.merchantLine));
     }
     if (!cfg || !cfg.requiredChoice) {
-      mcx.querySelector('.modal-x').onclick = closeModal;
+      mcx.querySelector('.modal-x').onclick = backModal;
+      mcx.querySelector('.modal-x').setAttribute('aria-label',modalHistory.length?'返回上一级':'关闭');
     }
     m.classList.add('open'); document.body.classList.add('modal-open');
     if(samePanel && previousCategory!==category)m.querySelectorAll('.work-scroll').forEach(node=>{node.scrollTop=0;});
@@ -272,8 +293,8 @@ function bindModal(kind, cfg) {
     const gift=m.querySelector('[data-shop-gift]');if(gift)gift.onclick=()=>{if(gift.disabled)return;gift.disabled=true;const r=Game.claimDailyGift();showModal('adshop');centerToast(r.msg||r.reason);};
     m.querySelectorAll('[data-adexchange]').forEach(b=>b.onclick=()=>{const r=Game.exchangeAdCoins(Number(m.querySelector('#star-exchange-qty').value));centerToast(r.msg || r.reason);showModal('adshop');});
     m.querySelectorAll('[data-soulexchange]').forEach(b=>b.onclick=()=>{const r=Game.exchangeSoulForStars(Number(m.querySelector('#star-exchange-qty').value));centerToast(r.msg || r.reason);showModal('adshop');});
-    m.querySelectorAll('#modal-close').forEach(b => b.onclick = closeModal);
-    m.querySelectorAll('#modal-back').forEach(b => b.onclick = () => { if (kind === 'medpick') renderCombat('start', Game.S().combat); else if(deps.panels.get(kind).back)showModal(deps.panels.get(kind).back); else if (deps.modal && deps.modal.kind) showModal(deps.modal.kind, deps.modal.cfg); });
+    m.querySelectorAll('#modal-close').forEach(b => b.onclick = backModal);
+    m.querySelectorAll('#modal-back').forEach(b => b.onclick = () => { if (kind === 'medpick') renderCombat('start', Game.S().combat); else backModal(); });
     m.querySelectorAll('[data-player-panel]').forEach(b=>b.onclick=()=>{if(b.dataset.playerPanel==='equip')deps.equipTab='p1';showModal(b.dataset.playerPanel);});
     m.querySelectorAll('[data-building-detail]').forEach(b=>b.onclick=()=>showModal('camp',{building:b.dataset.buildingDetail}));
     m.querySelectorAll('[data-camp-back]').forEach(b=>b.onclick=()=>showModal('camp'));
@@ -823,7 +844,7 @@ function bindModal(kind, cfg) {
     }
     m.querySelectorAll('[data-ctab]').forEach(b => b.onclick = () => { deps.colTab = b.dataset.ctab; showModal('collection'); });
     m.querySelectorAll('[data-iteminfo]').forEach(b => b.onclick = () => showModal('itemInfo',{id:b.dataset.iteminfo}));
-    m.querySelectorAll('[data-item-back]').forEach(b => b.onclick = () => showModal('collection'));
+
     bindLottery(m,kind,cfg);
     m.querySelectorAll('[data-acceptc]').forEach(b => b.onclick = () => {
       const r = Game.acceptCommission(Game.commissions().find(c => c.id === b.dataset.acceptc));
@@ -924,6 +945,7 @@ function bindItemDetail(id,fromWarehouse=false) {
 function closeModal() {
     if(restoreCombatView())return;
     if (deps.modal && deps.modal.cfg && deps.modal.cfg.requiredChoice) return;
+    modalHistory.length=0;
     clearTimeout(deps.lotteryTimer); deps.lotteryTimer=null; deps.activeMerchant=null; AudioFX.stopVoice();
     const m = $('#modal');deps.dom.dispose(m); m.classList.remove('open'); document.body.classList.remove('modal-open'); m.innerHTML = ''; deps.modal = null;
     if (Game.setTimeFreeze) Game.setTimeFreeze(false); render();   // 关弹窗 → 恢复时间
@@ -945,7 +967,7 @@ function showNextPendingPanel() {
 function rerenderEquip() { const mc = $('#modal .modal-content'); const st = mc ? mc.scrollTop : 0; showModal('equip'); const mc2 = $('#modal .modal-content'); if (mc2) mc2.scrollTop = st; }
 
 function rerenderCraft() { const mc = $('#modal .recipe-list'); const st = mc ? mc.scrollTop : 0; showModal('craft'); const mc2 = $('#modal .recipe-list'); if (mc2) mc2.scrollTop = st; }
-    return Object.freeze({brokenWeaponRows,prepareMerchant,showModal,bindModal,openItemDetail,restoreInvScroll,afterItemUse,bindItemDetail,closeModal,showNextPendingPanel,rerenderEquip,rerenderCraft});
+    return Object.freeze({brokenWeaponRows,prepareMerchant,showModal,bindModal,openItemDetail,restoreInvScroll,afterItemUse,bindItemDetail,closeModal,backModal,showNextPendingPanel,rerenderEquip,rerenderCraft});
   }
   return Object.freeze({create});
 })();

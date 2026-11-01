@@ -59,7 +59,7 @@ const checks = [
   // 这类"数据对、界面没接上"的 bug 不会让别的测试变红，只有从数据反查入口才抓得到）
   '开发工具/检查/_audit_wiring.js',
 ];
-if (args.includes('--browser')) checks.push('开发工具/检查/_verify_notice_shop.js');
+if (args.includes('--browser')) checks.push('开发工具/检查/_verify_notice_shop.js','开发工具/检查/_verify_collection_navigation.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_character_voices.js', '开发工具/检查/_verify_one_time_redeem_ui.js', '开发工具/检查/_verify_weapon_ui.js', '开发工具/检查/_verify_lantern.js', '开发工具/检查/_verify_oct16_feedback.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_oct27_feedback.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_oct29_saves.js');

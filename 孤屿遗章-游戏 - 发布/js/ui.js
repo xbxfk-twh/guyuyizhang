@@ -29,6 +29,7 @@ const UI = (() => {
     get mailTab(){return mailTab;}, set mailTab(value){mailTab=value;},
     get showModal(){return showModal;},
     get closeModal(){return closeModal;},
+    get backModal(){return backModal;},
     get tutAfterBag(){return tutAfterBag;},
     get showEnding(){return showEnding;},
     get rememberIdentity(){return rememberIdentity;},
@@ -80,6 +81,7 @@ const UI = (() => {
     get lotteryTimer(){return lotteryTimer;}, set lotteryTimer(value){lotteryTimer=value;}
   });
   const collectionView=CollectionView.create({
+    get itemIcon(){return itemIcon;},
     get S(){return S;},
     get esc(){return esc;},
     get colTab(){return colTab;}
@@ -490,6 +492,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   const S = () => Game.S();
   const dom=StableDOM.create({locale:Locale,onAdopt:PressInput.adopt,onDispose:PressInput.dispose});
   const panels=GamePanels.create();
+  panels.register('mailbox',{bind:settingsView.bindDownload});
   const satchelPanels=FoodSatchelView.create({Game,ITEMS,itemIcon,esc,open:showModal,toast:centerToast});
   panels.register('satchelSettings',satchelPanels.menu);panels.register('satchelfood',satchelPanels.picker);
 
@@ -1029,6 +1032,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   function afterItemUse(...args){return dialogsView.afterItemUse(...args);}
   function bindItemDetail(...args){return dialogsView.bindItemDetail(...args);}
   function closeModal(...args){return dialogsView.closeModal(...args);}
+  function backModal(...args){return dialogsView.backModal(...args);}
   function showNextPendingPanel(...args){return dialogsView.showNextPendingPanel(...args);}
   function rerenderEquip(...args){return dialogsView.rerenderEquip(...args);}
   function rerenderCraft(...args){return dialogsView.rerenderCraft(...args);}

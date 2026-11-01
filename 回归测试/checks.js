@@ -1942,7 +1942,7 @@ section('7c. 蓝牛（体力药水）与精神机制');
          })());
   }
   // 药膏 / 绷带 / 大煎蛋 的数值与配方
-  ck('草药膏：回血15与健康15（草药2+淡水2）', ITEMS.herbPaste.heal === 15 && ITEMS.herbPaste.healthRestore === 15 && RECIPES.find(r => r.id === 'r_herbpaste').in.water === 2 && RECIPES.find(r => r.id === 'r_herbpaste').in.herb === 2);
+  ck('草药膏：回血5与健康5（草药2+淡水2）', ITEMS.herbPaste.heal === 5 && ITEMS.herbPaste.healthRestore === 5 && RECIPES.find(r => r.id === 'r_herbpaste').in.water === 2 && RECIPES.find(r => r.id === 'r_herbpaste').in.herb === 2);
   ck('止血绷带：止血 + 回血15，仅生命（布2+草药1）', ITEMS.bandage.heal === 15 && !ITEMS.bandage.healthRestore && !!ITEMS.bandage.stopBleed && RECIPES.find(r => r.id === 'r_bandage').in.cloth === 2);
   ck('蛇胆不能直接吃，只能做解毒剂', !ITEMS.snakegall.curePoison && ITEMS.snakegall.cat === 'mat' && RECIPES.find(r => r.id === 'r_antidote').in.snakegall === 1);
   // 河畔撒网：竭泽而渔，4 天钓不到也网不到

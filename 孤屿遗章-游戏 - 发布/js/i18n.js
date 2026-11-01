@@ -75,6 +75,8 @@ function registerGuideTranslations() {
 Object.assign(DICTIONARY, {
   '伤势久未处理，伤口出现感染。请使用草药膏治疗感染。': 'The untreated wound became infected. Use Herbal Paste to treat the infection.'
 });
+Object.assign(DICTIONARY, {'未发现':'Undiscovered','特殊能力':'Special ability','未知物品':'Unknown item','尚未发现物品。':'No items discovered yet.','特殊工具':'Special tool'});
+Object.assign(DICTIONARY, {'APK下载网址':'APK download URL','复制下载网址':'Copy download URL','复制后，到系统浏览器粘贴打开下载。':'Copy the URL, then paste it into your system browser to download.','网址已复制，请到系统浏览器粘贴打开下载。':'URL copied. Paste it into your system browser to download.','自动复制失败，请长按网址复制，再到系统浏览器打开。':'Automatic copy failed. Press and hold the URL to copy it, then open it in your system browser.'});
 const Locale = (()=>{
   const KEY='guyuyizhang_language', supported=['en','zh'];
   let preference=null;try{preference=localStorage.getItem(KEY);}catch(e){}
@@ -113,16 +115,16 @@ const Locale = (()=>{
   function apply(){
     observer?.disconnect();document.documentElement.lang=language==='en'?'en':'zh-CN';document.documentElement.dataset.language=language;
     document.title=language==='en'?'Isle of Lost Chapters — Survival Adventure':'孤屿遗章 · 黑白沉浸式文字生存';
-    visit(document.body);document.querySelectorAll('[data-language]').forEach(e=>e.value=language);
+    visit(document.body);document.querySelectorAll('[data-language-toggle]').forEach(e=>{e.textContent=language==='zh'?'EN':'中';e.setAttribute('aria-label',language==='zh'?'Switch to English':'切换为中文');});
     observer?.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['title','aria-label','placeholder','alt']});
   }
   function set(value){if(!supported.includes(value))return false;language=value;preference=value;try{localStorage.setItem(KEY,value);}catch(e){}apply();return true;}
-  function control(){return `<label class="language-control"><span>Language</span><select data-language aria-label="Language"><option value="en" ${language==='en'?'selected':''}>English</option><option value="zh" ${language==='zh'?'selected':''}>中文</option></select></label>`;}
+  function control(){return `<button type="button" class="language-control" data-language-toggle data-no-translate aria-label="${language==='zh'?'Switch to English':'切换为中文'}">${language==='zh'?'EN':'中'}</button>`;}
   let observer=null,queued=false;const pendingRoots=new Set();
   function start(){registerGuideTranslations();pattern=new RegExp(Object.keys(DICTIONARY).filter(Boolean).sort((a,b)=>b.length-a.length).map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'),'g');if(!supported.includes(preference))language=defaultLanguage;observer=new MutationObserver(records=>{
       for(const record of records){const root=record.target.nodeType===3?record.target.parentElement:record.target;if(root)pendingRoots.add(root);}
       if(queued)return;queued=true;queueMicrotask(()=>{queued=false;const roots=[...pendingRoots];pendingRoots.clear();for(const root of roots)if(root.isConnected&&!roots.some(other=>other!==root&&other.contains(root)))visit(root);});
-    });document.addEventListener('change',e=>{if(e.target.matches('[data-language]'))set(e.target.value);});apply();}
+    });document.addEventListener('click',e=>{if(e.target.closest('[data-language-toggle]'))set(language==='zh'?'en':'zh');});apply();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
   return {text,set,apply,control,syncText,syncAttribute,translate:visit,current:()=>language};
 })();

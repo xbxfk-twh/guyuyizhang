@@ -52,14 +52,14 @@ async function main(){
   await check('触控家具问号显示家具说明',`document.querySelector('#modal').textContent.includes('家具') && document.querySelector('#modal').textContent.includes('滤雨器')`);
   await check('非养蜂人也能在家具帮助看到蜂箱用途与身份限制',`document.querySelector('#modal').textContent.includes('蜂箱') && document.querySelector('#modal').textContent.includes('当前身份不可造') && document.querySelector('#modal').textContent.includes('每天清晨储存蜂蜜')`);
   await send('Page.captureScreenshot',{format:'png'}).then(r=>fs.writeFileSync(path.join(out,'mobile-furniture.png'),Buffer.from(r.data,'base64')));
-  await tap('#modal .modal-x'); await tap('[data-nav="craft"]');   // 说明面板底部关闭已移除，改点右上角 ×
+  await ev(`for(let i=0;i<12&&document.querySelector('#modal.open');i++)UI.handleBack()`);assert.equal(await ev(`!!document.querySelector('#modal.open')`),false,'退出帮助面板及父层');await tap('[data-nav="craft"]');   // 说明面板底部关闭已移除，改点右上角 ×
   // 触屏批量操作仍可在圆形问号中查到，配方区无需常驻提示。
   await check('触屏隐藏「批量」按钮（改走长按「制作」）',
     `(()=>{const b=document.querySelector('[data-craftbatch]');return !!b && getComputedStyle(b).display==='none';})()`);
   await tap('[data-crafthelp="1"]');
   await check('圆形制作说明仍提示长按批量',
     `document.querySelector('#modal').textContent.includes('长按') && document.querySelector('#modal').textContent.includes('批量')`);
-  await tap('#modal .modal-x'); await tap('[data-nav="craft"]');
+  await ev(`for(let i=0;i<12&&document.querySelector('#modal.open');i++)UI.handleBack()`);assert.equal(await ev(`!!document.querySelector('#modal.open')`),false,'退出帮助面板及父层');await tap('[data-nav="craft"]');
   await check('制造显示树枝来源',`document.querySelector('#modal').textContent.includes('树枝')`);
   await longPress('[data-recipe="r_plank"]'); await tap('[data-cset="max"]');
   const old=await ev('JSON.stringify(Game.S().inv)'); await tap('#batch-do');

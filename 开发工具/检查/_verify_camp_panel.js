@@ -51,7 +51,8 @@ async function main(){
   await check('说明面板底部「关闭」已移除',`!document.querySelector('#modal #modal-close') && !document.querySelector('#modal .modal-actions')`);
   await send('Page.captureScreenshot',{format:'png'}).then(r=>fs.writeFileSync(path.join(out,'camp-help-panel-926x428.png'),Buffer.from(r.data,'base64')));
   await tap('#modal .modal-x');
-  await check('说明面板点 × 能关掉',`!document.querySelector('#modal').classList.contains('open')`);
+  await check('说明面板点 × 返回营地建造父层',`!!document.querySelector('#modal.open .furn-grid')&&document.querySelector('#modal').textContent.includes('营地建造')&&!document.querySelector('#modal').textContent.includes('建筑作用')`);
+  await tap('#modal .modal-x');await check('父层再点X退出到主场景',`!document.querySelector('#modal.open')`);
   await ev(`Game.S().scene='atlantis'; Game.S().zone='habitat'; Game.S().atlantis={camp:{furniture:{pearlWork:true,sourceForge:true,repairBench:true}}}; UI.render();`);
   await sleep(400);
   await tap('#hotspots .hotspot:first-child');
