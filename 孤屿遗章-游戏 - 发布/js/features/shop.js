@@ -107,7 +107,8 @@ function exchangeSoulForStars(qty) {
 function adRewardState() {
     const today = todayKey(), m = metaState();
     const uses = Math.max(0, Math.min(5, Math.floor(Number((m.adRewardDays || {})[today]) || 0)));
-    const reason = adCurrencyName() !== '广告币' ? '当前渠道不支持广告奖励。' : !gameState.run || gameState.run.death || gameState.run.ending ? '请在正在进行的游戏中领取。'
+    const native=typeof NativeAds!=='undefined' && NativeAds.supported();
+    const reason = adCurrencyName() !== '广告币' && !native ? '当前渠道不支持广告奖励。' : !gameState.run || gameState.run.death || gameState.run.ending ? '请在正在进行的游戏中领取。'
       : gameState.run.difficulty === 'legend' ? '传奇难度不领取广告物资。' : uses >= 5 ? '今天已领取 5 次，明天再来。' : '';
     return {today, uses, limit:5, min:3, max:6, canClaim:!reason, reason};
   }
@@ -123,7 +124,7 @@ function claimAdReward(runId, requestDay) {
     walletEntry(meta,`video:${info.today}:${info.uses+1}`,amount);
     const result = persistPair(next, meta, false);
     if (!result.ok) return result;
-    log(`完整观看视频，获得 ${amount} 广告币。`, 'good'); change();
+    log(`完整观看视频，获得 ${amount} ${adCurrencyName()}。`, 'good'); change();
     return {ok:true, amount};
   }
 

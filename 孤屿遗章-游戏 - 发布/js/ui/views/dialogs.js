@@ -281,7 +281,7 @@ function bindModal(kind, cfg) {
     if(watch)watch.onclick=()=>{
       const info=Game.adRewardState(),run=S()?._runId;
       if(!info.canClaim){centerToast(info.reason);return;}
-      watchAd(()=>Game.claimAdReward(run,info.today),r=>{showModal('adshop');centerToast(r.ok?`获得 ${r.amount} 广告币。`:r.reason);});
+      watchAd(()=>Game.claimAdReward(run,info.today),r=>{showModal('adshop');centerToast(r.ok?`获得 ${r.amount} ${Game.adCurrencyName()}。`:r.reason);});
     };
     m.querySelectorAll('[data-adbuy]').forEach(b=>b.onclick=()=>{
       const id=b.dataset.adbuy,goods=Game.adShopState().goods.find(g=>g.id===id);if(!goods)return;
@@ -842,7 +842,11 @@ function bindModal(kind, cfg) {
         closeModal(); showModal(lk === 'TOWN' ? 'town' : lk === 'BLACK' ? 'black' : lk === 'ATL' ? 'atlTrade' : 'laochao');
       };
     }
-    m.querySelectorAll('[data-ctab]').forEach(b => b.onclick = () => { deps.colTab = b.dataset.ctab; showModal('collection'); });
+    m.querySelectorAll('[data-ctab]').forEach(b => b.onclick = () => {
+      if (deps.colTab === b.dataset.ctab) return;
+      deps.colTab = b.dataset.ctab; showModal('collection');
+      const body=document.querySelector('#modal .col-body'); if (body) body.scrollTop=0;
+    });
     m.querySelectorAll('[data-iteminfo]').forEach(b => b.onclick = () => showModal('itemInfo',{id:b.dataset.iteminfo}));
 
     bindLottery(m,kind,cfg);

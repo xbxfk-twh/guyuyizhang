@@ -4806,7 +4806,7 @@ section('9e. 独立版本地存档与旧平台接口兼容');
  ck('旧云接口调用不抛异常也不联网',G.cloudPush(true)===false&&G.cloudInit()===false);
  G.newGame('fisher','normal');ck('本地保存仍可写入',G.save().ok);
  ck('不再调用平台云管理器',!_GAME_SRC.includes('getCloudSaveManager')&&!_GAME_SRC.includes('createArchive('));
- ck('商城广告观看入口恢复，云检测和未恢复的复活入口不混入',UI.includes('watch-reward-ad')&&UI.includes('TapAds.enabled()')&&!UI.includes('data-cloudretry')&&!UI.includes('end-adrevive'));
+ ck('商城按宿主选择H5或原生广告，云检测和未恢复的复活入口不混入',UI.includes('watch-reward-ad')&&UI.includes('NativeAds.supported()')&&UI.includes('provider.enabled()')&&UI.includes('TapAds')&&!UI.includes('data-cloudretry')&&!UI.includes('end-adrevive'));
  ck('商城双向兑换均有入口',UI.includes('data-soulexchange')&&UI.includes('data-adexchange')&&typeof G.exchangeSoulForStars==='function');
 }
 

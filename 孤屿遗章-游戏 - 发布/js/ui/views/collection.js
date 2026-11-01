@@ -19,20 +19,33 @@ const COL_CAT_N = { mat:'材料', special:'特殊', bp:'元件', seed:'种子', 
 
 const TRAIT_CN = { charge:'冲撞', poison:'剧毒', bleed:'流血', pack:'群袭', group:'群袭', enrage:'狂暴', ironImmune:'铁甲', evade:'闪避', dodge:'闪避', first:'先手', water:'水中', swim:'水中', summon:'召唤', gun:'持枪', flee:'逃跑', nightBuff:'夜战强化', stoneGuard:'石甲反噬', pierce:'穿透', dread:'恐吓', nightStun:'晕眩', nightSplit:'分裂' };
 
-const COL_STATION_N = { none:'手工', work1:'工具台', work2:'工具台', work3:'工具台', tailor:'裁缝台', furn1:'熔炉', furn2:'熔炉', furn3:'熔炉', smoke1:'烟熏炉', smoke2:'烟熏炉', fire:'篝火', pot:'药锅', spin:'纺车', loom:'织布机', mortar:'研钵', medPot:'药炉', stove:'灶台', rack:'晾肉架', tannery:'制革架' };
+const COL_STATION_N = Object.fromEntries([...FURNITURE,...ATLANTIS_FURNITURE].filter(f=>f.station).map(f=>[f.station,f.name]));
+Object.assign(COL_STATION_N,{none:'手工',fire:'篝火',pot:'灶台'});
+const STATION_LEVEL = {none:0,fire:1,work1:1,furn1:1,tailor:1,spin:1,mortar:1,rack:1,tannery:1,stove:1,pot:1,smoke1:1,work2:2,furn2:2,loom:2,medPot:2,smoke2:2,work3:3,furn3:3,sourceForge:4,pearlWork:4};
+function stationName(id) { return COL_STATION_N[id] || '特殊工位'; }
+function knownItemIds(st) {
+    const seen=Game.metaState().seenItems || {};
+    return Object.keys(ITEMS).filter(id=>!ITEMS[id].retired && (st.seen[id] || seen[id]));
+  }
+function orderedRecipes() {
+    return RECIPES.filter(r=>!r.legacyPlank).map((r,index)=>({r,index,
+      level:Math.max(STATION_LEVEL[r.station] ?? 5,r.needToolTier || 0,r.needBp || r.permLimit || r.uniqueItem ? 3 : 0),
+      kinds:Object.keys(r.in || {}).length, quantity:Object.values(r.in || {}).reduce((sum,n)=>sum+n,0)
+    })).sort((a,b)=>a.level-b.level || a.kinds-b.kinds || a.quantity-b.quantity || (a.r.time || 0)-(b.r.time || 0) || a.index-b.index).map(x=>x.r);
+  }
+
 
 function collectionModal() {
     // 没在游戏里（主界面）也能看：账号级图鉴 = 历代存档解锁过的内容
     const st = S() || { seen: {}, killCount: {}, flags: {} };
     const c = Game.collection();
-    const tabs = [['res',`资源 ${c.res}/${c.resTotal}`],['tool','工具'],['items','物品'],['mon',`怪物 ${c.mon}/${c.monTotal}`],['rec',`配方 ${RECIPES.filter(r=>!r.legacyPlank).length}`],['boss','首领'],['ach','成就']];
+    const tabs = [['items',`物品 ${knownItemIds(st).length}/${Object.values(ITEMS).filter(it=>!it.retired).length}`],['tool','工具'],['mon',`怪物 ${c.mon}/${c.monTotal}`],['rec',`配方 ${RECIPES.filter(r=>!r.legacyPlank).length}`],['boss','首领'],['ach','成就']];
     let html = `<div class="modal-title">图 鉴</div><div class="tabs">${tabs.map(([k,l]) => `<button class="tab ${deps.colTab === k ? 'active' : ''}" data-ctab="${k}">${l}${NoticeBadges.dot(k)}</button>`).join('')}</div>`;
     // （原来这里有一行"标签上的数字是「已收录 / 图鉴总数」……"的说明，玩家要求删掉。
     //   标签上的 "已收录/总数" 本身就够直观，不用再解释一遍。）
     html += `<div class="col-body">`;
-    if (deps.colTab === 'res') html += colRes(st);
+    if (deps.colTab === 'items') html += colItems(st);
     else if (deps.colTab === 'tool') html += colTool();
-    else if (deps.colTab === 'items') html += colItems(st);
     else if (deps.colTab === 'mon') html += colMon(st);
     else if (deps.colTab === 'rec') html += colRec();
     else if (deps.colTab === 'boss') html += colBoss(st);
@@ -45,18 +58,12 @@ function itemTile(id) {
     return `<button class="col-item col-item-button col-item-tile" data-iteminfo="${esc(id)}">${itemIcon(id)}<b>${esc(ITEMS[id].name)}</b></button>`;
   }
 
-function colRes(st) {
-    const seen=Game.metaState().seenItems;
-    return `<div class="col-list col-item-grid">${Game.resIds().map(id=>(st.seen[id] || seen[id])?itemTile(id):'<div class="col-item unseen">未发现</div>').join('')}</div>`;
-  }
-
 function colTool() {
     return `<div class="col-list col-item-grid">${Object.keys(ITEMS).filter(id=>['weapon','tool','armor','cloth'].includes(ITEMS[id].cat)).map(itemTile).join('')}</div>`;
   }
 
 function colItems(st) {
-    const seen=Game.metaState().seenItems || {};
-    const ids=Object.keys(ITEMS).filter(id=>st.seen[id] || seen[id]);
+    const ids=knownItemIds(st);
     return ids.length?`<div class="col-list col-item-grid">${ids.map(itemTile).join('')}</div>`:'<div class="hint">尚未发现物品。</div>';
   }
 
@@ -72,7 +79,7 @@ function itemInfoModal(id) {
     if(it.hitHeal) stats.push(`受击回复 ${it.hitHeal} 生命`);
     if (it.tool && it.tool.kind) stats.push(`工具：${({axe:'斧',pick:'镐',knife:'刀',hoe:'锄',net:'渔网',rod:'鱼竿',bow:'弓',lantern:'提灯'})[it.tool.kind] || '特殊工具'}${it.tool.tier ? ' · 等阶 '+it.tool.tier : ''}`);
     const recipes=RECIPES.filter(r=>!r.legacyPlank && r.out && r.out[id]).slice(0,4);
-    const made=recipes.map(r=>`${esc(r.name)}（${COL_STATION_N[r.station] || r.station}）`).join('、');
+    const made=recipes.map(r=>`${esc(r.name)}（${stationName(r.station)}）`).join('、');
     return `<div class="modal-title">${it.glyph} ${esc(it.name)}</div><div class="overlay-text">${esc(it.desc || '暂无额外说明。')}</div><div class="help-list"><b>数值</b><div>${stats.length ? stats.join(' · ') : '无直接属性；可作材料、交易品或任务物品。'}</div>${made ? `<div>制造：${made}</div>` : ''}</div><div class="modal-actions"><button id="modal-close">关闭</button></div>`;
   }
 
@@ -91,12 +98,11 @@ function colMon(st) {
 
 function colRec() {
     let html = '<div class="col-list">';
-    for (const raw of RECIPES) {
-        if (raw.legacyPlank) continue;
+    for (const raw of orderedRecipes()) {
         const r = Game.craftRecipe(raw);
       const inS = Object.entries(r.in || {}).map(([k,v]) => `${ITEMS[k].name}×${v}`).join('、') || '—';
       const outS = Object.entries(r.out || {}).map(([k,v]) => `${ITEMS[k].name}×${v}`).join('、');
-      html += `<div class="col-item"><b>${r.name}</b><small>工位：${COL_STATION_N[r.station] || r.station}${r.time ? ` · ${r.time}分` : ''}</small><small>材料：${inS}</small><small>产出：${outS}</small></div>`;
+      html += `<div class="col-item" data-recipeinfo="${esc(r.id)}"><b>${esc(r.name)}</b><small>工位：${stationName(r.station)}${r.time ? ` · ${r.time}分` : ''}</small><small>材料：${inS}</small><small>产出：${outS}</small></div>`;
     }
     return html + '</div>';
   }
@@ -118,7 +124,7 @@ function colAch() {
     }
     return html + '</div>';
   }
-    return Object.freeze({diaryModal,collectionModal,colRes,colTool,colItems,itemInfoModal,colMon,colRec,colBoss,colAch});
+    return Object.freeze({diaryModal,collectionModal,colTool,colItems,itemInfoModal,colMon,colRec,colBoss,colAch});
   }
   return Object.freeze({create});
 })();

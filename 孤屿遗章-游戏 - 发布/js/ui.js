@@ -1050,9 +1050,8 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   
   
   
-  let colTab = 'res';
+  let colTab = 'items';
   function collectionModal(...args){return collectionView.collectionModal(...args);}
-  function colRes(...args){return collectionView.colRes(...args);}
   function colTool(...args){return collectionView.colTool(...args);}
   function colItems(...args){return collectionView.colItems(...args);}
   function itemInfoModal(...args){return collectionView.itemInfoModal(...args);}

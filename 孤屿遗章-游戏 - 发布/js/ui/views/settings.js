@@ -92,15 +92,17 @@ function guideModal() {
     return '<div class="modal-title">全流程攻略</div>'+guideContent()+'<div class="modal-actions"><button id="modal-close">关闭</button></div>';
   }
 
-function adAvailable() { return typeof TapAds!=='undefined' && TapAds.supported() && !TapAds.busy(); }
+function adProvider() { return typeof NativeAds!=='undefined' && NativeAds.supported() ? NativeAds : typeof TapAds!=='undefined' ? TapAds : null; }
+function adAvailable() { const provider=adProvider(); return !!provider && provider.supported() && !provider.busy(); }
 
 function watchAd(action, done) {
-    if (!adAvailable()) { done({ok:false,reason:'广告暂不可用，请在 TapTap 内打开游戏后重试。'}); return; }
+    if (!adAvailable()) { done({ok:false,reason:'广告暂不可用，请稍后再试。'}); return; }
+    const provider=adProvider();
     const frozen=Game.timeFrozen(), panels=[document.querySelector('#modal .modal-content')].filter(Boolean);
     panels.forEach(p=>p.inert=true); Game.setTimeFreeze(true);
     let applied;
-    TapAds.onReward(()=>{applied=action();});
-    TapAds.showRewardedVideo(result=>{
+    provider.onReward(()=>{applied=action();});
+    provider.showRewardedVideo(result=>{
       panels.forEach(p=>p.inert=false); Game.setTimeFreeze(frozen);
       done(result.ok && applied ? applied : {ok:false,reason:result.reason || '奖励未能领取，请稍后再试。'});
     });
@@ -108,9 +110,9 @@ function watchAd(action, done) {
 
 function adShopModal() {
     const shop=Game.adShopState(), soul=Game.metaState().soul || 0,currency=Game.adCurrencyName();
-    const reward=Game.adRewardState(), tapShop=typeof TapAds!=='undefined' && TapAds.enabled();
+    const reward=Game.adRewardState(), provider=adProvider(), tapShop=!!provider && provider.enabled();
     const gift=Game.dailyGiftState();
-    const video=tapShop ? `<button id="watch-reward-ad" class="shop-video-button" title="${esc(reward.reason || (!adAvailable()?'请在 TapTap 内观看':''))}" ${!reward.canClaim || !adAvailable()?'disabled':''}><span class="shop-video-seal" aria-hidden="true">▶</span><span class="shop-video-label"><b>看广告领币</b><small>${esc(reward.reason || (!adAvailable()?'请在 TapTap 内观看':`3～6 广告币 · ${reward.uses}/${reward.limit}`))}</small></span></button>` : '';
+    const video=tapShop ? `<button id="watch-reward-ad" class="shop-video-button" title="${esc(reward.reason || (!adAvailable()?'广告暂不可用':''))}" ${!reward.canClaim || !adAvailable()?'disabled':''}><span class="shop-video-seal" aria-hidden="true">▶</span><span class="shop-video-label"><b>看广告领币</b><small>${esc(reward.reason || (!adAvailable()?'广告暂不可用':`3～6 ${currency} · ${reward.uses}/${reward.limit}`))}</small></span></button>` : '';
     return `<div class="modal-title shop-title${tapShop?' shop-title-video':''}"><b>售物柜</b>${video}<div class="shop-tools"><div class="cabinet-exchange"><div class="cabinet-controls"><input id="star-exchange-qty" aria-label="兑换数量" type="number" min="1" max="${Math.max(shop.coins,Math.floor(soul/15),1)}" value="1"><button data-soulexchange ${soul<15?'disabled':''}>换${currency}</button><button data-adexchange ${shop.coins<1?'disabled':''}>换魂点</button></div></div><span>◇ ${shop.coins} · 魂点 ${soul}</span>${inlineHelp(`15 魂点兑换 1 ${currency}；1 ${currency}兑换 15 魂点。输入兑换数量再选择方向。${currency}跨局保留，商品寄到邮箱；传奇档不能领取物资。`)}</div></div>
       <div class="shop-cabinet">${shop.goods.map(g=>{const item=ITEMS[g.id] || RELICS[g.id];return `<button class="cabinet-cell cabinet-product" data-adbuy="${g.id}" aria-label="购买${esc(item.name)}，${g.cost}${currency}，发到邮箱" ${shop.coins<g.cost?'disabled':''}><span class="cabinet-item">${itemIcon(g.id)}<b>${esc(item.name)}</b></span><small class="cabinet-price">◇ ${g.cost}</small></button>`;}).join('')}
       ${Array.from({length:Math.max(0,11-shop.goods.length)},()=>'<div class="cabinet-cell cabinet-empty" aria-hidden="true"></div>').join('')}<button class="cabinet-cell cabinet-gift" data-shop-gift ${gift.canClaim?'':'disabled'}><span class="shop-gift-seal" aria-hidden="true">◇</span><b>每日赠礼</b><small>${gift.canClaim?'免费领取':'今日已领取'}</small>${NoticeBadges.dot('adshop')}</button></div>`;

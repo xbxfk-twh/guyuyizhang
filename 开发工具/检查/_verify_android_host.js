@@ -33,6 +33,10 @@ let passed = 0,
 const errors = [];
 (async () => {
   try {
+    const hostSource=fs.readFileSync(path.join(root,'安卓包装/app/src/main/java/top/guyuyizhang/game/MainActivity.java'),'utf8');
+    assert.doesNotMatch(hostSource,/\bweb\.(?:pauseTimers|resumeTimers)\s*\(/,'宿主不得暂停进程内所有WebView，避免冻结原生广告页面');
+    assert.ok(hostSource.includes('UI.setHostSuspended(true)')&&hostSource.includes('web.onPause()')&&hostSource.includes('web.onResume()'),'保留游戏自身的保存、暂停及恢复');
+    passed++;console.log('OK 只暂停游戏WebView及游戏状态，不干扰广告WebView计时器');
     ch = spawn(
       process.env.CHROME_PATH ||
         'C:/Program Files/Google/Chrome/Application/chrome.exe',

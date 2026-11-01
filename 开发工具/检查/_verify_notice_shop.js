@@ -14,10 +14,10 @@ async function menu(){await b.ev(`for(let i=0;i<12&&document.querySelector('#mod
  await menu();await b.tap('[data-savemenu="mail"]');
  await check('邮箱活动页有一次提醒，外层邮箱也继承',`!document.querySelector('[data-mailtab="event"] [data-notice]').hidden&&Game.noticeState().mailbox`);
  await b.tap('[data-mailtab="event"]');await check('看过活动后标记持久化并仍提供APK下载',`!Game.noticeState().event&&document.querySelector('[data-mailtab="event"] [data-notice]').hidden&&!!document.querySelector('.event-download [data-copy-apk-url]')`);
- await menu();await b.ev(`delete Game.S().seen.ironore;delete Game.metaState().seenItems.ironore;for(const t of ['res','tool','items','mon','boss','ach'])Game.markNoticeRead('collection',t);Game.S().seen.ironore=1;UI.render();`);
- await check('新收录物品向图鉴及菜单传播',`Game.noticeState().res&&Game.noticeState().items&&Game.noticeState().collection&&!document.querySelector('[data-nav="save"] [data-notice]').hidden`);
- await b.tap('[data-savemenu="col"]');await check('只消除已打开页的提示，物品页仍亮点',`!Game.noticeState().res&&!document.querySelector('[data-ctab="items"] [data-notice]').hidden`);
- await b.tap('[data-ctab="items"]');await check('内层都已读后图鉴父级红点消除',`!Game.noticeState().collection`);
+ await menu();await b.ev(`for(const id of ['ironore','ironSword']){delete Game.S().seen[id];delete Game.metaState().seenItems[id];}for(const t of ['tool','items','mon','boss','ach'])Game.markNoticeRead('collection',t);Game.S().seen.ironore=1;Game.S().seen.ironSword=1;UI.render();`);
+ await check('新收录物品向图鉴及菜单传播',`Game.noticeState().tool&&Game.noticeState().items&&Game.noticeState().collection&&!document.querySelector('[data-nav="save"] [data-notice]').hidden`);
+ await b.tap('[data-savemenu="col"]');await check('默认物品页已读，工具页仍亮点且无重复资源入口',`!Game.noticeState().items&&!document.querySelector('[data-ctab="tool"] [data-notice]').hidden&&!document.querySelector('[data-ctab="res"]')`);
+ await b.tap('[data-ctab="tool"]');await check('内层都已读后图鉴父级红点消除',`!Game.noticeState().collection`);
  await menu();await b.tap('[data-savemenu="adshop"]');
  await check('广告领币在标题栏有标识、不占柜格，免费赠礼末格仍十二格',`document.querySelector('.shop-cabinet').children.length===12&&!!document.querySelector('.shop-title #watch-reward-ad')&&!document.querySelector('.shop-cabinet #watch-reward-ad')&&!!document.querySelector('.shop-video-seal')&&document.querySelector('.shop-cabinet').lastElementChild.hasAttribute('data-shop-gift')`);
  for(const [w,h] of [[568,320],[667,375],[844,390],[1366,768]]){

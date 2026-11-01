@@ -60,3 +60,41 @@ const TapAds = (() => {
   init();
   return {enabled, init, supported, onReward, showRewardedVideo, busy:() => !!pending};
 })();
+
+/* 独立安卓激励视频：宿主只向本地游戏页注入固定命令，不接受网页提供的奖励数额。 */
+const NativeAds = (() => {
+  let pending=null, rewardCallback=null;
+  function supported() {
+    return typeof location!=='undefined' && location.hostname==='appassets.androidplatform.net'
+      && !!window.GuyuNativeAds && typeof window.GuyuNativeAds.show==='function';
+  }
+  function finish(result) {
+    const request=pending;
+    if (!request) return;
+    pending=null; clearTimeout(request.timer);
+    if (result.ok && request.reward) {
+      try { request.reward(); }
+      catch (e) { result={ok:false,reason:'奖励处理失败，请保留当前存档并联系作者。'}; }
+    }
+    request.done(result);
+  }
+  if (typeof window.addEventListener==='function') window.addEventListener('guyu-native-ad-result',event=>{
+    const detail=event.detail;
+    if (!pending || !detail || detail.id!==pending.id) return;
+    finish(detail.verified===true ? {ok:true} : {ok:false,reason:detail.reason || '未完整观看视频，本次没有领取奖励。'});
+  });
+  function showRewardedVideo(done) {
+    if (pending) return false;
+    if (!supported()) { done({ok:false,reason:'广告暂不可用，请稍后再试。'}); return false; }
+    const bytes=new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    const request={id:Array.from(bytes,n=>n.toString(16).padStart(2,'0')).join(''),done,reward:rewardCallback,timer:null};
+    rewardCallback=null; pending=request;
+    request.timer=setTimeout(()=>finish({ok:false,reason:'广告响应超时，未领取奖励，请稍后再试。'}),180000);
+    try {
+      if (window.GuyuNativeAds.show(request.id)!=='pending') finish({ok:false,reason:'广告暂不可用，请稍后再试。'});
+    } catch (e) { finish({ok:false,reason:'广告暂不可用，请稍后再试。'}); }
+    return true;
+  }
+  return {supported,enabled:supported,busy:()=>!!pending,onReward:callback=>{rewardCallback=typeof callback==='function'?callback:null;},showRewardedVideo};
+})();

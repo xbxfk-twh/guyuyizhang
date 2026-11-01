@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import zipfile
 import xml.etree.ElementTree as ET
+from native_ads import prepare as prepare_native_ads
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = Path(__file__).resolve().parent
@@ -50,10 +51,15 @@ def main():
     parser.add_argument('--java', type=Path, default=Path(os.getenv('JAVA_HOME', 'C:/Program Files/Microsoft/jdk-25.0.3.9-hotspot')))
     parser.add_argument('--verify', type=Path, help='Only verify resources in an existing APK')
     parser.add_argument('--debug-test', action='store_true', help='Emulator-only diagnostic build; never publish')
+    parser.add_argument('--native-ads-config', type=Path, help='Private native media config outside Git')
+    parser.add_argument('--native-ads-vendor-dir', type=Path, help='Directory of pinned SDK artifacts')
+    parser.add_argument('--native-ads-test', action='store_true', help='Full game with test placement; never publish')
     args = parser.parse_args()
     if args.verify:
         verify_assets(args.verify)
         return
+    if bool(args.native_ads_config) != bool(args.native_ads_vendor_dir) or args.native_ads_test and not args.native_ads_config:
+        parser.error('Native ads require both private config and pinned vendor directory')
     config = json.loads((PROJECT / 'config.json').read_text(encoding='utf-8'))
     manifest = ET.parse(PROJECT / 'app/src/main/AndroidManifest.xml').getroot()
     android_ns = '{http://schemas.android.com/apk/res/android}'
@@ -91,7 +97,10 @@ def main():
 
     output_dir = ROOT / '发行产物'
     output_dir.mkdir(exist_ok=True)
-    apk = output_dir / ('孤屿遗章_' + version + ('_仅模拟器调试.apk' if args.debug_test else '_安卓独立版.apk'))
+    suffix = '_仅模拟器调试.apk' if args.debug_test else '_原生广告测试.apk' if args.native_ads_test else '_安卓独立版.apk'
+    apk = output_dir / ('孤屿遗章_' + version + suffix)
+    if apk.exists():
+        raise RuntimeError('Refuse to replace an existing APK; archive it or use a new build version')
     # Each build gets an isolated staging directory; never delete or compile in the web source.
     with tempfile.TemporaryDirectory(prefix='guyu-apk-') as folder:
         work = Path(folder)
@@ -99,6 +108,15 @@ def main():
         shutil.copytree(PROJECT / 'app/src/main/res', work / 'res')
         shutil.copytree(PROJECT / 'app/src/main/java', work / 'java')
         shutil.copyfile(PROJECT / 'app/src/main/AndroidManifest.xml', work / 'AndroidManifest.xml')
+        jars, vendor = [], None
+        if args.native_ads_config:
+            vendor, jars = prepare_native_ads(work, args.native_ads_config, args.native_ads_vendor_dir,
+                                             config['applicationId'], args.native_ads_test)
+            shutil.copytree(PROJECT/'app/src/native/java', work/'java', dirs_exist_ok=True)
+        factory = work/'java/top/guyuyizhang/game/NativeAdFactory.java'
+        factory.write_text('package top.guyuyizhang.game; final class NativeAdFactory {'
+            'static MainActivity.AdEngine create(MainActivity host) {return '
+            + ('new NativeRewardAds(host)' if vendor else 'null')+';}}', encoding='utf-8')
         if args.debug_test:
             activity = work / 'java/top/guyuyizhang/game/MainActivity.java'
             activity.write_text(activity.read_text(encoding='utf-8').replace('setWebContentsDebuggingEnabled(false)', 'setWebContentsDebuggingEnabled(true)'), encoding='utf-8')
@@ -106,19 +124,25 @@ def main():
         shutil.copytree(SOURCE, assets / 'web', ignore=shutil.ignore_patterns('.git', '__pycache__'))
         resources = work / 'resources.zip'
         run([tools / 'aapt2.exe', 'compile', '--dir', work / 'res', '-o', resources])
+        resource_args = [resources]
+        if vendor:
+            sdk_resources = work/'sdk-res.zip'
+            run([tools/'aapt2.exe', 'compile', '--dir', vendor/'res', '-o', sdk_resources])
+            resource_args = [sdk_resources, resources]
         unsigned = work / 'unsigned.apk'
         run([tools / 'aapt2.exe', 'link', '-o', unsigned, '--manifest', work / 'AndroidManifest.xml',
-             '-I', android, '--version-code', config['versionCode'], '--version-name', version, resources])
+             '-I', android, '--version-code', config['versionCode'], '--version-name', version,
+             '--java', work/'generated', *(['--extra-packages','com.tapsdk.tapad'] if vendor else []), *resource_args])
         classes = work / 'classes'
         classes.mkdir()
-        sources = list((work / 'java').rglob('*.java'))
+        sources = [*(work/'java').rglob('*.java'), *(work/'generated').rglob('*.java')]
         run([javac, '-encoding', 'UTF-8', '-source', '8', '-target', '8', '-bootclasspath',
              str(android) + os.pathsep + str(tools / 'core-lambda-stubs.jar'),
-             '-d', classes, *sources])
+             *(['-classpath', os.pathsep.join(str(p) for p in jars)] if jars else []), '-d', classes, *sources])
         dex = work / 'dex'
         dex.mkdir()
         run([java, '-cp', tools / 'lib/d8.jar', 'com.android.tools.r8.D8', '--lib', android,
-             '--min-api', config['minSdk'], '--output', dex, *classes.rglob('*.class')])
+             '--min-api', config['minSdk'], '--output', dex, *classes.rglob('*.class'), *jars])
         with zipfile.ZipFile(unsigned, 'a', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
             # Python writes UTF-8 ZIP entry names correctly even for the legacy Chinese-named art.
             for path in (assets / 'web').rglob('*'):
@@ -126,6 +150,10 @@ def main():
                     archive.write(path, 'assets/web/' + path.relative_to(assets / 'web').as_posix())
             for path in dex.glob('*.dex'):
                 archive.write(path, path.name)
+            if vendor:
+                for prefix, directory in [('assets',vendor/'assets'),('lib',vendor/'jni')]:
+                    for path in directory.rglob('*'):
+                        if path.is_file(): archive.write(path, prefix+'/'+path.relative_to(directory).as_posix())
         aligned = work / 'aligned.apk'
         run([tools / 'zipalign.exe', '-p', '-f', '4', unsigned, aligned])
         signed = work / 'signed.apk'

@@ -1,13 +1,13 @@
 /* 通知只记录已读位置；查询不写档，不改变游戏进度。 */
 const NotificationRules = (() => {
-  const TABS = ['res','tool','items','mon','boss','ach'];
+  const TABS = ['tool','items','mon','boss','ach'];
   function known(meta, run, tab) {
     const seen = {...meta.seenItems,...run?.seen};
     if (tab === 'ach') return Object.keys(meta.ach || {}).filter(id => meta.ach[id]);
     if (tab === 'mon' || tab === 'boss') return Object.keys(ENEMIES).filter(id => !ENEMIES[id].noDex && (!ENEMIES[id].nightmare || ['nightmare','dev'].includes(run?.difficulty)) &&
       (tab !== 'boss' || ENEMIES[id].boss) && (meta.seenMon?.[id] || run?.seen?.['mon_'+id]));
     return Object.keys(ITEMS).filter(id => !ITEMS[id].retired && seen[id] &&
-      (tab === 'items' || (tab === 'tool' ? ['weapon','tool','armor','cloth'].includes(ITEMS[id].cat) : ['mat','special','bp','seed'].includes(ITEMS[id].cat))));
+      (tab === 'items' || ['weapon','tool','armor','cloth'].includes(ITEMS[id].cat)));
   }
   function migrate(meta) {
     // 安装前已经收录的图鉴作为已读起点；新解锁才提醒。

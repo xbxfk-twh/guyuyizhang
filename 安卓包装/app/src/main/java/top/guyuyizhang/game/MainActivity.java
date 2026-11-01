@@ -34,6 +34,8 @@ public final class MainActivity extends Activity {
     private static final String HOST = "appassets.androidplatform.net";
     private static final String ENTRY = "https://" + HOST + "/assets/index.html";
     private WebView web;
+    interface AdEngine { void request(String id); void destroy(); }
+    private AdEngine ads;
     private boolean suspended;
     private boolean exitDialogOpen;
     private static final int EXPORT_BACKUP = 4101, IMPORT_BACKUP = 4102;
@@ -61,6 +63,7 @@ public final class MainActivity extends Activity {
             return insets;
         });
         configureWebView();
+        ads = NativeAdFactory.create(this);
         hideSystemBars();
         // Stable origin is essential: never change it between updates or local saves disappear.
         web.loadUrl(ENTRY);
@@ -82,6 +85,15 @@ public final class MainActivity extends Activity {
             // Fixed commands from our exact local entry page only. No generic JS/native bridge.
             @Override public boolean onJsPrompt(WebView view, String url, String message,
                                                  String value, JsPromptResult result) {
+                if ("guyu-ad:show".equals(message)) {
+                    if (ads == null || !ENTRY.equals(url) || !ENTRY.equals(view.getUrl())
+                        || value == null || !value.matches("[a-f0-9]{32}")) {
+                        result.cancel(); return true;
+                    }
+                    result.confirm("pending");
+                    web.post(() -> { if (ads != null) ads.request(value); });
+                    return true;
+                }
                 if (!message.startsWith("guyu-backup:")) return false;
                 if (!ENTRY.equals(url) || !ENTRY.equals(view.getUrl()) || backupPickerOpen) {
                     result.cancel(); return true;
@@ -150,6 +162,7 @@ public final class MainActivity extends Activity {
                 if (ENTRY.equals(url)) {
                     view.evaluateJavascript("window.GuyuFileBackup={save:code=>window.prompt('guyu-backup:export',code),"
                         + "open:()=>window.prompt('guyu-backup:import','')};", null);
+                    if (ads != null) view.evaluateJavascript("window.GuyuNativeAds={show:id=>window.prompt('guyu-ad:show',id)};", null);
                     setWebSuspended(suspended);
                 }
             }
@@ -159,6 +172,12 @@ public final class MainActivity extends Activity {
     private void backupNotice(String text) {
         if (web != null) web.evaluateJavascript("document.dispatchEvent(new CustomEvent('guyu-backup-notice',{detail:"
             + JSONObject.quote(text) + "}));", null);
+    }
+
+    void adResult(String id, boolean verified, String reason) {
+        if (web == null || !ENTRY.equals(web.getUrl())) return;
+        web.evaluateJavascript("window.dispatchEvent(new CustomEvent('guyu-native-ad-result',{detail:{id:"
+            + JSONObject.quote(id) + ",verified:" + verified + ",reason:" + JSONObject.quote(reason) + "}}));", null);
     }
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
@@ -218,9 +237,11 @@ public final class MainActivity extends Activity {
         // Pause only after the save callback returns. A watchdog prevents lost callbacks from leaving timers running.
         final WebView current = web;
         web.evaluateJavascript("if(typeof UI!=='undefined')UI.setHostSuspended(true);", result -> {
-            if (suspended && current == web) { web.onPause(); web.pauseTimers(); }
+            // pauseTimers() affects every WebView in the process, including ad creatives.
+            // Game time/audio are already suspended by the explicit UI host command.
+            if (suspended && current == web) web.onPause();
         });
-        web.postDelayed(() -> { if (suspended && current == web) { web.onPause(); web.pauseTimers(); } }, 750);
+        web.postDelayed(() -> { if (suspended && current == web) web.onPause(); }, 750);
         super.onPause();
     }
 
@@ -228,7 +249,7 @@ public final class MainActivity extends Activity {
         super.onResume();
         suspended = false;
         if (web != null) {
-            web.resumeTimers(); web.onResume(); setWebSuspended(false);
+            web.onResume(); setWebSuspended(false);
             hideSystemBars();
         }
     }
@@ -271,6 +292,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        if (ads != null) { ads.destroy(); ads = null; }
         if (web != null) { web.destroy(); web = null; }
         super.onDestroy();
     }
