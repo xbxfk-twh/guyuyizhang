@@ -19,11 +19,17 @@ async function menu(){await b.ev(`for(let i=0;i<12&&document.querySelector('#mod
  await b.tap('[data-savemenu="col"]');await check('只消除已打开页的提示，物品页仍亮点',`!Game.noticeState().res&&!document.querySelector('[data-ctab="items"] [data-notice]').hidden`);
  await b.tap('[data-ctab="items"]');await check('内层都已读后图鉴父级红点消除',`!Game.noticeState().collection`);
  await menu();await b.tap('[data-savemenu="adshop"]');
- await check('广告领币首格有标识、免费赠礼末格，仍十二格',`document.querySelector('.shop-cabinet').children.length===12&&document.querySelector('.shop-cabinet').firstElementChild.id==='watch-reward-ad'&&!!document.querySelector('.shop-video-seal')&&document.querySelector('.shop-cabinet').lastElementChild.hasAttribute('data-shop-gift')`);
- for(const [w,h] of [[667,375],[844,390],[1366,768]]){
+ await check('广告领币在标题栏有标识、不占柜格，免费赠礼末格仍十二格',`document.querySelector('.shop-cabinet').children.length===12&&!!document.querySelector('.shop-title #watch-reward-ad')&&!document.querySelector('.shop-cabinet #watch-reward-ad')&&!!document.querySelector('.shop-video-seal')&&document.querySelector('.shop-cabinet').lastElementChild.hasAttribute('data-shop-gift')`);
+ for(const [w,h] of [[568,320],[667,375],[844,390],[1366,768]]){
   await b.send('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:1,mobile:w<1000});await b.sleep(450);
-  await check('商城首末格及全部商品可见 '+w,`[...document.querySelectorAll('.shop-cabinet>button')].every(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth})`);
-  await b.shot('notice-shop-'+w+'.png');
+  for(const lang of ['zh','en']){
+   await b.ev(`Locale.set('${lang}')`);await b.sleep(100);
+   await check('标题广告、关闭、兑换与全部商品可见可点 '+w+' '+lang,`[...document.querySelectorAll('.shop-cabinet>button,.shop-title button,#modal .modal-x')].every(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth&&e.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2))})`);
+   await check('商品图标与名称完整留在柜格内 '+w+' '+lang,`[...document.querySelectorAll('.cabinet-product')].every(e=>{const r=e.getBoundingClientRect();return [...e.querySelectorAll('img,b')].every(c=>{const t=c.getBoundingClientRect();return t.left>=r.left+3&&t.right<=r.right-3&&t.top>=r.top+3&&t.bottom<=r.bottom-3})})`);
+   await check('标题广告中英文字完整 '+w+' '+lang,lang==='en'?`![...document.querySelectorAll('#watch-reward-ad,[data-soulexchange]')].some(e=>/[\u3400-\u9fff]/.test(e.textContent))`:`document.querySelector('#watch-reward-ad').textContent.includes('看广告领币')`);
+   await b.shot('notice-shop-'+w+'-'+lang+'.png');
+  }
+  await b.ev(`Locale.set('zh')`);
  }
  await b.tap('[data-adbuy="namecard"]');await check('购买先确认，未扣币也未寄信',`document.querySelector('.modal-title').textContent==='确认购买'&&Game.adCoinBalance()===100&&!Game.mailboxList().some(x=>x.shopReceipt)`);
  await b.tap('[data-choice="1"]');await check('取消后返回商城且余额不变',`!!document.querySelector('.shop-cabinet')&&Game.adCoinBalance()===100`);
