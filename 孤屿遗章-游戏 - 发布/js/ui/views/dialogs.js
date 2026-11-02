@@ -163,6 +163,7 @@ function showModal(kind, cfg) {
     else if (kind === 'share') html = shareModal();
     else if (kind === 'mailbox') html = mailboxModal();
     else if (kind === 'adshop') html = adShopModal();
+    else if (kind === 'shopExchange') html = deps.shopExchangeModal();
     else if (kind === 'naming') html = `<div class="modal-title">为武器命名 <span style="font-size:11px">${Game.S().weaponNames && Game.S().weaponNames[Game.S().equipment.weapon] ? '已命名' : '消耗 1 命名牌 · 伤害永久+1 · 最多8字'}</span></div><div class="overlay-text">你的主手武器：${Game.S().equipment.weapon ? `「${Game.wNameOf(Game.S().equipment.weapon)}」` : '未装备'}</div><div class="batch-row"><span>名字</span><input id="name-input" style="flex:1" maxlength="8" placeholder="输入武器名"></div><div class="modal-actions"><button id="name-do">确 定</button><button id="modal-close">取 消</button></div>`;
     else if (kind === 'grind') {
       // 修补材料按当前主手武器实时显示；神弓不提供修补入口。
@@ -291,6 +292,7 @@ function bindModal(kind, cfg) {
       ]});
     });
     const gift=m.querySelector('[data-shop-gift]');if(gift)gift.onclick=()=>{if(gift.disabled)return;gift.disabled=true;const r=Game.claimDailyGift();showModal('adshop');centerToast(r.msg||r.reason);};
+    m.querySelectorAll('[data-shop-exchange]').forEach(b=>b.onclick=()=>showModal('shopExchange'));
     m.querySelectorAll('[data-adexchange]').forEach(b=>b.onclick=()=>{const r=Game.exchangeAdCoins(Number(m.querySelector('#star-exchange-qty').value));centerToast(r.msg || r.reason);showModal('adshop');});
     m.querySelectorAll('[data-soulexchange]').forEach(b=>b.onclick=()=>{const r=Game.exchangeSoulForStars(Number(m.querySelector('#star-exchange-qty').value));centerToast(r.msg || r.reason);showModal('adshop');});
     m.querySelectorAll('#modal-close').forEach(b => b.onclick = backModal);

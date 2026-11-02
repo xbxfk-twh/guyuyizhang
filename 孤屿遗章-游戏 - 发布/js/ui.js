@@ -182,6 +182,7 @@ const UI = (() => {
     get markGuideRead(){return settingsView.markGuideRead;},
     get watchAd(){return watchAd;},
     get adShopModal(){return adShopModal;},
+    get shopExchangeModal(){return settingsView.shopExchangeModal;},
     get mailboxModal(){return mailboxModal;},
     get askConfirm(){return askConfirm;},
     get inventoryReturn(){return inventoryReturn;}, set inventoryReturn(value){inventoryReturn=value;},

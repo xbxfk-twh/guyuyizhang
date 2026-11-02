@@ -7,7 +7,7 @@ async function menu(){await b.ev(`for(let i=0;i<12&&document.querySelector('#mod
  b=await openBrowser({init:`window.GUYU_CHANNEL='taptap';localStorage.setItem('guyuyizhang_language','zh-CN');`});await b.sleep(600);
  await check('标题右侧改为大菜单且有汇总红点',`document.querySelector('#btn-set').textContent.includes('大菜单')&&!document.querySelector('#btn-set [data-notice]').hidden`);
  await b.tap('#btn-set');await check('不开局可打开大菜单，日记与保存不能误操作',`!!document.querySelector('[data-savemenu="sign"]')&&document.querySelector('[data-savemenu="diary"]').disabled&&document.querySelector('[data-savemenu="save"]').disabled`);
- await b.ev(`document.querySelector('#modal .modal-x').click();Game.newGame('fisher','normal');Game.S().tut=null;Game.metaState().batchTipSeen=1;Game.metaState().adWallet={test:{coins:100,soul:0}};Game.markNoticeRead('diary');UI.begin();`);await b.sleep(2800);
+ await b.ev(`document.querySelector('#modal .modal-x').click();Game.newGame('fisher','normal');Game.S().tut=null;Game.metaState().batchTipSeen=1;Game.metaState().soul=300;Game.metaState().adWallet={test:{coins:100,soul:0}};Game.markNoticeRead('diary');UI.begin();`);await b.sleep(2800);
  await b.ev(`for(let i=0;i<10;i++)Game.diaryAdd('新日记');UI.render();`);await menu();
  await check('日记十条、签到未领、商城赠礼三个叶子亮点',`['diary','sign','adshop'].every(k=>!document.querySelector('[data-savemenu="'+k+'"] [data-notice]').hidden)`);
  await b.tap('[data-savemenu="diary"]');await check('打开日记后该项红点消除',`!Game.noticeState().diary`);
@@ -26,11 +26,16 @@ async function menu(){await b.ev(`for(let i=0;i<12&&document.querySelector('#mod
    await b.ev(`Locale.set('${lang}')`);await b.sleep(100);
    await check('标题广告、关闭、兑换与全部商品可见可点 '+w+' '+lang,`[...document.querySelectorAll('.shop-cabinet>button,.shop-title button,#modal .modal-x')].every(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth&&e.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2))})`);
    await check('商品图标与名称完整留在柜格内 '+w+' '+lang,`[...document.querySelectorAll('.cabinet-product')].every(e=>{const r=e.getBoundingClientRect();return [...e.querySelectorAll('img,b')].every(c=>{const t=c.getBoundingClientRect();return t.left>=r.left+3&&t.right<=r.right-3&&t.top>=r.top+3&&t.bottom<=r.bottom-3})})`);
-   await check('标题广告中英文字完整 '+w+' '+lang,lang==='en'?`![...document.querySelectorAll('#watch-reward-ad,[data-soulexchange]')].some(e=>/[\u3400-\u9fff]/.test(e.textContent))`:`document.querySelector('#watch-reward-ad').textContent.includes('看广告领币')`);
+   await check('播放键有完整中英文无障碍说明 '+w+' '+lang,lang==='en'?`!/[\u3400-\u9fff]/.test(document.querySelector('#watch-reward-ad').getAttribute('aria-label'))`:`document.querySelector('#watch-reward-ad').getAttribute('aria-label').includes('看广告领币')`);
+   await check('标题所有操作保持同一行 '+w+' '+lang,`(()=>{const es=[document.querySelector('.shop-title>b'),...document.querySelectorAll('.shop-tools>span,.shop-tools>button,.shop-tools>.ui-help')],r=es.map(e=>e.getBoundingClientRect());return r.every(a=>Math.abs((a.top+a.bottom)/2-(r[0].top+r[0].bottom)/2)<=3)})()`);
    await b.shot('notice-shop-'+w+'-'+lang+'.png');
   }
   await b.ev(`Locale.set('zh')`);
  }
+ await b.tap('[data-shop-exchange]');await check('兑换弹窗冻结时间并显示数量和两个方向',`Game.timeFrozen()&&!!document.querySelector('#star-exchange-qty')&&!!document.querySelector('[data-soulexchange]')&&!!document.querySelector('[data-adexchange]')`);
+ await b.tap('.modal-x');await check('兑换弹窗关闭返回商城，不扣魂点和广告币',`!!document.querySelector('.shop-cabinet')&&!document.querySelector('#star-exchange-qty')&&Game.metaState().soul===300&&Game.adCoinBalance()===100`);
+ await b.tap('[data-shop-exchange]');await b.ev(`document.querySelector('#star-exchange-qty').value='2'`);await b.tap('[data-adexchange]');await check('兑换两枚币发30魂点，返回商城',`Game.adCoinBalance()===98&&Game.metaState().soul===330&&!!document.querySelector('.shop-cabinet')`);
+ await b.tap('[data-shop-exchange]');await b.ev(`document.querySelector('#star-exchange-qty').value='2'`);await b.tap('[data-soulexchange]');await check('反向兑换扣30魂点发两枚币，实际持久化正确',`Game.adCoinBalance()===100&&Game.metaState().soul===300&&JSON.parse(localStorage.getItem('guyuyizhang_meta')).soul===300`);
  await b.tap('[data-adbuy="namecard"]');await check('购买先确认，未扣币也未寄信',`document.querySelector('.modal-title').textContent==='确认购买'&&Game.adCoinBalance()===100&&!Game.mailboxList().some(x=>x.shopReceipt)`);
  await b.tap('[data-choice="1"]');await check('取消后返回商城且余额不变',`!!document.querySelector('.shop-cabinet')&&Game.adCoinBalance()===100`);
  await b.tap('[data-adbuy="namecard"]');await b.tap('[data-choice="0"]');await check('确认只扣三点、寄一封新邮件并提示邮箱',`Game.adCoinBalance()===97&&Game.mailboxList().filter(x=>x.item==='namecard').length===1&&Game.noticeState().mail`);

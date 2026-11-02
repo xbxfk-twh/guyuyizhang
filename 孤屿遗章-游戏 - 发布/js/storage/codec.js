@@ -1,5 +1,13 @@
 /* 存档码的只读解析与完整性校验；不读写存储，不执行迁移或奖励。 */
 const SaveCodec = (() => {
+  function validMeta(value) {
+    const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v),number=v=>Number.isFinite(v)&&v>=0;
+    if(!object(value)||!['soul','nodes','runs','totalSoul','slots'].some(k=>Object.prototype.hasOwnProperty.call(value,k)))return false;
+    for(const k of ['soul','runs','totalSoul','backupPoints','_accountRev'])if(value[k]!==undefined&&!number(value[k]))return false;
+    for(const k of ['nodes','settledRuns','identityUnlocks','skins','adWallet'])if(value[k]!==undefined&&!object(value[k]))return false;
+    if(value.slots!==undefined&&!Array.isArray(value.slots))return false;
+    return true;
+  }
   function codeChecksum(data) {
     const text=JSON.stringify({v:data.v,t:data.t||'',meta:data.meta,save:data.save||null});
     let hash=2166136261;for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}
@@ -13,10 +21,10 @@ const SaveCodec = (() => {
     if(!data || !data.meta || typeof data.meta!=='object')return {ok:false,reason:'存档码内容不认识'};
     if(data.v!==undefined && data.v!==1)return {ok:false,reason:'存档格式版本不支持，请先更新游戏。'};
     if(data.checksum!==undefined && data.checksum!==codeChecksum(data))return {ok:false,reason:'存档完整性校验失败，未覆盖原档；请重新导出或使用另一份备份。'};
-    if(Array.isArray(data.meta) || (data.meta.slots && (!Array.isArray(data.meta.slots)||![3,4].includes(data.meta.slots.length))))return {ok:false,reason:'账号数据格式不完整'};
+    if(!validMeta(data.meta)||(data.meta.slots&&![3,4].includes(data.meta.slots.length)))return {ok:false,reason:'账号数据格式不完整'};
     if(data.save && !validSave(data.save))return {ok:false,reason:'当前进度不完整，未覆盖原档'};
     return {ok:true,data};
   }
   function encode(payload){payload.checksum=codeChecksum(payload);return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));}
-  return Object.freeze({checksum:codeChecksum,read,encode});
+  return Object.freeze({validMeta,checksum:codeChecksum,read,encode});
 })();

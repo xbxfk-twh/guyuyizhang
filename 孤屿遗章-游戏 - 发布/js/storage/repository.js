@@ -115,37 +115,34 @@ const SaveRepository = (() => {
     }
 
     function parseMeta(raw) {
-      try {const value=JSON.parse(raw);return value&&typeof value==='object'&&!Array.isArray(value)?value:null;} catch {return null;}
+      try {const value=JSON.parse(raw);return SaveCodec.validMeta(value)?value:null;} catch {return null;}
     }
     function metaLoad() {
       let M;
-      let readError;
-      const read = (k) => { try { const raw = storage.getItem(k); return raw ? parseMeta(raw) : null; } catch (e) { readError=e;return null; } };
+      let readError,hadRecord=false;
+      const read = (k) => { try { const raw = storage.getItem(k);if(raw!==null&&raw!==undefined)hadRecord=true;return raw ? parseMeta(raw) : null; } catch (e) { readError=e;return null; } };
       let rawPrimary = null;
       try { rawPrimary = storage.getItem('guyuyizhang_meta'); } catch (e) {throw new Error('账号存储暂时无法读取，请重新尝试；原存档未重置。');}
+      hadRecord=rawPrimary!==null&&rawPrimary!==undefined;
       M = rawPrimary ? parseMeta(rawPrimary) : null;
       if (!M && rawPrimary) {
         try { storage.setItem('guyuyizhang_meta_corrupt', rawPrimary); } catch (_) {}
       }
       // 本地滚动备份比可能滞后的 cookie 更可靠，主档损坏时优先使用。
       if (!M) M = read('guyuyizhang_meta_bak');
+      if(!M&&readError)throw new Error('账号存储暂时无法读取，请重新尝试；原存档未重置。');
       // cookie 兜底：平台清掉 localStorage 后，账号数据（魂点 / 历代遗章 / 图鉴）靠这一份救回来
       if (!M) {
         const ckMeta = ckGet(CK.meta);
+        if(ckMeta!==null)hadRecord=true;
         if (ckMeta) {
           M = parseMeta(ckMeta);
           if (M) { try { storage.setItem('guyuyizhang_meta', ckMeta); } catch (e) {} }
         }
       }
-      if (!M && rawPrimary) {   // 主档坏了：先把原始串留底，别让它被后面的写入覆盖掉
-        try { storage.setItem('guyuyizhang_meta_corrupt', rawPrimary); } catch (e) {}
-      }
-      if (!M) {
-        M = read('guyuyizhang_meta_bak');   // 主档读不出来（换包/写入中断）时用备份
-        if (M) { try { console.warn('meta 主档损坏，已从备份恢复'); } catch (e) {} }
-      }
       if (!M) {
         if(readError)throw new Error('账号存储暂时无法读取，请重新尝试；原存档未重置。');
+        if(hadRecord)throw new Error('账号记录损坏，未重置魂点或天赋；请重试或从备份恢复。');
         M = {};
       }
       if (M.soul === undefined) M.soul = 0;
@@ -173,10 +170,10 @@ const SaveRepository = (() => {
       const M=getMeta();
       if (isStaging()) return {ok:true};
       try {
-        if(!M||typeof M!=='object'||Array.isArray(M))throw new Error('账号数据不完整，未覆盖已有记录');
+        if(!SaveCodec.validMeta(M))throw new Error('账号数据不完整，未覆盖已有记录');
         if (!transactions.active() && transactions.pending()) throw new Error('上次存储恢复尚未完成');
         const prev = storage.getItem('guyuyizhang_meta');
-        const previousMeta=parseMeta(prev);
+        const previousMeta=parseMeta(prev)||parseMeta(storage.getItem('guyuyizhang_meta_bak'));
         if((previousMeta?._accountRev||0)>(M._accountRev||0))throw new Error('另一处已更新账号记录，请重新打开游戏同步后再试。');
         if (prev && parseMeta(prev)) storage.setItem('guyuyizhang_meta_bak', prev);   // 坏主档不能冲掉最后的有效备份
         const revision=(M._accountRev||0)+1;

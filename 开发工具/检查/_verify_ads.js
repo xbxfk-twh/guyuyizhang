@@ -25,24 +25,24 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
   await ev(`Game.newGame('fisher','normal');Game.S().tut=null;Game.metaState().batchTipSeen=1;Game.metaState().soul=300;Game.metaState().adWallet={};UI.begin();`);await sleep(2800);
   const openShop=()=>ev(`document.querySelector('#modal .modal-x')?.click();document.querySelector('#nav [data-nav="save"]').click();document.querySelector('[data-savemenu="adshop"]').click();`);
   await openShop();
-  check('商城两种兑换方向及六商品、十二柜格',await ev(`document.querySelectorAll('[data-adbuy]').length===6&&document.querySelector('.shop-cabinet').children.length===12&&!!document.querySelector('[data-soulexchange]')&&!!document.querySelector('[data-adexchange]')&&!document.querySelector('#watch-reward-ad')`));
+  check('商城两种兑换方向及六商品、十二柜格',await ev(`document.querySelectorAll('[data-adbuy]').length===6&&document.querySelector('.shop-cabinet').children.length===12&&!!document.querySelector('[data-shop-exchange]')&&!document.querySelector('#star-exchange-qty')&&!document.querySelector('#watch-reward-ad')&&!document.querySelector('.shop-title').textContent.includes('Watch an ad')`));
   check('命名牌商品价格为3点且图片可显示',await ev(`(()=>{const b=document.querySelector('[data-adbuy="namecard"]');return !!b&&b.querySelector('.cabinet-price').textContent.trim()==='◇ 3'&&!!b.querySelector('.item-icon');})()`));
   fs.mkdirSync(out,{recursive:true});
   const tap=async sel=>{await sleep(400);await ev(`document.querySelector(${JSON.stringify(sel)}).scrollIntoView({block:'center',behavior:'instant'})`);await sleep(100);const p=await ev(`(()=>{const e=document.querySelector(${JSON.stringify(sel)}),r=e.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;return{x,y,hit:e.contains(document.elementFromPoint(x,y))}})()`);check('实际可点击 '+sel,p.hit);await send('Input.dispatchMouseEvent',{type:'mousePressed',x:p.x,y:p.y,button:'left',clickCount:1});await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:p.x,y:p.y,button:'left',clickCount:1});await sleep(400);};
-  await ev(`document.querySelector('#star-exchange-qty').value='4'`);await tap('[data-soulexchange]');
+  await tap('[data-shop-exchange]');await ev(`document.querySelector('#star-exchange-qty').value='4'`);await tap('[data-soulexchange]');
   check('界面批量兑换扣60魂点加4星点',await ev(`Game.metaState().soul===240&&Game.adCoinBalance()===4`));
-  await ev(`document.querySelector('#star-exchange-qty').value='2'`);await tap('[data-adexchange]');
+  await tap('[data-shop-exchange]');await ev(`document.querySelector('#star-exchange-qty').value='2'`);await tap('[data-adexchange]');
   check('反向兑换加30魂点扣2星点',await ev(`Game.metaState().soul===270&&Game.adCoinBalance()===2`));
   for(const [width,height,mobile] of [[667,375,true],[844,390,true],[1366,768,false]]){
    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile});await openShop();await sleep(2600);
-   const report=await ev(`(()=>{const fail=[];for(const e of document.querySelectorAll('.cabinet-product,#star-exchange-qty,[data-soulexchange],[data-adexchange],.shop-title summary,#modal .modal-x')){const r=e.getBoundingClientRect(),h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);if(!r.width||r.left<0||r.top<0||r.right>innerWidth||r.bottom>innerHeight||!e.contains(h))fail.push(e.outerHTML);}return fail;})()`);
+   const report=await ev(`(()=>{const fail=[];for(const e of document.querySelectorAll('.cabinet-product,[data-shop-exchange],.shop-title summary,#modal .modal-x')){const r=e.getBoundingClientRect(),h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);if(!r.width||r.left<0||r.top<0||r.right>innerWidth||r.bottom>innerHeight||!e.contains(h))fail.push(e.outerHTML);}return fail;})()`);
    if(report.length)console.log(JSON.stringify(report));
    check('全部商城操作一屏可见且可点 '+width,report.length===0);
    check('弹窗刷新场景不穿透 '+width,await ev(`(()=>{for(let i=0;i<5;i++)UI.render();return getComputedStyle(document.querySelector('#scene-img')).visibility==='hidden';})()`));
    await ev(`Promise.all([...document.querySelectorAll('.cabinet-product img')].map(i=>i.complete?Promise.resolve():new Promise(r=>{i.onload=i.onerror=r})))`);
    const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync(path.join(out,'standalone-shop-'+width+'.png'),Buffer.from(shot.data,'base64'));
   }
-  await ev(`document.querySelector('#star-exchange-qty').value='13'`);await tap('[data-soulexchange]');await tap('[data-adbuy="divinePack"]');await tap('[data-choice="0"]');
+  await tap('[data-shop-exchange]');await ev(`document.querySelector('#star-exchange-qty').value='13'`);await tap('[data-soulexchange]');await tap('[data-adbuy="divinePack"]');await tap('[data-choice="0"]');
   check('兑换后的星点可以购买并寄到邮箱',await ev(`Game.metaState().soul===75&&Game.adCoinBalance()===0&&Game.mailboxList().some(x=>x.item==='divinePack')`));
   await ev(`document.querySelector('#modal .modal-x').click();document.querySelector('#nav [data-nav="save"]').click();document.querySelector('[data-savemenu="backup"]').click();`);
   check('备份页无广告免费备份入口',await ev(`!document.querySelector('[data-adbackup]')&&!document.querySelector('#watch-reward-ad')`));
@@ -55,7 +55,7 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
   check('Tap首次默认中文',await ev(`document.documentElement.lang==='zh-CN'`));
   await ev(`Game.newGame('fisher','normal');Game.S().tut=null;Game.metaState().batchTipSeen=1;Game.metaState().adWallet={};Game.metaState().adRewardDays={};UI.begin();`);await sleep(2800);
   await openShop();await sleep(500);
-  check('Tap商城显示广告币及真实帮助文字',await ev(`Game.adCurrencyName()==='广告币'&&document.querySelector('[data-soulexchange]').textContent==='换广告币'&&document.querySelector('.shop-title').textContent.includes('15 魂点兑换 1 广告币')&&!document.querySelector('.shop-title').textContent.includes('currency')`));
+  check('Tap商城显示广告币及真实帮助文字',await ev(`Game.adCurrencyName()==='广告币'&&!!document.querySelector('[data-shop-exchange]')&&document.querySelector('.shop-title').textContent.includes('15 魂点兑换 1 广告币')&&!document.querySelector('.shop-title').textContent.includes('currency')`));
   for(const [width,height,mobile] of [[667,375,true],[844,390,true],[1366,768,false]]){
    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile});await openShop();await sleep(700);
    check('Tap广告入口与全部商品一屏可见 '+width,await ev(`(()=>{const es=[...document.querySelectorAll('#watch-reward-ad,[data-adbuy]')];return es.length===7&&es.every(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight&&e.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2))})})()`));
@@ -66,7 +66,7 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
   await ev(`adClose({isEnded:false})`);await sleep(600);
   check('提前关闭不发奖且解除操作锁',await ev(`Game.adCoinBalance()===0&&Game.adRewardState().uses===0&&!document.querySelector('#modal .modal-content').inert`));
   await tap('#watch-reward-ad');await ev(`adClose({isEnded:true});adClose({isEnded:true})`);await sleep(600);
-  check('完整观看仅发一份3至6币并更新次数',await ev(`Game.adCoinBalance()>=3&&Game.adCoinBalance()<=6&&Game.adRewardState().uses===1&&document.querySelector('#watch-reward-ad').textContent.includes('1/5')&&!document.querySelector('#modal .modal-content').inert`));
+  check('完整观看仅发一份3至6币并更新次数',await ev(`Game.adCoinBalance()>=3&&Game.adCoinBalance()<=6&&Game.adRewardState().uses===1&&document.querySelector('#watch-reward-ad').getAttribute('aria-label').includes('1/5')&&!document.querySelector('#modal .modal-content').inert`));
   check('Tap全过程只创建一个SDK实例',await ev(`sdkCalls===1&&adShows===2`));
   ws.close();console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);
  }finally{ch.kill();}

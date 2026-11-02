@@ -1,5 +1,5 @@
 const fs=require('node:fs'),assert=require('node:assert/strict');
-const Platform=new Function(fs.readFileSync('孤屿遗章-游戏 - 发布/js/storage/platform.js','utf8')+';return PlatformSaveStore;')();
+const Platform=new Function(fs.readFileSync('孤屿遗章-游戏 - 发布/js/storage/codec.js','utf8')+fs.readFileSync('孤屿遗章-游戏 - 发布/js/storage/platform.js','utf8')+';return PlatformSaveStore;')();
 const valid=r=>!!r&&r.day>0&&!!r.stats;
 function fixture(seed={},options={}){
  const data=new Map(Object.entries(seed)),files=new Map(),calls={uploads:0},storage={getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)};

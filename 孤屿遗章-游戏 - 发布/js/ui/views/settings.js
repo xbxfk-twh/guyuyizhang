@@ -112,10 +112,17 @@ function adShopModal() {
     const shop=Game.adShopState(), soul=Game.metaState().soul || 0,currency=Game.adCurrencyName();
     const reward=Game.adRewardState(), provider=adProvider(), tapShop=!!provider && provider.enabled();
     const gift=Game.dailyGiftState();
-    const video=tapShop ? `<button id="watch-reward-ad" class="shop-video-button" title="${esc(reward.reason || (!adAvailable()?'广告暂不可用':''))}" ${!reward.canClaim || !adAvailable()?'disabled':''}><span class="shop-video-seal" aria-hidden="true">▶</span><span class="shop-video-label"><b>看广告领币</b><small>${esc(reward.reason || (!adAvailable()?'广告暂不可用':`3～6 ${currency} · ${reward.uses}/${reward.limit}`))}</small></span></button>` : '';
-    return `<div class="modal-title shop-title${tapShop?' shop-title-video':''}"><b>售物柜</b>${video}<div class="shop-tools"><div class="cabinet-exchange"><div class="cabinet-controls"><input id="star-exchange-qty" aria-label="兑换数量" type="number" min="1" max="${Math.max(shop.coins,Math.floor(soul/15),1)}" value="1"><button data-soulexchange ${soul<15?'disabled':''}>换${currency}</button><button data-adexchange ${shop.coins<1?'disabled':''}>换魂点</button></div></div><span>◇ ${shop.coins} · 魂点 ${soul}</span>${inlineHelp(`15 魂点兑换 1 ${currency}；1 ${currency}兑换 15 魂点。输入兑换数量再选择方向。${currency}跨局保留，商品寄到邮箱；传奇档不能领取物资。`)}</div></div>
+    const videoHelp=tapShop ? `看广告可获3～6 ${currency}，每天最多5次；今日已领取 ${reward.uses}/${reward.limit} 次。${reward.reason || (!adAvailable()?'广告暂不可用':'')} ` : '';
+    const videoLabel=`看广告领币 · ${reward.reason || (!adAvailable()?'广告暂不可用':`3～6 ${currency} · ${reward.uses}/${reward.limit}`)}`;
+    const video=tapShop ? `<button id="watch-reward-ad" class="shop-video-button" title="${esc(videoLabel)}" aria-label="${esc(videoLabel)}" ${!reward.canClaim || !adAvailable()?'disabled':''}><span class="shop-video-seal" aria-hidden="true">▶</span></button>` : '';
+    return `<div class="modal-title shop-title${tapShop?' shop-title-video':''}"><b>售物柜</b><div class="shop-tools"><span>◇ ${shop.coins} · 魂点 ${soul}</span><button data-shop-exchange>兑换</button>${video}${inlineHelp(`${videoHelp}15 魂点兑换 1 ${currency}，1 ${currency}兑换 15 魂点。点击兑换选择数量与方向。${currency}跨局保留，商品寄到邮箱；传奇档不能领取物资。`)}</div></div>
       <div class="shop-cabinet">${shop.goods.map(g=>{const item=ITEMS[g.id] || RELICS[g.id];return `<button class="cabinet-cell cabinet-product" data-adbuy="${g.id}" aria-label="购买${esc(item.name)}，${g.cost}${currency}，发到邮箱" ${shop.coins<g.cost?'disabled':''}><span class="cabinet-item">${itemIcon(g.id)}<b>${esc(item.name)}</b></span><small class="cabinet-price">◇ ${g.cost}</small></button>`;}).join('')}
       ${Array.from({length:Math.max(0,11-shop.goods.length)},()=>'<div class="cabinet-cell cabinet-empty" aria-hidden="true"></div>').join('')}<button class="cabinet-cell cabinet-gift" data-shop-gift ${gift.canClaim?'':'disabled'}><span class="shop-gift-seal" aria-hidden="true">◇</span><b>每日赠礼</b><small>${gift.canClaim?'免费领取':'今日已领取'}</small>${NoticeBadges.dot('adshop')}</button></div>`;
+  }
+
+function shopExchangeModal() {
+    const coins=Game.adShopState().coins,soul=Game.metaState().soul||0,currency=Game.adCurrencyName();
+    return `<div class="modal-title">魂点兑换</div><div class="overlay-text">◇ ${coins} · 魂点 ${soul}<br>15 魂点 ⇄ 1 ${currency}</div><div class="cabinet-controls"><label for="star-exchange-qty">兑换数量</label><input id="star-exchange-qty" aria-label="兑换数量" type="number" min="1" max="${Math.max(coins,Math.floor(soul/15),1)}" value="1"></div><div class="modal-actions"><button data-soulexchange ${soul<15?'disabled':''}>换${currency}</button><button data-adexchange ${coins<1?'disabled':''}>换魂点</button><button id="modal-close">返回</button></div>`;
   }
 
 function mailboxModal() {
@@ -179,7 +186,7 @@ function mailboxModal() {
         } finally {button.disabled=false;}
       };
     }
-    return Object.freeze({guideBadge,markGuideRead,roadAmbushOn,backupSummary,downloadBackup,settingsModal,signModal,guideContent,guideModal,adAvailable,watchAd,adShopModal,mailboxModal,bindDownload});
+    return Object.freeze({guideBadge,markGuideRead,roadAmbushOn,backupSummary,downloadBackup,settingsModal,signModal,guideContent,guideModal,adAvailable,watchAd,adShopModal,shopExchangeModal,mailboxModal,bindDownload});
   }
   return Object.freeze({create});
 })();

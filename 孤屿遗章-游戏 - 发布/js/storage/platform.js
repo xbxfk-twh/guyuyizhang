@@ -10,7 +10,7 @@ const PlatformSaveStore = (() => {
     let queue,writing=null,writeTimer,cloudTimer,busy=false,lastUpload=0,uploaded='',lastLocal=0,notice='本地存档',cloudError='',fileError='';
     const parse=s=>{try{return JSON.parse(s);}catch(e){return null;}};
     const runOf=k=>{for(const key of ['guyuyizhang_save','guyuyizhang_save_bak']){const r=parse(k[key]);if(validate(r))return r;}return null;};
-    const metaOf=k=>{for(const key of ['guyuyizhang_meta','guyuyizhang_meta_bak']){const m=parse(k[key]);if(object(m))return m;}return null;};
+    const metaOf=k=>{for(const key of ['guyuyizhang_meta','guyuyizhang_meta_bak']){const m=parse(k[key]);if(SaveCodec.validMeta(m))return m;}return null;};
     const meaningful=k=>!!runOf(k)||(()=>{const m=metaOf(k);return !!m&&(m.runs>0||m.soul>0||(m.slots||[]).some(Boolean)||Object.keys(m.nodes||{}).length>0);})();
     function needsChoice(local,other){const a=runOf(local),b=runOf(other),am=metaOf(local),bm=metaOf(other);return !!(bm&&(!am||(bm._accountRev||0)>(am._accountRev||0)))||!!(b&&other.guyuyizhang_save!==local.guyuyizhang_save&&(!(a?._runId&&a._runId===b._runId)||(b._rev||0)>(a._rev||0)));}
     function capture(){const k={};for(const key of KEYS)k[key]=storage.getItem(key);return k;}

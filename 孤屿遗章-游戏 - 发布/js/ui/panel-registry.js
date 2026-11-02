@@ -31,6 +31,7 @@ const GamePanels = (() => {
     diary: {freeze:true, dismiss:true},
     mailbox: {freeze:true, dismiss:true},
     adshop: {freeze:true, dismiss:true},
+    shopExchange: {freeze:true, dismiss:true},
     guide: {freeze:true, dismiss:true},
     share: {freeze:true, dismiss:true},
     settings: {freeze:true, dismiss:true},
