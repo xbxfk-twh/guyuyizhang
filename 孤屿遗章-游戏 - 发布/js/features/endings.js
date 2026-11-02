@@ -51,6 +51,11 @@ function checkEndingActions() {
     return acts;
   }
 
+function settlementHint() {
+    const settled=gameState.run.flags.settledEnding;
+    return settled ? `本局已以「${(ENDINGS[settled] || {}).name || settled}」结算；每个存档只能结算一次，新结局的达成记录仍会保留。` : '可继续探索；结算入口在「装备 → 属性」页顶部。';
+  }
+
 function doEnding(id) {
     if(gameState.run.difficulty==='nightmare') return {ok:false,reason:'击败噩梦之源才能从长夜醒来。'};
     // 第二章：结局改为"可继续/可手动结算"，不再强制结束
@@ -59,24 +64,24 @@ function doEnding(id) {
     if (id === 'endA') {
       if (gameState.run.flags['ended_A']) { log('归乡的一切都已备齐。', 'sys'); return; }
       gameState.run.flags['ended_A'] = 1;
-      log('万事俱备，可你的目光却落向了更远的深海——或许还能找到更多线索。（按"回营地"即可继续；结算入口在「装备 → 属性」的人物立绘下方）', 'good');
+      log(`万事俱备，可你的目光却落向了更远的深海——或许还能找到更多线索。（${settlementHint()}）`, 'good');
       diaryAdd('海之尽头，仿佛还有一个世界在等我。');
     } else if (id === 'endB') {
       if (gameState.run.flags['ended_B']) { log('岛上的灯火已经亮起。', 'sys'); return; }
       gameState.run.flags['ended_B'] = 1;
-      log('岛主之名落定，可你总觉得海的深处仍有未解的谜团……（按"回营地"即可继续；结算入口在「装备 → 属性」的人物立绘下方）', 'good');
+      log(`岛主之名落定，可你总觉得海的深处仍有未解的谜团……（${settlementHint()}）`, 'good');
       diaryAdd('这座岛已经是我的了，可深海还在呼唤。');
     } else if (id === 'endS') {
       if (gameState.run.flags['ended_S']) { log('灯塔的长明之光已经亮起。', 'sys'); return; }
       gameState.run.flags['ended_S'] = 1;
       achUnlock('lighthouse');
-      log('你重启了亚特兰蒂斯的灯塔——失落文明的灯火，重新亮起。（结局·重燃文明 已达成，可继续；结算入口在「装备 → 属性」的人物立绘下方）', 'good');
+      log(`你重启了亚特兰蒂斯的灯塔——失落文明的灯火，重新亮起。（结局·重燃文明 已达成；${settlementHint()}）`, 'good');
       diaryAdd('灯塔亮起，文明重新呼吸。');
     } else if (id === 'endS2') {
       if (gameState.run.flags['ended_S2']) { log('深海已经重归寂静。', 'sys'); return; }
       gameState.run.flags['ended_S2'] = 1;
       achUnlock('abyssal');
-      log('你按灭了最后一盏灯，让亚克兰蒂斯重新长眠。（结局·深海长眠 已达成，可继续；结算入口在「装备 → 属性」的人物立绘下方）', 'good');
+      log(`你按灭了最后一盏灯，让亚克兰蒂斯重新长眠。（结局·深海长眠 已达成；${settlementHint()}）`, 'good');
       diaryAdd('我选择让这座城安安静静地睡下去。');
     }
     save();
@@ -138,7 +143,7 @@ function askSettleEnding(id) {
     }
     showOverlay({
       title: '结局达成 · ' + name,
-      text: `这一生可以收尾了：《${name}》已经达成。\n\n⚠ 一个存档只能结算一个结局：确定结算《${name}》之后，这个存档就不能再结算其他结局了（其他结局仍然可以达成，只是收尾要开新的一局）。\n\n结算会把这一生折成魂点汇入《历代遗章》，看完可以按「留在岛上」接着玩，进度不会丢。\n\n不着急看也行——随时打开「装备 → 属性」，入口就在人物立绘下方（「结算 · 结局「${name}」」）。`,
+      text: `这一生可以收尾了：《${name}》已经达成。\n\n⚠ 一个存档只能结算一个结局：确定结算《${name}》之后，这个存档就不能再结算其他结局了（其他结局仍然可以达成，只是收尾要开新的一局）。\n\n结算会把这一生折成魂点汇入《历代遗章》，看完可以按「留在岛上」接着玩，进度不会丢。\n\n不着急看也行——随时打开「装备 → 属性」，入口就在属性页顶部（「结算 · 结局「${name}」」）。`,
       choices: [
         { label:'观看结算画面', hint:'还要再确认一次', ok: () => { confirmSettleEnding(id); } },
         { label:'继续探索', hint:'先接着玩，之后再结算', ok: () => { log(`《${name}》已达成，随时可以结算。`, 'sys'); } },
@@ -155,7 +160,7 @@ function confirmSettleEnding(id) {
       text: `确认以《${name}》作为这个存档的结局吗？\n\n· 结算后本存档不能再结算其他结局（其他结局仍然可以达成）\n· 这一生照常可以接着玩，进度不会丢\n· 本局会折算成魂点汇入《历代遗章》`,
       choices: [
         { label:'确定结算', hint:'本存档只认这一个结局', ok: () => { settleEnding(id); } },
-        { label:'再想想', hint:'先接着玩', ok: () => { log(`《${name}》先留着——「装备 → 属性」的人物立绘下方随时能结算。`, 'sys'); } },
+        { label:'再想想', hint:'先接着玩', ok: () => { log(`《${name}》先留着——「装备 → 属性」页顶部随时能结算。`, 'sys'); } },
       ],
     });
   }

@@ -304,7 +304,15 @@ function renderEquip() {
       const dw = st.equipment.weapon ? ITEMS[st.equipment.weapon] : null;
       const d2 = st.equipment.weapon2 ? ITEMS[st.equipment.weapon2] : null;
       const wline = (dw ? `${dw.glyph} ${Game.wNameOf(st.equipment.weapon)}` : '未装备') + (d2 && d2.cat !== 'shield' ? ` + ${d2.glyph} ${Game.wNameOf(st.equipment.weapon2)}` : '') + (d2 && d2.cat === 'shield' ? ` + ${d2.glyph} ${d2.name}(盾)` : '');
-      html += '<div class="modal-title" style="margin-top:10px">人物属性 <span style="font-size:11px">c（a+b）· a 人物攻击 / b 武器加成 / c 当前攻击</span></div><div class="attr-wrap"><div class="attr-left"><div class="help-list">';
+      html += '<div class="modal-title" style="margin-top:10px">人物属性 <span style="font-size:11px">c（a+b）· a 人物攻击 / b 武器加成 / c 当前攻击</span></div>';
+      const sa=settleActions(), settled=st.flags.settledEnding;
+      if (sa.length || settled) {
+        html += '<section class="attr-settle"><div class="attr-settle-title">本局结局</div>';
+        if (settled) html += `<div class="attr-settle-note">本局已以「${esc((ENDINGS[settled] || {}).name || settled)}」结算；每个存档只能结算一次。其他结局的达成记录仍会保留，可继续探索。</div>`;
+        else html += sa.map(a=>`<button class="mini-btn attr-settle-btn" data-settle="${esc(a.id.slice(7))}" title="${esc(a.desc)}">${esc(a.name)}</button>`).join('')+'<div class="attr-settle-note">每个存档只能结算一次；结算后仍可继续探索。</div>';
+        html += '</section>';
+      }
+      html += '<div class="attr-wrap"><div class="attr-left"><div class="help-list">';
       const row = (k, v) => `<div class="help-item"><b>${k}</b><span>${v}</span></div>`;
       html += row('主手武器', wline);
       html += row('攻击力', `${cs.c}（${cs.a}+${cs.b}）`);
@@ -334,15 +342,7 @@ function renderEquip() {
         html += row('水壶', st.furniture.rainfilter ? `已建 + 滤雨器（口渴 -20%，储水 ${Math.max(0, Number(st.rainWater) || 0)}/20；营地手动取水）` : '已建（口渴消耗 -20%）');
       }
       html += '</div></div>';
-      // 结局「结算」入口：人物立绘下方（作者 2026-09-23 从右下角搬过来）。
-      // 没有可结算的结局时整块不出现，立绘下面保持干净。
-      const sa = settleActions();
       html += `<div class="attr-right"><img class="attr-portrait" src="${portraitPath(st.identity || '')}" alt="" onerror="__portraitFail(this,'${st.identity || ''}')"><div class="attr-char">${(IDENTITIES[st.identity] || {}).name || ''}</div>`;
-      if (sa.length) {
-        html += '<div class="attr-settle"><div class="attr-settle-title">本局结局</div>'
-          + sa.map(a => `<button class="mini-btn attr-settle-btn" data-settle="${esc(a.id.slice(7))}" title="${esc(a.desc)}">${esc(a.name)}</button>`).join('')
-          + '<div class="attr-settle-note">一个存档只能结算一个结局；结算后本局照样能继续玩。</div></div>';
-      }
       html += '</div>';
       html += '</div>';
     }

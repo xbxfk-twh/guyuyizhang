@@ -35,11 +35,14 @@ const COLOR_INVENTORY_SHEETS = {
     final: ['beibi','coin','poisonCoat','divineBow','diveSuit','diveSuit2','goggles','lightWeak','lightStrong','bpCoralBlade','bpCoralArmor','bpThruster','bpSourceSpear','bpSourceArmor','bpOmelette','bpCake']
   };
 
+function iconImage(src, classes='') {
+    return `<img class="item-icon${classes}" width="32" height="32" src="${src}" alt="" onerror="this.style.display='none'">`;
+  }
 function itemIcon(id) {
-    if(id==='lantern')return '<img class="item-icon" src="assets/img/items/lantern-woodcut.png" alt="">';
-    if(['bread','flour'].includes(id))return `<img class="item-icon" src="assets/img/items/${id}-cut-v2.webp" alt="">`;
-    if(id==='blackGreatSword')return '<img class="item-icon" src="assets/img/items/blackGreatSword.png" alt="">';
-    if(['nightmareSoul','nightmareSoul2','nightmareSoul3'].includes(id)) return '<img class="item-icon" src="assets/img/items/nightmareSoul.png" alt="">';
+    if(id==='lantern')return iconImage('assets/img/items/lantern-woodcut.png');
+    if(['bread','flour'].includes(id))return iconImage(`assets/img/items/${id}-cut-v2.webp`);
+    if(id==='blackGreatSword')return iconImage('assets/img/items/blackGreatSword.png');
+    if(['nightmareSoul','nightmareSoul2','nightmareSoul3'].includes(id)) return iconImage('assets/img/items/nightmareSoul.png');
     const recipeCell = ['bpStew','bpOmelette','bpCake'].indexOf(id);
     if (recipeCell >= 0 && skinOn('seasons')) return `<span class="item-icon recipe-art art-colored" aria-hidden="true" style="background-position:${recipeCell*50}% 0%"></span>`;
     if (skinOn('seasons')) {
@@ -59,7 +62,7 @@ function itemIcon(id) {
     const it = ITEMS[id];
     if (!(id in deps.SPR)) return `<span class="inv-glyph">${it.glyph}</span>`;
     const dir = (ALWAYS_COLOR[id] || (skinOn('accent') && ACCENT[id])) ? 'items-accent' : 'items';
-    return `<img class="item-icon${ALWAYS_COLOR[id] ? ' always-color' : ''}" src="assets/img/${dir}/${id}.png?v=${window.BUILD_VER || 'v1.09'}" alt="" onerror="this.style.display='none'">`;
+    return iconImage(`assets/img/${dir}/${id}.png?v=${window.BUILD_VER || 'v1.09'}`,ALWAYS_COLOR[id] ? ' always-color' : '');
   }
 
 let currentZone = null;

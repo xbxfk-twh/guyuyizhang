@@ -5338,11 +5338,11 @@ section('15. 负面状态徽标（窄屏不再被隐藏 / 水下状态 / 不遮�
 }
 
 // ============================================================
-// 16. 结局「结算」入口的位置：右下角 → 「装备 → 属性」人物立绘下方（作者 2026-09-23）
+// 16. 结局结算入口在属性页顶部；不占场景浮层，保留确认和每档一次。
 //     为什么搬：这批按钮不跟场景绑定，只要"已达成但没结算"就连大地图都挂在 #scene-actions，
 //     常年压住右下角（"放这里有点遮挡"）。搬走的只有「结算」，「达成」仍留在右下角。
 // ============================================================
-section('16. 结局结算入口位置（右下角 → 装备·属性立绘下方）');
+section('16. 结局结算入口（属性页顶部，保留每档一次规则）');
 {
   const CSS = fs.readFileSync(ROOT + '/css/style.css', 'utf8');
   const U = UI;
@@ -5351,12 +5351,13 @@ section('16. 结局结算入口位置（右下角 → 装备·属性立绘下方
      /Game\.checkEndingActions\(\)\.filter\(a => a\.id\.indexOf\('settle_'\) < 0\)/.test(U));
   ck('★ 16.2 但「达成」按钮没被一起过滤（过滤条件只针对 settle_ 前缀，doEnding 路径仍在）',
      /filter\(a => a\.id\.indexOf\('settle_'\) < 0\)/.test(U) && /else Game\.doEnding\(a\.id\);/.test(U));
-  // ② 属性栏立绘下方渲染结算入口
+  // ② 顶部展示可用入口或已结算说明，不依赖人物立绘
   ck('★ 16.3 有专门的 settleActions() 收集结算入口（数据源仍是 checkEndingActions）',
      /function settleActions\(\)\s*\{[\s\S]{0,200}?return Game\.checkEndingActions\(\)\.filter\(a => a\.id\.indexOf\('settle_'\) === 0\)/.test(U));
-  ck('★ 16.4 属性标签页在 .attr-right 里渲染 .attr-settle（人物立绘下方的那块）',
-     /const sa = settleActions\(\);[\s\S]{0,500}?class="attr-settle"/.test(U) && /attr-settle-btn" data-settle=/.test(U));
-  ck('★ 16.5 没有可结算结局时整块不出现（立绘下面保持干净）', /if \(sa\.length\) \{/.test(U));
+  ck('★ 16.4 属性页结算区域在属性网格和人物立绘之前，按钮保留完整结局 ID',
+     /const sa\s*=\s*settleActions\(\), settled\s*=\s*st\.flags\.settledEnding;[\s\S]{0,1400}?class="attr-settle"[\s\S]{0,1400}?class="attr-wrap"/.test(U) && /attr-settle-btn" data-settle=/.test(U));
+  ck('★ 16.5 未达成且未结算时不显示；已结算明确解释每档一次规则',
+     /if \(sa\.length \|\| settled\)/.test(U) && /if \(settled\)[\s\S]{0,500}?每个存档只能结算一次/.test(U));
   // ③ 点击绑定：⚠️ data-settle 存的是完整的 'endA'，不能再拼一次 'end'
   //    （第一版写成 'end' + dataset.settle → 'endendA' → flags['ended_endA'] 取不到，按钮点了没反应）
   // ⚠️ 契约变更（2026-09-25，作者："属性栏任务下面的点击之后也应该出现确认弹窗，而不是直接结算"）：
@@ -5401,8 +5402,9 @@ section('16. 结局结算入口位置（右下角 → 装备·属性立绘下方
   // ⑤ 玩家可见文本不能再指向右下角（v1.08 老公告里的那句是历史，不动它）
   const G2 = _GAME_SRC.replace(/\/\/[^\n]*/g, '');
   ck('★ 16.10 游戏内文案不再说"右下角会留一个结算按钮"', !/右下角[^\n]{0,40}结算/.test(G2));
-  ck('★ 16.11 结局达成弹窗/日志改成指向「装备 → 属性」', (G2.match(/装备 → 属性/g) || []).length >= 5,
-     '出现 ' + (G2.match(/装备 → 属性/g) || []).length + ' 处');
+  ck('★ 16.11 四种结局共用结算状态提示，未结算指向属性顶部、已结算解释锁定',
+     /function settlementHint\(\)[\s\S]{0,500}?flags\.settledEnding[\s\S]{0,500}?每个存档只能结算一次[\s\S]{0,500}?属性」页顶部/.test(G2) &&
+     (G2.match(/\$\{settlementHint\(\)\}/g) || []).length === 4);
   ck('★ 16.12 旧版公告按作者指示撤下', !PATCH_NOTES.some(n=>n.version==='v1.08'));
 }
 
