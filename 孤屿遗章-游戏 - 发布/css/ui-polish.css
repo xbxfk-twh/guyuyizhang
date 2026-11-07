@@ -939,7 +939,8 @@ body.log-tiny .logtime{display:none!important}
 #modal .warehouse-dual-modal .inventory-side{flex-basis:52px;width:52px}
 #topbar #status-badges{position:static!important;display:flex;align-items:center;gap:3px;flex-shrink:0;padding:0;margin-left:4px;max-width:140px;overflow:hidden}
 #topbar #status-badges .badge{font-size:10px;padding:2px 4px;white-space:nowrap}
-#topstats .stat-name{font-family:Arial,sans-serif;font-size:14px}
+#topstats .stat-name { display: grid; place-items: center; flex: 0 0 14px; }
+#topstats .stat-name svg { display: block; width: 14px; height: 14px; }
 #modal .compact-prompt{width:min(440px,90vw);max-height:75vh;padding:12px}
 @media(max-width:700px){#topbar #status-badges{max-width:80px}#modal .inventory-modal:not(.warehouse-dual-modal) .inv-grid{grid-template-columns:repeat(auto-fill,minmax(65px,1fr))}}
 
