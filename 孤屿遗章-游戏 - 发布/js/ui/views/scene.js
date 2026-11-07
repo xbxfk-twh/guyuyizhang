@@ -314,7 +314,6 @@ function sceneActions() {
     const st = S();
     const sc = Game.sceneOf(st.scene);
     const out = [];
-    out.push({ label:`返回地图`, cls:'nav', fn:() => { deps.view = 'map'; render();  } });
     if (sc.id === 'peak' && Game.invCount('slate') >= 3 && Game.hasItem('relic') && Game.hasItem('dragonbone')) {
       // 祭坛仪式在 ending actions 已处理
     }

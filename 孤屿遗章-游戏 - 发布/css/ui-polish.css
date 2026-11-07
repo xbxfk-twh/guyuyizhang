@@ -388,14 +388,14 @@ body.skin-accent {
 .modal-content.merchant-modal { width:min(1080px,96vw); max-width:1080px; padding:0; overflow:hidden; }
 .merchant-modal .modal-x { position:absolute; top:0; right:0; margin:0; float:none; }
 .merchant-goods .trader-row { display:none; }
-.merchant-layout { display:grid; grid-template-columns:clamp(135px,24vw,250px) minmax(0,1fr); height:min(660px,calc(100dvh - 70px)); }
+.merchant-layout { display:grid; grid-template-columns:clamp(135px,24vw,250px) minmax(0,1fr); grid-template-rows:minmax(0,1fr); height:min(660px,calc(88dvh - 6px),calc(100dvh - 70px)); }
 .merchant-person { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; min-width:0; padding:12px 8px; border-right:1px solid var(--ink); background:linear-gradient(180deg,#a9a48c33,#8b785533); }
 .merchant-portrait { flex:1; width:100%; max-height:370px; min-height:90px; background-image:url('../assets/img/merchants/portraits.webp'); background-size:300% 300%; background-repeat:no-repeat; aspect-ratio:1; flex:none; filter:grayscale(1); }
 .merchant-portrait.art-colored { filter:none; }
 .merchant-person b { font-size:16px; }
 .merchant-person p { font-size:13px; line-height:1.5; min-height:40px; margin:8px 0; }
 .merchant-person .mini-btn { min-height:32px; padding:3px 10px; font-size:12px; }
-.merchant-goods { min-width:0; overflow:auto; padding:14px 12px; padding-top:12px; }
+.merchant-goods { min-width:0; min-height:0; overflow:auto; touch-action:pan-y; overscroll-behavior:contain; padding:14px 12px; padding-top:12px; }
 .merchant-goods .modal-title { padding-right:40px; font-size:20px; }
 .merchant-goods .trader-img,.merchant-goods .trader-talk { display:none; }
 .merchant-goods .tabs { display:flex; flex-wrap:wrap; gap:4px; margin:6px 0; }
@@ -464,7 +464,7 @@ body.skin-accent {
 @keyframes tide-breathe { to { transform:scale(1.1); opacity:.7; } }
 @keyframes tide-reveal { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 @media (max-height:500px) {
- .merchant-layout { height:calc(100dvh - 62px); grid-template-columns:130px minmax(0,1fr); }
+ .merchant-layout { height:min(calc(88dvh - 6px),calc(100dvh - 62px)); grid-template-columns:130px minmax(0,1fr); }
  .merchant-person { padding:8px 6px; }
  .merchant-portrait { width:120px; height:120px; }
  .merchant-person p { font-size:11px; min-height:30px; margin:5px 0; }
@@ -575,14 +575,12 @@ body.skin-accent {
 #status-badges { position:absolute; right:10px; left:auto; top:40px; z-index:12; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:3px; max-width:min(38vw,480px); margin:0; pointer-events:none; }
 #status-badges .badge { font-size:11px; padding:2px 5px; line-height:1.4; color:var(--paper); background:rgba(18,18,15,.82); }
 #status-badges .badge.danger { color:var(--ink); background:var(--paper); }
-#btn-backmap { top:6px; left:6px; min-height:30px; padding:4px 8px; font-size:13px; }
 #scene-name { max-width:min(42vw,480px); font-size:14px; padding:4px 8px; line-height:22px; pointer-events:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #modal .merchant-portrait[role="button"] { cursor:pointer; }
 #modal .merchant-portrait[role="button"]:focus-visible { outline:2px solid var(--ui-rule); outline-offset:2px; }
 .event-ad { margin-top:20px; padding-top:12px; border-top:1px solid var(--ui-rule); font-size:13px; }
 @media (max-height:500px), (max-width:900px) {
   #status-badges { position:absolute; right:6px; left:auto; max-width:36vw; }
-  #btn-backmap { top:5px; left:5px; min-height:30px; padding:4px 7px; font-size:12px; }
   #scene-name { font-size:12px; line-height:22px; padding:4px 6px; }
   #modal .work-modal .recipe-actions .mini-btn { min-height:29px; height:29px; padding:2px 3px; line-height:22px; }
   #modal .work-modal .recipe-row { min-height:68px; }
@@ -1056,3 +1054,6 @@ button.language-control:hover,button.language-control:focus-visible{background:t
 .download-address{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .download-address input{flex:1 1 280px;min-width:0;width:100%;padding:9px;border:1px solid var(--ink);background:var(--paper);color:var(--ink);font-size:14px;user-select:text;-webkit-user-select:text}
 .download-address button{flex:0 0 auto;min-height:40px;padding:8px 14px;font-size:14px}
+
+#topstats button.stat { background:none; color:inherit; border:0; padding:0; min-height:24px; font:inherit; }
+#topstats button.stat:focus-visible { outline:1px solid currentColor; }

@@ -219,9 +219,9 @@ let activeBrowser,activeSocket;
     // ② 农田场景要有「农场管理」热点
     S.scene = 'farm'; UI.render(); await w(600);
     // ⚠️ 热点只在"场景视图"里渲染；上面点过导航地图，可能正停在地图视图上。
-    //    #btn-backmap 是地图↔场景的切换键：不在场景视图就点它。
+    //    #nav [data-nav="map"] 是地图↔场景的切换键：不在场景视图就点它。
     for (let i = 0; i < 3 && !document.querySelector('.hotspot'); i++) {
-      const bb = document.querySelector('#btn-backmap'); if (!bb) break; bb.click(); await w(600);
+      const bb = document.querySelector('#nav [data-nav="map"]'); if (!bb) break; bb.click(); await w(600);
     }
     S.scene = 'farm'; UI.render(); await w(400);
     const 热点 = [...document.querySelectorAll('.hotspot')].map(h => h.textContent.trim());

@@ -53,7 +53,7 @@ function settingsModal() {
           <div class="set-inline">${tgl('audio:music', '音乐', AudioFX.enabledState())}${tgl('audio:sfx', '音效', AudioFX.sfxState())}${tgl('audio:voice', '角色语音', AudioFX.voiceState())}${tgl('audio:amb', '环境音', AudioFX.ambientState())}</div></div>
         <div class="help-item"><b>日志栏</b><span>怎么显示 / 多宽（窄一点能多看画面，宽一点看得清文字）</span>
           <div class="set-inline">
-            <span class="set-lbl">显示</span>${btn('log:always', '常驻', deps.logMode === 'always')}${btn('log:fade', '淡出', deps.logMode === 'fade')}${btn('log:hidden', '隐藏', deps.logMode === 'hidden')}
+            <span class="set-lbl">显示</span>${btn('log:always', '常驻', deps.logMode === 'always')}${btn('log:fade', '3 秒淡出', deps.logMode === 'fade')}${btn('log:hidden', '隐藏', deps.logMode === 'hidden')}
             <span class="set-lbl">宽度</span>${btn('logw:tiny', '极窄', deps.logSize === 'tiny')}${btn('logw:narrow', '窄', deps.logSize === 'narrow')}${btn('logw:mid', '中', deps.logSize === 'mid')}${btn('logw:wide', '宽', deps.logSize === 'wide')}
           </div></div>
         <div class="help-item"><b>场景上下滑动</b><span>关闭后小场景保持比例裁取画面，热点保留原位；大地图、日志和列表仍可滚动。</span><div class="set-inline">${tgl('sceneScroll','上下滑动',deps.sceneScroll)}</div></div>

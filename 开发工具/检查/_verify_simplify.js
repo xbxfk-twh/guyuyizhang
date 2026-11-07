@@ -26,7 +26,7 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
   check('menu entries guide mail and no restart',await ev(`!!document.querySelector('[data-savemenu="guide"]')&&!!document.querySelector('[data-savemenu="mail"]')&&!document.querySelector('[data-savemenu="restart"]')`));
   await ev(`document.querySelector('[data-savemenu="settings"]').click();document.querySelector('[data-set="sceneScroll"]').click();for(let i=0;i<12&&document.querySelector('#modal.open');i++)UI.handleBack();`);
   check('scroll setting persists off',await ev(`localStorage.getItem('guyuyizhang_scene_scroll')==='0'`));
-  check('关闭小场景滑动后大地图仍可上下拖动',await ev(`(async()=>{document.querySelector('#btn-backmap').click();const img=document.querySelector('#map-img');if(!img.complete)await new Promise(r=>{img.addEventListener('load',r,{once:true})});await new Promise(r=>setTimeout(r,300));const before=img.getBoundingClientRect().top;document.querySelector('#map-wrap').dispatchEvent(new WheelEvent('wheel',{deltaY:80,bubbles:true,cancelable:true}));const first=img.getBoundingClientRect().top;document.querySelector('#map-wrap').dispatchEvent(new WheelEvent('wheel',{deltaY:-80,bubbles:true,cancelable:true}));const after=img.getBoundingClientRect().top;document.querySelector('#btn-backmap').click();return Math.max(Math.abs(after-before),Math.abs(first-before))>5;})()`));
+  check('关闭小场景滑动后大地图仍可上下拖动',await ev(`(async()=>{document.querySelector('#nav [data-nav="map"]').click();const img=document.querySelector('#map-img');if(!img.complete)await new Promise(r=>{img.addEventListener('load',r,{once:true})});await new Promise(r=>setTimeout(r,300));const before=img.getBoundingClientRect().top;document.querySelector('#map-wrap').dispatchEvent(new WheelEvent('wheel',{deltaY:80,bubbles:true,cancelable:true}));const first=img.getBoundingClientRect().top;document.querySelector('#map-wrap').dispatchEvent(new WheelEvent('wheel',{deltaY:-80,bubbles:true,cancelable:true}));const after=img.getBoundingClientRect().top;document.querySelector('#nav [data-nav="map"]').click();return Math.max(Math.abs(after-before),Math.abs(first-before))>5;})()`));
 
   for(const [width,height,mobile] of [[844,390,true],[667,375,true],[1920,900,false]]){
     await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile});
@@ -37,7 +37,7 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
         const img=document.querySelector('#scene-img');if(img&&!img.complete)await new Promise(r=>{img.addEventListener('load',r,{once:true});setTimeout(r,2000)});
         if(sc.id==='atlantis'){
           if([...document.querySelectorAll('.hotspot')].some(p=>p.textContent.includes('大地图')))fail.push(sc.id+'/'+zone+':duplicate map hotspot');
-          const b=document.querySelector('#btn-backmap'),q=b?.getBoundingClientRect();
+          const b=document.querySelector('#nav [data-nav="map"]'),q=b?.getBoundingClientRect();
           if(!q||q.width<=0||q.top<0||q.bottom>innerHeight||!b.contains(document.elementFromPoint(q.left+q.width/2,q.top+q.height/2)))fail.push(sc.id+'/'+zone+':back button unreachable');
           if(b){b.click();if(!document.body.classList.contains('on-map')||!document.querySelector('#map-img'))fail.push(sc.id+'/'+zone+':back did not open map');b.click();if(document.body.classList.contains('on-map'))fail.push(sc.id+'/'+zone+':return did not restore scene');}
         }

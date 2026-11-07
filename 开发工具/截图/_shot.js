@@ -115,7 +115,7 @@ async function main() {
   await evaluate(`(async () => {
     const wait = ms => new Promise(r => setTimeout(r, ms));
     document.querySelector('#nav [data-nav="map"]').click(); await wait(400);
-    document.querySelector('#btn-backmap').click(); await wait(600);
+    document.querySelector('#nav [data-nav="map"]').click(); await wait(600);
     return 'scene-rain';
   })()`);
   await shot('scene_rain_16x9', 1280, 720);
@@ -187,7 +187,7 @@ async function main() {
     const fire = sel => { const e = document.querySelector(sel); if (e) e.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); };
     fire('#nav [data-nav="inv"]'); await wait(80);
     fire('#nav [data-nav="craft"]'); await wait(80);
-    fire('#btn-backmap'); await wait(80);
+    fire('#nav [data-nav="map"]'); await wait(80);
     const hs = document.querySelector('.hotspot:not(.locked)');
     const info = hs ? (hs.className + '｜' + hs.textContent.slice(0, 8)) : '无热点';
     if (hs) { hs.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); await wait(120); }
@@ -232,7 +232,7 @@ async function main() {
     body.scrollTop = 0; await wait(80);
     const atTop = body.scrollTop;
     const first = lines[0].getBoundingClientRect();
-    const btn = document.querySelector('#btn-backmap').getBoundingClientRect();
+    const btn = document.querySelector('#nav [data-nav="map"]').getBoundingClientRect();
     return '可滚=' + overflow + ' 最新一行离底=' + gapBottom + 'px ｜ 滚到顶scrollTop=' + Math.round(atTop) + ' 首行顶部=' + Math.round(first.top) + ' 返回按钮下沿=' + Math.round(btn.bottom);
   })()`));
   await shot('log_check_16x9', 1280, 720);
@@ -253,7 +253,7 @@ async function main() {
   await shot('map_island_portrait', 800, 1400);
   // 手机横屏（844×390）：底栏 20px 的实机样子
   await shot('map_island_phone', 844, 390);
-  await evaluate(`(async () => { const w = ms => new Promise(r => setTimeout(r, ms)); Game.S().weather = 'rain'; document.querySelector('#btn-backmap').click(); await w(700); return 1; })()`);
+  await evaluate(`(async () => { const w = ms => new Promise(r => setTimeout(r, ms)); Game.S().weather = 'rain'; document.querySelector('#nav [data-nav="map"]').click(); await w(700); return 1; })()`);
   await shot('scene_rain_phone', 844, 390);
 
   // ---------- 主界面菜单 / 设置面板 / 图鉴（账号级） / 日志隐藏 ----------

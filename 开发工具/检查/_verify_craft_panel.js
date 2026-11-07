@@ -189,7 +189,7 @@ const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —
     // 换到农田，走真实入口：农场管理热点
     document.querySelector('#modal .modal-x')?.click(); await w(250);
     S.scene = 'farm'; UI.render(); await w(400);
-    for (let i = 0; i < 3 && !document.querySelector('.hotspot'); i++) { const bb = document.querySelector('#btn-backmap'); if (bb) { bb.click(); await w(500); } }
+    for (let i = 0; i < 3 && !document.querySelector('.hotspot'); i++) { const bb = document.querySelector('#nav [data-nav="map"]'); if (bb) { bb.click(); await w(500); } }
     S.scene = 'farm'; UI.render(); await w(300);
     const rh = [...document.querySelectorAll('.hotspot')].find(x => /农场管理/.test(x.textContent));
     if (!rh) return { __err: '农田没有农场管理热点', 营地卡片 };

@@ -78,7 +78,7 @@ let toastTimer = null;
 function bindPress(el2,onTap,onLong) { PressInput.bind(el2,onTap,onLong); }
 
 function bindWarehouseCard(button,id,dir) {
-    button.style.touchAction='none';
+    button.style.touchAction='pan-y';
     const remember=()=>{deps.inventoryDualScroll=[...document.querySelectorAll('.inventory-pane .work-scroll')].map(e=>e.scrollTop);};
     bindPress(button,()=>{remember();const r=Game.transferWarehouse(id,1,dir==='in');centerToast(r.ok?(dir==='in'?'存入':'取出')+ITEMS[id].name+'×'+r.moved:r.reason);if(r.ok)showModal('warehouse');},start=>{remember();showModal('batchn',{kind:'warehouse',item:id,dir,returnKind:'warehouse'});dragTransferQuantity(start);});
   }

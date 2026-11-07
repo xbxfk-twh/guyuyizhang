@@ -373,7 +373,7 @@ ck('按钮自带前景色（深底卡片里不再浅底浅字）', /\.modal-acti
 ck('右下角动作按钮与休息栏同列（结构上不可能重叠）',
    /<div id="hud-bottomright">/.test(UI) && /#hud-bottomright \{ position: fixed/.test(CSS) && /#hud-bottomright > \* \{ pointer-events: auto; \}/.test(CSS) &&
    !/#scene-actions \{ position: absolute/.test(CSS) && !/#rest-bar \{ position: fixed/.test(CSS));
-ck('日志栏展开按钮贴在「返回地图」右侧且同高', /function alignLogGrip\(\)/.test(UI) && /r\.right \+ 8/.test(UI) && /g\.style\.height = Math\.round\(r\.height\)/.test(UI) && !/top: 42%/.test(CSS));
+ck('日志开关不依赖旧返回按钮，隐藏模式不显示', !UI.includes('btn-backmap') && /grip\.style\.display.*logMode !== 'hidden'/.test(UI));
 
 // ---------------------------------------------------------------- 16. 打包前置
 sec('16. 打包前置检查');

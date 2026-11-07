@@ -479,15 +479,9 @@ section('6b. 赶路距离（玩家反馈：对岸去岛上别处比回营地还�
   ck('往返亚克兰蒂斯都是游泳 1.5 小时', T('camp','atlantis') === 90 && T('atlantis','camp') === 90, T('camp','atlantis') + ' / ' + T('atlantis','camp'));
 }
 
-section('6c. 界面：日志首行不能被「返回地图」按钮压住');
+section('6c. 地图与场景共用底栏入口');
 {
-  const css = fs.readFileSync(ROOT + '/css/style.css', 'utf8');
-  const pad = +(/^\s*#log \{[\s\S]*?padding:\s*(\d+)px/m.exec(css) || [])[1];
-  const btnTop = +(/#btn-backmap \{ left: 12px; top: (\d+)px/.exec(css) || [])[1];
-  ck('桌面端日志留白高于按钮(44+21)', pad >= btnTop + 21 + 4, 'padding ' + pad + '，按钮下沿 ' + (btnTop + 21));
-  const mPad = +(/^\s*#log \{ width: min\(72vw, 320px\); font-size: 12px; padding-top: (\d+)px/m.exec(css) || [])[1];
-  ck('手机端日志留白也够（按钮 36 高）', mPad >= btnTop + 36 + 4, 'padding ' + mPad + '，按钮下沿 ' + (btnTop + 36));
-  ck('地图界面里按钮会变成「返回场景」', /返回场景/.test(UI));
+  ck('地图界面里底栏按钮会变成「返回场景」', /mapNav.*返回场景/.test(UI) && !UI.includes('btn-backmap'));
 }
 
 section('6d. 手枪 / 扩建仓库 / 重开身份');
@@ -1226,13 +1220,6 @@ section('6e. 设置 / 日志栏 / 图鉴全局 / 更新公告 / 背包手感');
        /function hasRanged\(\) \{\s*const rw = rangedWeapon\(\);/.test(_GAME_SRC));
     ck('弹药不能装备到手上（主副手不会被子弹占掉）',
        /if \(it\.ammo\) \{ log\(/.test(_GAME_SRC) && /!it\.ammo/.test(UI));
-    // 日志栏展开按钮：贴在「返回地图」右侧、高度与它一致（不再浮在画面中部）
-    ck('日志栏展开按钮贴在「返回地图」右侧且同高',
-       /function alignLogGrip\(\)/.test(UI) && /bb\.getBoundingClientRect\(\)/.test(UI) &&
-       /r\.right \+ 8/.test(UI) && /g\.style\.height = Math\.round\(r\.height\)/.test(UI) &&
-       /#btn-backmap, #btn-rest, #log-grip \{/.test(CSS));
-    ck('日志栏展开按钮不再盖在画面中部（旧定位已撤）',
-       !/body\.log-collapsed #log-grip \{ left: 0; \}/.test(CSS) && !/top: 42%/.test(CSS));
     // 轮流挥砍：伤害/耐久/日志标注三者必须跟着"本轮轮到的那把"走
     {
       const GR = (main, off) => { const S = G.S(); S.equipment.weapon = main; S.equipment.weapon2 = off;
@@ -1532,7 +1519,7 @@ ck('战斗日志标出所用武器（双持才标；传的是装备槽 id，不�
   ck('日志栏可设：常驻 / 3 秒淡出 / 隐藏',
      /btn\('log:always'/.test(UI) && /btn\('log:fade'/.test(UI) && /btn\('log:hidden'/.test(UI) &&
      /function applyLogMode\(\)/.test(UI) && /guyuyizhang_logmode/.test(UI) && /logFadeTimer = setTimeout\(\(\) => l\.classList\.add\('dim'\), 3000\)/.test(UI));
-  ck('日志栏样式有淡出/隐藏规则', /#log\.dim \{ opacity: 0; pointer-events: none; \}/.test(fs.readFileSync(ROOT + '/css/style.css', 'utf8')) && /body\.log-hidden #log/.test(fs.readFileSync(ROOT + '/css/style.css', 'utf8')));
+  ck('日志栏样式有淡出/隐藏规则', /#log\.dim #logbody \{ opacity: 0; pointer-events: none; \}/.test(fs.readFileSync(ROOT + '/css/style.css', 'utf8')) && /body\.log-hidden #log/.test(fs.readFileSync(ROOT + '/css/style.css', 'utf8')));
   ck('开局会套用上次选的日志模式', /applyLogMode\(\);\s*\/\/ 开局先把上次选的日志显示方式套上/.test(UI));
   // 主界面菜单化 + 图鉴全局
   // 图鉴 / 每日签到收进「设置」，标题页只留：新的旅程 / 继续 / 历代遗章 / 备份·读档 / 设置
@@ -3538,7 +3525,7 @@ section('7p. 界面手感：立体底栏 / 点击音 / 雨丝');
     !/#nav button \{[\s\S]{0,400}?inset 0 1px 0 rgba\(255,255,255/.test(CSS) &&
     /#nav button:active, #nav button\.active \{[\s\S]{0,300}?translateY\(1px\)/.test(CSS));
   // 点击音：audio 里有清脆的 click 音色，ui 里全局挂了一次
-  ck('所有按钮都有清脆的咔哒声', /case 'click':/.test(AUDIO) && /function clickTick\(\)/.test(AUDIO) && /'highpass'/.test(AUDIO) && /document\.addEventListener\('pointerdown'/.test(UI) && /AudioFX\.play\('click'\)/.test(UI));
+  ck('所有按钮都有清脆的咔哒声', /case 'click':/.test(AUDIO) && /function clickTick\(\)/.test(AUDIO) && /'highpass'/.test(AUDIO) && /document\.addEventListener\('click'/.test(UI) && /AudioFX\.play\('click'\)/.test(UI));
   // 药品详情页只留一个按钮（cat=med 又带 curePoison/stopBleed 的以前会冒出两个一模一样的）
   ck('药品只留「使用」一个按钮', /it\.cat !== 'med' && \(it\.food/.test(UI));
   // 日志可上下滑，但热点/箭头优先

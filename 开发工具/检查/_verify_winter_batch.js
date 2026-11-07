@@ -215,8 +215,8 @@ const SIZES = [
       document.querySelector('#modal')?.classList.remove('open');
       const 按钮 = () => [...document.querySelectorAll('#scene-actions .action-btn')].find(b => /睡觉/.test(b.textContent));
       const 热点 = () => [...document.querySelectorAll('.hotspot')].find(h => /睡觉/.test(h.textContent));
-      // 先逼一次重绘并回到场景视图：#btn-backmap 在地图↔场景之间切换，点两下必然回场景且重画过
-      const bb = document.querySelector('#btn-backmap');
+      // 先逼一次重绘并回到场景视图：#nav [data-nav="map"] 在地图↔场景之间切换，点两下必然回场景且重画过
+      const bb = document.querySelector('#nav [data-nav="map"]');
       if (bb) { bb.click(); await w(600); bb.click(); await w(700); }
       let el = 按钮() || 热点();
       if (!el) {
@@ -224,7 +224,7 @@ const SIZES = [
         el = 按钮() || 热点();
       }
       for (let i = 0; i < 3 && !document.querySelector('.hotspot'); i++) {
-        document.querySelector('#btn-backmap')?.click(); await w(450);
+        document.querySelector('#nav [data-nav="map"]')?.click(); await w(450);
       }
       if (!el) {
         const room = [...document.querySelectorAll('.hotspot')].find(b => /进屋/.test(b.textContent));

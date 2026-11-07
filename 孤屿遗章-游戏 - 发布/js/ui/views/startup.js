@@ -44,12 +44,12 @@ function begin() {
         <span id="top-season">春季</span>
         <span id="top-weather">晴</span>
         <span id="top-temperature" class="top-temp" title="当前天气气温；所在地点的环境温度见装备·属性">20℃</span>
-        <span class="stat"><span class="stat-name" title="生命" aria-label="生命">♥</span><div class="stat-bar"><div id="bar-hp" class="stat-fill hp"></div></div><span class="stat-num" id="num-hp"></span></span>
-        <span class="stat"><span class="stat-name" title="体力" aria-label="体力">ϟ</span><div class="stat-bar"><div id="bar-stamina" class="stat-fill st"></div></div><span class="stat-num" id="num-stamina">100</span></span>
-        <span class="stat"><span class="stat-name" title="饱食" aria-label="饱食">◒</span><div class="stat-bar"><div id="bar-hunger" class="stat-fill hu"></div></div><span class="stat-num" id="num-hunger">100</span></span>
-        <span class="stat"><span class="stat-name" title="水分" aria-label="水分"><svg viewBox="0 0 16 20" width="12" height="14" aria-hidden="true"><path fill="currentColor" d="M8 0C6 5 0 10 0 14a8 6 0 0 0 16 0C16 10 10 5 8 0Z"/></svg></span><div class="stat-bar"><div id="bar-thirst" class="stat-fill th"></div></div><span class="stat-num" id="num-thirst">100</span></span>
-        <span class="stat"><span class="stat-name" title="精神" aria-label="精神">✦</span><div class="stat-bar"><div id="bar-spirit" class="stat-fill sp"></div></div><span class="stat-num" id="num-spirit">100</span></span>
-        <span class="stat"><span class="stat-name" title="健康" aria-label="健康">✚</span><div class="stat-bar"><div id="bar-health" class="stat-fill st"></div></div><span class="stat-num" id="num-health">100</span></span>
+        <button type="button" class="stat" data-stat-info="hp" aria-label="生命"><span class="stat-name" title="生命" aria-label="生命">♥</span><span class="stat-bar"><span id="bar-hp" class="stat-fill hp"></span></span><span class="stat-num" id="num-hp"></span></button>
+        <button type="button" class="stat" data-stat-info="stamina" aria-label="体力"><span class="stat-name" title="体力" aria-label="体力">体</span><span class="stat-bar"><span id="bar-stamina" class="stat-fill st"></span></span><span class="stat-num" id="num-stamina">100</span></button>
+        <button type="button" class="stat" data-stat-info="hunger" aria-label="饱食"><span class="stat-name" title="饱食" aria-label="饱食">饱</span><span class="stat-bar"><span id="bar-hunger" class="stat-fill hu"></span></span><span class="stat-num" id="num-hunger">100</span></button>
+        <button type="button" class="stat" data-stat-info="thirst" aria-label="水分"><span class="stat-name" title="水分" aria-label="水分"><svg viewBox="0 0 16 20" width="12" height="14" aria-hidden="true"><path fill="currentColor" d="M8 0C6 5 0 10 0 14a8 6 0 0 0 16 0C16 10 10 5 8 0Z"/></svg></span><span class="stat-bar"><span id="bar-thirst" class="stat-fill th"></span></span><span class="stat-num" id="num-thirst">100</span></button>
+        <button type="button" class="stat" data-stat-info="spirit" aria-label="精神"><span class="stat-name" title="精神" aria-label="精神">神</span><span class="stat-bar"><span id="bar-spirit" class="stat-fill sp"></span></span><span class="stat-num" id="num-spirit">100</span></button>
+        <button type="button" class="stat" data-stat-info="health" aria-label="健康"><span class="stat-name" title="健康" aria-label="健康">✚</span><span class="stat-bar"><span id="bar-health" class="stat-fill st"></span></span><span class="stat-num" id="num-health">100</span></button>
         <span id="cap">0/23 格</span>
         </div>
         <div id="status-badges" aria-live="polite"></div>
@@ -57,7 +57,6 @@ function begin() {
       <div id="main"></div>
       <div id="log"><div id="logbody"></div></div>
       <div id="objective"></div>
-      <button id="btn-backmap">← 返回地图</button>
       <div id="hud-bottomright">
         <div id="scene-actions"></div>
         <div id="rest-bar">
@@ -79,17 +78,6 @@ function begin() {
     deps.view = 'scene';
     const spd = $('#anim-speed');
     if (spd) { spd.textContent = '动画×' + deps.animSpeed; spd.onclick = () => { deps.animSpeed = (deps.animSpeed % 3) + 1; spd.textContent = '动画×' + deps.animSpeed; try { localStorage.setItem('guyuyizhang_anim', String(deps.animSpeed)); } catch (e) {} AudioFX.play('pickup'); }; }
-    const bb = $('#btn-backmap');
-    if (bb) {
-      // 在地图界面时它应该带你回场景，而不是重复打开地图
-      bb.textContent = (deps.view === 'map') ? '← 返回场景' : '← 返回地图';
-      bb.onclick = () => {
-        if (deps.roomView) { deps.roomView = false; render(); return; }
-        if (deps.view === 'map') { deps.view = 'scene'; render(); return; }
-        deps.view = 'map'; render();
-        const mw = $('#map-wrap'); if (mw) { mw.classList.remove('map-in'); void mw.offsetWidth; mw.classList.add('map-in'); }
-      };
-    }
     const br = $('#btn-rest');
     const brh = $('#btn-rest-h');
     if (br) {
@@ -112,7 +100,12 @@ function begin() {
     document.querySelectorAll('#nav [data-nav]').forEach(b => b.onclick = () => {
       if(restoreCombatView())return;
       const n = b.dataset.nav;
-      if (n === 'map') { closeModal(); deps.view = 'map'; render(); }
+      if (n === 'map') {
+        closeModal();
+        if (deps.roomView) deps.roomView = false;
+        else deps.view = deps.view === 'map' ? 'scene' : 'map';
+        render();
+      }
       else if (n === 'inv') { tutAfterBag(); showModal('inv'); }
       else if (n === 'equip') { deps.equipTab = 'p1'; showModal('equip'); }
       else if (n === 'craft') showModal('craft');
@@ -120,8 +113,11 @@ function begin() {
     });
     // 点弹窗空白处 = 关闭（常规面板类；战斗/剧情选择除外）
     const modalEl = $('#modal');
+    let backdropPressed = false;
+    modalEl.addEventListener('pointerdown', e => { backdropPressed = e.target === modalEl; });
     modalEl.addEventListener('click', (e) => {
-      if (e.target !== modalEl) return;
+      if (e.target !== modalEl || (e.isTrusted && !backdropPressed)) return;
+      backdropPressed = false;
       const k = deps.modal && deps.modal.kind;
       // 面板类都支持"点外面关闭"（战斗、剧情选择、结局、命名输入、掷骰子这种不能误关的除外）
       if (deps.panels.get(k).dismiss) deps.backModal();

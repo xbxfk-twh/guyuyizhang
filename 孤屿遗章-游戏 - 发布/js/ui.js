@@ -627,7 +627,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   };
 
   // ---------- 日志栏显示方式（设置里可改，存在本机、跨存档） ----------
-  let logMode = (() => { try { const v = localStorage.getItem('guyuyizhang_logmode'); return ['always', 'fade', 'hidden'].includes(v) ? v : 'always'; } catch (e) { return 'always'; } })();
+  let logMode = (() => { try { const v = localStorage.getItem('guyuyizhang_logmode'); return ['always', 'fade', 'hidden'].includes(v) ? v : 'hidden'; } catch (e) { return 'hidden'; } })();
   let logFadeTimer = null;
   function applyLogMode(...args){return hudView.applyLogMode(...args);}
   function setLogMode(...args){return hudView.setLogMode(...args);}
@@ -1117,7 +1117,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   function begin(...args){return startupView.begin(...args);}
 
   // ---------- 初始化 ----------
-  // 全局"咔哒"声：所有按钮/标签/热点/地图箭头，按下就给一次交互反馈（45ms 内不叠音）
+  // 全局"咔哒"声：所有按钮/标签/热点/地图箭头，确认点击后给一次交互反馈（45ms 内不叠音）
   let _lastClickAt = 0;
   // ⚠️ 防"点击穿透"：打开弹窗的那一次点击，它的 click 事件要等弹窗渲染完之后才派发，
   //    于是经常正好落在弹窗里的**第一个按钮**上（玩家反馈"单击直接睡俩小时"—— 睡觉面板第一个按钮就是小睡）。
@@ -1129,7 +1129,8 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
     if (!mm || !mm.classList.contains('open')) return;
     if (e.isTrusted !== false && Date.now() - modalOpenedAt < 350 && mm.contains(e.target)) { e.stopPropagation(); e.preventDefault(); }
   }, true);
-  document.addEventListener('pointerdown', (e) => {
+  PressInput.install(document);
+  document.addEventListener('click', (e) => {
     const t = (e.target && e.target.closest) ? e.target.closest('button, .mini-btn, .tab, .hotspot, .map-arrow, .action-btn, [data-choice]') : null;
     if (!t || t.disabled || t.classList.contains('lockedb') || t.classList.contains('locked')) return;
     const now = Date.now();

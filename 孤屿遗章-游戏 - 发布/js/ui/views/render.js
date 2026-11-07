@@ -80,8 +80,8 @@ function renderInner() {
     document.body.classList.toggle('on-map', deps.view === 'map');
     document.body.classList.toggle('in-room', deps.roomView);
     document.body.classList.toggle('room-fullcolor', deps.roomView && skinOn('seasons'));
-    const back = $('#btn-backmap');
-    if (back) deps.dom.text(back,deps.roomView ? '← 返回营地' : deps.view === 'map' ? '← 返回场景' : '← 返回地图');
+    const mapNav = $('#nav [data-nav="map"]');
+    if (mapNav) deps.dom.text(mapNav, deps.roomView ? '← 返回营地' : deps.view === 'map' ? '← 返回场景' : '🗺 地图');
     renderTut(st);
     renderTopbar();
     renderObjective();

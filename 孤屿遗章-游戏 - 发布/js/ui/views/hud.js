@@ -15,8 +15,9 @@ function applyLogMode() {
     if (!l) return;
     l.style.display = (deps.logMode === 'hidden') ? 'none' : '';
     clearTimeout(deps.logFadeTimer);
+    l.classList.remove('dim');
     if (deps.logMode === 'fade') deps.logFadeTimer = setTimeout(() => l.classList.add('dim'), 3000);
-    else l.classList.remove('dim');
+    alignLogGrip();
   }
 
 function setLogMode(m) {
@@ -57,25 +58,20 @@ function bindLogCollapseBtn() {
     b.onclick = () => {
       deps.logCollapsed = !deps.logCollapsed;
       try { localStorage.setItem('guyuyizhang_logcollapse', deps.logCollapsed ? '1' : '0'); } catch (e) {}
-      applyLogCollapse(); fitStage();
+      applyLogCollapse(); applyLogMode();
     };
     document.body.appendChild(b);
     applyLogCollapse();
   }
 
-function alignLogGrip() {
-    const g = document.getElementById('log-grip');
-    const bb = document.getElementById('btn-backmap');
-    if (!g) return;
-    if (!bb || !bb.offsetHeight) { g.style.display = 'none'; return; }   // 标题页等没有「返回地图」的场合，整个隐藏
-    g.style.display = 'flex';
-    const r = bb.getBoundingClientRect();
-    g.style.left = Math.round(r.right + 8) + 'px';
-    g.style.top = Math.round(r.top) + 'px';
-    g.style.height = Math.round(r.height) + 'px';   // 高度跟「返回地图」一致
-    g.style.minHeight = Math.round(r.height) + 'px';
-    const name=$('#scene-name'),stage=$('#scene-wrap');
-    if(name && stage) { const sr=stage.getBoundingClientRect(); name.style.left=Math.round(r.right+g.getBoundingClientRect().width+16-sr.left)+'px';name.style.top=Math.round(r.top-sr.top)+'px'; }
+function alignLogGrip(rect = $('#main')?.getBoundingClientRect()) {
+    const grip = $('#log-grip');
+    if (!grip) return;
+    grip.style.display = rect && deps.logMode !== 'hidden' ? 'flex' : 'none';
+    if (rect) {
+      grip.style.left = Math.round(rect.left + 4) + 'px';
+      grip.style.top = Math.round(rect.top + 5) + 'px';
+    }
   }
 
 function renderObjective() {
@@ -103,6 +99,20 @@ function renderTopbar() {
     for (const k in bars) {
       const fill = $(`#bar-${k}`);
       if (fill) fill.style.width = (k === 'stamina' ? (bars[k] / mSt) : k === 'hp' ? (bars[k] / Game.hpMax()) : bars[k] / 100) * 100 + '%';
+      const control = $(`[data-stat-info="${k}"]`);
+      if (control) control.onclick = () => {
+        const details = {
+          hp: ['生命', '生命耗尽时会倒下。'],
+          stamina: ['体力', '移动、采集和制造会消耗体力，休息可以恢复。'],
+          hunger: ['饱食', '进食可以恢复饱食。长期饥饿会损害生命。'],
+          thirst: ['水分', '饮水可以补充水分。缺水会损害生命。'],
+          spirit: ['精神', '精神低落会降低体力上限，严重时还会拖慢采集。'],
+          health: ['健康', '受伤或持续负面状态会降低健康，低于40且久未治疗可能感染。可用药膏恢复。']
+        };
+        const [name, description] = details[k];
+        const max = k === 'hp' ? Game.hpMax() : k === 'stamina' ? mSt : 100;
+        showBuffInfo(name, `${Math.round(bars[k])}/${max}。 ${description}`);
+      };
       const num = $(`#num-${k}`);
       if (num) deps.dom.text(num,k === 'hp' ? `${Math.round(bars[k])}/${Game.hpMax()}` : Math.round(bars[k]));
       // 饱食 / 水分 / 生命 严格 <30 → 变红（数值与进度条都变红）；恢复 ≥30 自动复原。两套皮肤都可读。
@@ -140,9 +150,9 @@ function renderTopbar() {
     for(const b of Game.activeBuffs()) sts.push(`${b.name}+${b.stat==='accuracy'?Math.round(b.value*100)+'%':b.value}（${b.minutes}分）`);
     const tempHint = temp.state === 'normal' ? '体温舒适' : temp.grace ? `还有 ${temp.grace} 分钟换衣缓冲` : `命中 -10 个百分点，每小时 -${temp.state === 'cold' ? 5 : 3} 生命`;
     const brief={流血:'每小时失去5生命，并降低健康。止血绷带可以止血。',中毒:'每小时失去3生命，并降低健康。解毒剂可以解毒。',恐惧:'降低命中。持续恐惧会降低健康，防御可抵挡梦魇恐吓。'};
-    const badges=sts.map(full=>{let name=full.split('：')[0].split('+')[0],text=full;if(full.startsWith('温度：')){name=temp.state==='cold'?'寒冷':temp.state==='heat'?'炎热':'适宜';text=tempHint;}if(name==='健康')text=`健康${Game.healthValue()}/100。实际受伤或持续负面状态降低健康；低于40且久未治疗可能感染。简易药膏+20健康；草药膏+5健康、+5生命并治疗感染；解毒剂+10健康并解毒。`;if(brief[name])text=brief[name];return {name,text,danger:/流血|中毒|寒冷|炎热|恐惧|水压|缺氧|精神|反胃|感染/.test(name)};});
+    const badges=sts.map(full=>{let name=full.split('：')[0].split('+')[0],text=full;if(full.startsWith('温度：')){name=temp.state==='cold'?'寒冷':temp.state==='heat'?'炎热':'适宜';text=tempHint;}if(brief[name])text=brief[name];return {name,text,danger:/流血|中毒|寒冷|炎热|恐惧|水压|缺氧|精神|反胃|感染/.test(name)};});
     deps.dom.html($('#status-badges'),badges.slice().sort((a,b)=>Number(b.danger)-Number(a.danger)).slice(0,window.innerWidth<900?1:2).map((b,i)=>`<button type="button" class="badge ${b.danger?'danger':''}" data-buff-info="${i}">${esc(b.name)}</button>`).join('')+'<button type="button" class="badge" data-buff-info="all">状态</button>');
-    $('#status-badges').querySelectorAll('[data-buff-info]').forEach(b=>bindPress(b,()=>{deps.modalOpenedAt=Date.now();showBuffInfo('当前状态',badges.map(v=>v.name+'：'+v.text).join('\n\n'));}));
+    $('#status-badges').querySelectorAll('[data-buff-info]').forEach(b=>bindPress(b,()=>{deps.modalOpenedAt=Date.now();showBuffInfo(b.dataset.buffInfo !== 'all' && b.textContent === '健康' ? '健康' : '当前状态', b.dataset.buffInfo !== 'all' && b.textContent === '健康' ? `${Game.healthValue()}/100` : badges.filter(v=>v.name!=='健康').map(v=>v.name==='适宜'?v.text:v.name+'：'+v.text).join('\n'));}));
 
   }
     return Object.freeze({applyLogMode,setLogMode,setShowObjective,logWidthFor,setLogSize,applyLogCollapse,bindLogCollapseBtn,alignLogGrip,renderObjective,renderTopbar});

@@ -156,7 +156,7 @@ button { font-family: inherit; cursor: pointer; }
 .stat-name { width: 14px; text-align: center; opacity: 0.85; font-size: 11px; }
 .stat-bar { width: 42px; height: 6px; border: 1px solid var(--paper); background: transparent; }
 .stat-num { font-size: 10px; min-width: 19px; text-align: right; opacity: 0.9; }
-.stat-fill { height: 100%; transition: width 0.4s; }
+.stat-fill { display: block; height: 100%; transition: width 0.4s; }
 .stat-fill.hp { background: var(--hp); }
 .stat-fill.st { background: var(--sta); }
 .stat-fill.hu { background: #8a8676; }
@@ -321,7 +321,6 @@ body.skin-accent .stat-num.num-low { color: #d32b21; text-shadow: 0 0 5px rgba(2
 /* 地图上日志照样能上下滑（热点/箭头仍然优先，见 ui.js 的 bindLogGrip） */
 body.on-map #log { pointer-events: none; }
 body.on-map #logbody { pointer-events: auto; }
-body.on-map #btn-backmap { pointer-events: auto; }
 .map-arrow.unlocked:hover { transform: translate(-50%, -100%) scale(1.18); filter: brightness(1.25); }
 .map-arrow.locked { filter: grayscale(1) brightness(0.45); cursor: not-allowed; }
 .map-arrow.locked .arrow-label { border-style: dashed; }
@@ -516,7 +515,7 @@ body.on-map #btn-backmap { pointer-events: auto; }
 #log {
   position: fixed; left: 0; top: 0; bottom: 0; z-index: 9; pointer-events: none; overflow: hidden;
   background: transparent;
-  font-size: 12px; line-height: 1.5; padding: 80px 8px 8px 10px; box-sizing: border-box;   /* 顶部留出「返回地图」按钮的高度；底部只留一点点，让最新一行贴底 */
+  font-size: 12px; line-height: 1.5; padding: 80px 8px 8px 10px; box-sizing: border-box;
   display: flex; flex-direction: column;
   -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 78%, rgba(0,0,0,0) 100%);
   mask-image: linear-gradient(to top, rgba(0,0,0,1) 78%, rgba(0,0,0,0) 100%);
@@ -525,15 +524,8 @@ body.on-map #btn-backmap { pointer-events: auto; }
 #log.overlap { top: 30px; bottom: var(--navh); background: linear-gradient(90deg, rgba(8,8,6,0.55) 0%, rgba(8,8,6,0.30) 62%, rgba(8,8,6,0) 100%); }
 /* 日志栏显示方式（设置里可切）：淡出 / 隐藏 */
 #log { transition: opacity 0.8s ease; }
-#log.dim { opacity: 0; pointer-events: none; }
+#log.dim, #log.dim #logbody { opacity: 0; pointer-events: none; }
 body.log-hidden #log, body.log-hidden #logbody { display: none !important; }
-/* 日志栏收起/展开按钮：紧贴「返回地图」右侧、高度与它一致（视觉上同一排按钮）。
-   位置与高度由 ui.js 的 fitStage() 实测「返回地图」的尺寸后套用，这里只定外观。 */
-#log-grip {
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; letter-spacing: 0;
-  z-index: 12;   /* 日志收起按钮要始终在最上层，别被热点或日志压住 */
-}
 body.log-collapsed #log, body.log-collapsed #logbody { opacity: 0; pointer-events: none; }
 /* 行进动画期间淡出日志：地图左下角会被日志盖住（含行进线的起点），盖住就看不出"从哪个热点出发" */
 body.traveling #log, body.traveling #logbody { opacity: 0 !important; pointer-events: none !important; }
@@ -561,23 +553,21 @@ body.traveling #log, body.traveling #logbody { opacity: 0 !important; pointer-ev
 .logline.orange { color: #e8a33d; font-weight: 600; }
 @keyframes logrise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 /* 图片上的浮动操作按钮（缩小到和小按钮一致） */
-#btn-backmap, #btn-rest, #log-grip {
-  position: fixed; z-index: 10; border-radius: 4px; box-sizing: border-box;
+#btn-rest, #btn-rest-h, #log-grip {
+  box-sizing: border-box; border-radius: 4px;
   background: rgba(10,10,8,0.75); color: var(--paper);
-  border: 1.2px solid rgba(234,230,218,0.8); font-size: 10.5px; letter-spacing: 0.04em;
-  padding: 3px 8px; transition: all 0.15s; white-space: nowrap; min-height: 21px; opacity: 0.9;
+  border: 1px solid rgba(234,230,218,0.8); white-space: nowrap;
 }
-#log-grip { z-index: 11; }   /* 略高于场景按钮，保证收起状态下也点得到 */
-#btn-backmap { left: 12px; top: 50px; }   /* 稍微往下一点，别跟顶栏的天气挤在一起 */
 #rest-bar { display: flex; align-items: center; gap: 6px; }
-#btn-rest, #btn-rest-h { position: static; font-size: 10px; }
-#btn-rest-h {
-  border-radius: 4px; background: rgba(10,10,8,0.75); color: var(--paper);
-  border: 1.2px solid rgba(234,230,218,0.8); letter-spacing: 0.04em;
-  padding: 3px 7px; min-height: 21px; transition: all 0.15s; opacity: 0.9; font-weight: 700;
+#btn-rest, #btn-rest-h { height: 26px; min-height: 26px; padding: 2px 7px; font-size: 12px; }
+#btn-rest-h { font-weight: 700; }
+#log-grip {
+  display: none; position: fixed; z-index: 11;
+  align-items: center; justify-content: center;
+  width: 23px; height: 26px; min-height: 0; padding: 0; font-size: 11px;
 }
-#btn-rest-h:hover { background: var(--paper); color: var(--ink); }
-#btn-backmap:hover, #btn-rest:hover, #log-grip:hover { background: var(--paper); color: var(--ink); }
+body:not(.log-hidden) #scene-name { left: 32px; }
+#btn-rest:hover, #btn-rest-h:hover, #log-grip:hover { background: var(--paper); color: var(--ink); }
 
 /* ---------- 行动面板（已改为画面上浮动按钮） ---------- */
 .objective {
@@ -1017,7 +1007,6 @@ button, .action-btn, .map-arrow, .hotspot, .tab, .mini-btn { touch-action: manip
   .modal-title { font-size: 17px; }
   #log { width: min(72vw, 320px); font-size: 12px; padding-top: 92px; }   /* 手机上按钮更高，多留一点 */
   #objective { font-size: 11px; }
-  #btn-backmap, #btn-rest { padding: 7px 10px; font-size: 12px; min-height: 36px; }
   #rest-bar { flex-wrap: wrap; justify-content: flex-end; }   /* 窄屏允许换行；换行也不会再压住动作按钮（两者同列） */
   #zoomctl button { width: 44px; height: 44px; }
   .hotspot .hot-glyph { font-size: 19px; }

@@ -107,13 +107,13 @@ function bindPan(sel, getPan, setPan, settle) {
     let dragging = false, startY = 0, startPan = 0, moved = false;
     wrap.addEventListener('pointerdown', (e) => {
       if(!deps.sceneScroll && sel!=='#map-wrap') return;
-      if (e.target && e.target.closest && e.target.closest('.map-arrow, .hotspot, .target, .target-pick, button, .zone-btn')) return;
+      if (e.isPrimary === false || e.button > 0) return;
       dragging = true; moved = false; startY = e.clientY; startPan = getPan();
     });
     wrap.addEventListener('pointermove', (e) => {
       if (!dragging) return;
       const dy = e.clientY - startY;
-      if (!moved && Math.abs(dy) < 4) return;    // 抖动 4px 以内当点击，画面不跟着晃
+      if (!moved && Math.abs(dy) < 8) return;    // 抖动 8px 以内当点击，画面不跟着晃
       moved = true;
       setPan(startPan + dy);
     });
@@ -156,7 +156,7 @@ function bindLogGrip() {
     log.addEventListener('pointermove', (e) => {
       if (!dragging) return;
       const dy = e.clientY - startY;
-      if (!moved && Math.abs(dy) < 4) return;
+      if (!moved && Math.abs(dy) < 8) return;
       moved = true;
       e.preventDefault();
       if (deps.view === 'map') { deps.mapPanY = startPan + dy; applyMapPan(); }
@@ -432,8 +432,6 @@ function fitStage() {
     if (!app) return;
     const sr = stage.getBoundingClientRect(), ar = app.getBoundingClientRect();
     const left = sr.left - ar.left, top = sr.top - ar.top;
-    const back=$('#btn-backmap');
-    if(back) { back.style.top=(top+5)+'px';back.style.left=(left+6)+'px'; }
     // 画面铺满后日志就压在图上：给一个读得舒服的宽度，并交给 .overlap 那层淡渐隐兜底
     const log = $('#log');
     if (log) {
@@ -442,7 +440,7 @@ function fitStage() {
       log.classList.add('overlap');
     }
     const badges=$('#status-badges'); if(badges) badges.style.top=(top+6)+'px';
-    alignLogGrip();   // 无条件跑：没有「返回地图」按钮（标题页等）时它自己会隐藏
+    alignLogGrip(sr);
     const obj = $('#objective');
     if (obj) { obj.style.left = (left + sr.width - Math.min(460, sr.width * 0.5) - 12) + 'px'; obj.style.top = (top + 10 + badgeStripH()) + 'px'; }
     fitSceneLayers(false);
