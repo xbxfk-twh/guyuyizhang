@@ -15,7 +15,9 @@ const check=async(name,expr)=>{assert.ok(await b.ev(expr),name);console.log('OK 
   assert.deepEqual(b.errors,[]);await b.shot('nov02-meta-recovered.png');await b.close();b=null;
  }
  b=await openBrowser({width:844,height:390,init:`localStorage.setItem('guyuyizhang_meta','{}');localStorage.setItem('guyuyizhang_meta_bak','broken');localStorage.setItem('guyuyizhang_save',${JSON.stringify(fixture.save)});`});await b.sleep(300);
- await check('无有效备份时明确阻止启动，不创建空历代遗章',`document.querySelector('#boot-status').textContent.includes('账号记录损坏')&&!document.querySelector('#btn-new')&&localStorage.getItem('guyuyizhang_meta')==='{}'&&localStorage.getItem('guyuyizhang_meta_bak')==='broken'&&localStorage.getItem('guyuyizhang_save')===${JSON.stringify(fixture.save)}`);
+ // 启动页现用简短提示，具体原因在诊断里；仍检查原始原因及三份原文不变。
+ await pressElement(b.send,b.ev,'#boot-actions button:nth-child(2)');
+ await check('无有效备份时明确阻止启动，不创建空历代遗章',`!document.querySelector('#boot-actions').hidden&&document.querySelector('#boot-diagnostic').value.includes('账号记录损坏')&&!document.querySelector('#btn-new')&&localStorage.getItem('guyuyizhang_meta')==='{}'&&localStorage.getItem('guyuyizhang_meta_bak')==='broken'&&localStorage.getItem('guyuyizhang_save')===${JSON.stringify(fixture.save)}`);
  await b.shot('nov02-meta-blocked.png');assert.deepEqual(b.errors,[]);
  console.log(`通过 ${count} 项，失败 0 项\nRESULT:PASS`);
 }catch(e){console.error(e.stack);await b?.shot('nov02-meta-failure.png');console.log('RESULT:FAIL');process.exitCode=1;}finally{await b?.close();}})();

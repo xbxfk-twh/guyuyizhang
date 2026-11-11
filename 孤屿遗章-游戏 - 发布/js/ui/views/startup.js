@@ -156,13 +156,14 @@ function init() {
         if(result.conflict){
           if(!$('#modal')){const modal=document.createElement('div');modal.id='modal';$('#app').appendChild(modal);}
           if(window.__guyuBoot)window.__guyuBoot.ready();
-          const choose=which=>{try{bridge.choose(which);finish();}catch(e){window.__guyuBoot?.fail(e.message);}};
           const c=result.conflict;
           const source=c.kind==='device'?'设备备份':'云端';
-          showModal('overlay',{title:'选择要继续的进度',text:`本机与${source}存在不同的进度，请选择要继续的一份。\n本机：${c.localSoul}魂点、${c.localSlots}个备份；${source}：${c.cloudSoul}魂点、${c.cloudSlots}个备份。\n另一份会保留为恢复记录。`,requiredChoice:true,choices:[
+          const choose=which=>{try{bridge.choose(which);}catch(e){prompt(e.message);return;}finish();};
+          const prompt=(error='')=>showModal('overlay',{title:'选择要继续的进度',text:`${error?error+'\n\n':''}本机与${source}存在不同的进度，请选择要继续的一份。\n本机：${c.localSoul}魂点、${c.localSlots}个备份；${source}：${c.cloudSoul}魂点、${c.cloudSlots}个备份。\n另一份会保留为恢复记录。`,requiredChoice:true,choices:[
             {label:result.conflict.localDay?`本机进度 · 第${result.conflict.localDay}天`:'保留本机账号记录',ok:()=>choose('local')},
-            {label:result.conflict.cloudDay?`${source}进度 · 第${result.conflict.cloudDay}天`:`使用${source}账号记录`,ok:()=>choose('cloud')}
-          ]});return;
+            {label:result.conflict.cloudDay?`${source}进度 · 第${result.conflict.cloudDay}天`:`使用${source}账号记录`,ok:()=>choose('cloud')},
+            ...(error?[{label:'查看诊断与导出原始备份',ok:()=>window.__guyuBoot?.fail(error)}]:[])
+          ]});prompt();return;
         }
         finish();
       }catch(e){

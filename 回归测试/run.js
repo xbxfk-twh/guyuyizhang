@@ -61,7 +61,7 @@ const checks = [
 ];
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_icon_refresh.js','开发工具/检查/_verify_meta_recovery_ui.js','开发工具/检查/_verify_shop_bounds.js','开发工具/检查/_verify_notice_shop.js','开发工具/检查/_verify_collection_navigation.js','开发工具/检查/_verify_ad_reward_ui.js','开发工具/检查/_verify_native_ad_ui.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_character_voices.js', '开发工具/检查/_verify_one_time_redeem_ui.js', '开发工具/检查/_verify_weapon_ui.js', '开发工具/检查/_verify_lantern.js', '开发工具/检查/_verify_oct16_feedback.js');
-if (args.includes('--browser')) checks.push('开发工具/检查/_verify_oct27_feedback.js');
+if (args.includes('--browser')) checks.push('开发工具/检查/_verify_platform_quota.js','开发工具/检查/_verify_oct27_feedback.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_oct29_saves.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_oct30_transfer.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_downloads.js');

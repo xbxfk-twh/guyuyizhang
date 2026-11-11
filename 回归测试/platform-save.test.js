@@ -7,12 +7,13 @@ const run=(day=12,rev=4,id='run-A')=>({day,_rev:rev,_runId:id,stats:{hp:90},inv:
 const keys=(s=run(),m={soul:75,slots:[{day:8,data:run(8)},null,null]})=>({guyuyizhang_save:JSON.stringify(s),guyuyizhang_meta:JSON.stringify(m),guyuyizhang_rev:String(s._rev)});
 function fixture(initial={},shared={files:new Map(),archives:[]}){
  const data=new Map(Object.entries(initial)),control={writeFail:false,readFail:false,listFail:false,listDelay:false,uploads:0,updates:0,inFlight:0,overlap:false,cloudBodies:[]};
- const storage={getItem:k=>data.get(k)??null,setItem:(k,v)=>{if(control.localFail)throw Error('quota');data.set(k,String(v));},removeItem:k=>data.delete(k)};
+ const size=()=>[...data].reduce((n,[k,v])=>n+2*(k.length+v.length),0);
+ const storage={getItem:k=>data.get(k)??null,setItem:(k,v)=>{v=String(v);const used=size()- (data.has(k)?2*(k.length+data.get(k).length):0)+2*(k.length+v.length);if(control.localFail||used>(control.limit??Infinity)||control.failKey===k){control.failKey=null;throw new DOMException('quota','QuotaExceededError');}data.set(k,v);},removeItem:k=>data.delete(k)};
  const fsm={writeFile(o){if(control.writeFail){shared.files.set(o.filePath,'{partial');return o.fail({errMsg:'disk full'});}shared.files.set(o.filePath,o.data);o.success({});},readFile(o){if(control.readFail)return o.fail({errMsg:'I/O error'});if(!shared.files.has(o.filePath))return o.fail({errno:400101,errMsg:'no such file'});o.success({data:shared.files.get(o.filePath)});}};
  const manager={getArchiveList(o){if(control.listDelay){control.reply=o;return;}if(control.listFail)return o.fail({errMsg:'offline'});o.success({saves:shared.archives.map(({body,...a})=>a)});},getArchiveData(o){const a=shared.archives.find(a=>a.uuid===o.archiveUUID);if(!a)return o.fail({errMsg:'not found'});shared.files.set(o.targetFilePath,a.body);o.success({filePath:o.targetFilePath});},createArchive(o){control.uploads++;const body=shared.files.get(o.archiveFilePath);shared.archives.push({uuid:'cloud-A',fileId:'file-A',name:o.archiveMetaData.name,body});control.cloudBodies.push(body);o.success({uuid:'cloud-A',fileId:'file-A'});},updateArchive(o){control.updates++;const a=shared.archives.find(a=>a.uuid===o.archiveUUID);a.body=shared.files.get(o.archiveFilePath);control.cloudBodies.push(a.body);o.success({uuid:a.uuid,fileId:a.fileId});}};
  const host={env:{USER_DATA_PATH:'tapfile://usr'},getFileSystemManager:()=>fsm,getCloudSaveManager:()=>manager};
  let now=Date.now();const opts={storage,getHost:()=>host,timeout:35,clock:()=>now,timer:(fn,ms)=>{const t=setTimeout(fn,ms);t.unref();return t;},cancel:clearTimeout};
- const bridge=Platform.create(opts);return {bridge,data,control,shared,storage,host,opts,advance:n=>now+=n};
+ const bridge=Platform.create(opts);return {bridge,data,control,shared,storage,host,opts,size,advance:n=>now+=n};
 }
 let pass=0;
 async function check(name,fn){await fn();pass++;console.log('OK '+name);}
@@ -34,7 +35,7 @@ await check('事务未完成时不镜像半份账号',async()=>{const f=fixture(
 await check('连续保存合并最新值，云上传遵守一分钟节流',async()=>{const f=fixture(keys());await f.bridge.initialize(valid);for(let day=12;day<=18;day++){f.storage.setItem('guyuyizhang_save',JSON.stringify(run(day,day)));f.bridge.schedule();}await f.bridge.flush();await wait(10);assert.equal(f.control.uploads,1);assert.equal(f.bridge.decode(f.control.cloudBodies[0]).keys.guyuyizhang_save,JSON.stringify(run(18,18)));f.storage.setItem('guyuyizhang_save',JSON.stringify(run(19,19)));f.bridge.schedule();await f.bridge.flush();await wait(10);assert.equal(f.control.updates,0);});
 await check('缺失账号的半份进度不覆盖持久双槽，重启找回魂点和备份槽',async()=>{const f=fixture(keys());await f.bridge.initialize(valid);f.bridge.schedule();await f.bridge.flush();await wait(10);f.shared.archives=[];const original=f.shared.files.get('tapfile://usr/guyu_progress_0.json');f.storage.removeItem('guyuyizhang_meta');assert.equal(f.bridge.schedule(),false);await f.bridge.flush();assert.equal(f.shared.files.get('tapfile://usr/guyu_progress_0.json'),original);const n=fixture({guyuyizhang_save:JSON.stringify(run(16,7))},f.shared);await n.bridge.initialize(valid);assert.equal(JSON.parse(n.data.get('guyuyizhang_meta')).soul,75);assert.equal(JSON.parse(n.data.get('guyuyizhang_save')).day,16);assert.equal(JSON.parse(n.data.get('guyuyizhang_meta')).slots[0].day,8);});
 await check('只缺主档时找回设备当前局并保留网页较新的魂点',async()=>{const f=fixture(keys());await f.bridge.initialize(valid);f.bridge.schedule();await f.bridge.flush();await wait(10);f.shared.archives=[];const n=fixture({guyuyizhang_meta:JSON.stringify({soul:200,slots:[null,null,null]})},f.shared);await n.bridge.initialize(valid);assert.equal(JSON.parse(n.data.get('guyuyizhang_save')).day,12);assert.equal(JSON.parse(n.data.get('guyuyizhang_meta')).soul,200);});
-await check('恢复到网页过程中配额失败不抹掉持久文件',async()=>{const f=fixture(keys());await f.bridge.initialize(valid);f.bridge.schedule();await f.bridge.flush();await wait(10);f.shared.archives=[];const before=[...f.shared.files];const n=fixture({},f.shared);n.control.localFail=true;await assert.rejects(n.bridge.initialize(valid),/quota/);assert.equal(n.bridge.ready(),false);assert.deepEqual([...f.shared.files],before);});
+await check('恢复到网页过程中配额失败不抹掉持久文件',async()=>{const f=fixture(keys());await f.bridge.initialize(valid);f.bridge.schedule();await f.bridge.flush();await wait(10);f.shared.archives=[];const before=[...f.shared.files];const n=fixture({},f.shared);n.control.localFail=true;await assert.rejects(n.bridge.initialize(valid),/存储空间不足/);assert.equal(n.bridge.ready(),false);assert.deepEqual([...f.shared.files],before);});
 await check('云列表缺标识的记录不能被忽略并覆盖',async()=>{const f=fixture({}, {files:new Map(),archives:[{uuid:'known-but-not-readable',body:'{}'}]});await assert.rejects(f.bridge.initialize(valid),/无法读取/);assert.equal(f.control.uploads,0);});
 await check('设备只更新账号也能找回魂点；网页更新账号不被旧设备记录倒退',async()=>{for(const localRev of [2,8]){const f=fixture(keys(run(30,10),{soul:80,_accountRev:5}));await f.bridge.initialize(valid);f.bridge.schedule();await f.bridge.flush();await wait(10);f.shared.archives=[];const n=fixture(keys(run(25,5),{soul:localRev===8?200:20,_accountRev:localRev}),f.shared);await n.bridge.initialize(valid);assert.equal(JSON.parse(n.data.get('guyuyizhang_meta')).soul,localRev===8?200:80);assert.equal(JSON.parse(n.data.get('guyuyizhang_save')).day,30);}});
 await check('同局天数未变但云账号较新时也要求确认，不覆盖魂点',async()=>{const r=run(),shared={files:new Map(),archives:[{uuid:'same',fileId:'f',name:'guyuyizhang_main',body:JSON.stringify({save:r,meta:{soul:150,_accountRev:8}})}]};const f=fixture(keys(r,{soul:50,_accountRev:3}),shared);const result=await f.bridge.initialize(valid);assert.ok(result.conflict);assert.equal(JSON.parse(f.data.get('guyuyizhang_meta')).soul,50);f.bridge.choose('cloud');assert.equal(JSON.parse(f.data.get('guyuyizhang_meta')).soul,150);});
@@ -46,5 +47,48 @@ await check('Tap成功返回空列表的新设备仍核对并恢复已有服务�
 await check('空对象账号不能进入持久快照，损坏网页账号可从设备找回完整记录',async()=>{const profile={soul:321,nodes:{hp:2},runs:4,totalSoul:700,slots:[null,null,null],_accountRev:5},f=fixture(keys(run(),profile));await f.bridge.initialize(valid);f.bridge.schedule();await f.bridge.flush();await wait(10);f.shared.archives=[];const before=[...f.shared.files];f.storage.setItem('guyuyizhang_meta','{}');assert.equal(f.bridge.schedule(),false);assert.deepEqual([...f.shared.files],before);const n=fixture(keys(run(18,8),{}),f.shared);await n.bridge.initialize(valid);assert.deepEqual(JSON.parse(n.data.get('guyuyizhang_meta')),profile);assert.equal(JSON.parse(n.data.get('guyuyizhang_save')).day,18);});
 await check('空对象云账号即便修订较高也不覆盖本机天赋和魂点',async()=>{const shared={files:new Map(),archives:[{uuid:'empty',fileId:'f',name:'guyuyizhang_main',body:JSON.stringify({save:run(80,999),meta:{_accountRev:999}})}]},f=fixture(keys(run(),{soul:200,nodes:{hp:3}}),shared);await f.bridge.initialize(valid);assert.equal(JSON.parse(f.data.get('guyuyizhang_meta')).soul,200);assert.deepEqual(JSON.parse(f.data.get('guyuyizhang_meta')).nodes,{hp:3});assert.equal(f.control.uploads,0);const n=fixture({},shared);await assert.rejects(n.bridge.initialize(valid),/完整性/);assert.equal(n.bridge.ready(),false);assert.equal(n.data.size,0);});
 await check('有效零魂点、旧部分字段与修订较新账号可正常恢复',async()=>{for(const meta of [{soul:0,nodes:{hp:3},_accountRev:8},{nodes:{hp:1}},{soul:5,slots:[null]}]){const shared={files:new Map(),archives:[{uuid:'valid',fileId:'f',name:'guyuyizhang_main',body:JSON.stringify({save:run(),meta})}]},f=fixture({},shared);await f.bridge.initialize(valid);assert.deepEqual(JSON.parse(f.data.get('guyuyizhang_meta')),meta);}});
+await check('接近配额时选择本机或云端不复制未改变的大账号和恢复记录',async()=>{
+ for(const which of ['local','cloud']){
+  const meta={soul:200,slots:[{data:{...run(3),diary:['旧记录'.repeat(30000)]}},null,null]},local=keys(run(8,3),meta),distant=keys(run(35,20,'run-B'),meta);
+  local.guyuyizhang_rescue=JSON.stringify({save:JSON.stringify({...run(5),diary:['恢复'.repeat(30000)]})});
+  distant.guyuyizhang_rescue=local.guyuyizhang_rescue;
+  const shared={files:new Map(),archives:[{uuid:'other',fileId:'f',name:'guyuyizhang_main',body:JSON.stringify({save:JSON.parse(distant.guyuyizhang_save),meta})}]},f=fixture(local,shared);
+  await f.bridge.initialize(valid);
+  const other=which==='local'?f.bridge.decode(shared.archives[0].body).keys:Object.fromEntries(Platform.keys.map(k=>[k,f.data.get(k)??null]));delete other.guyuyizhang_alternate_save;
+  f.control.limit=f.size()+JSON.stringify(other).length*2+4096;
+  // 用同样配额重演老实现：全量回滚日志与备用进度一起存在时超限。
+  const legacy=fixture(Object.fromEntries(f.data)),selected={...(which==='local'?Object.fromEntries(f.data):f.bridge.decode(shared.archives[0].body).keys),guyuyizhang_alternate_save:JSON.stringify(other)};legacy.control.limit=f.control.limit;
+  assert.throws(()=>{legacy.storage.setItem('guyuyizhang_platform_import',JSON.stringify({before:Object.fromEntries(Platform.keys.map(k=>[k,legacy.data.get(k)??null]))}));for(const k of Platform.keys){if(selected[k]==null)legacy.storage.removeItem(k);else legacy.storage.setItem(k,selected[k]);}},/quota/);
+  f.bridge.choose(which);assert.equal(f.bridge.ready(),true);
+  assert.equal(JSON.parse(f.data.get('guyuyizhang_save')).day,which==='local'?8:35);
+  assert.equal(JSON.parse(JSON.parse(f.data.get('guyuyizhang_alternate_save')).guyuyizhang_save).day,which==='local'?35:8);
+  assert.deepEqual(JSON.parse(f.data.get('guyuyizhang_meta')).slots,meta.slots);
+  assert.equal(f.data.has('guyuyizhang_platform_import'),false);
+ }
+});
+await check('真实空间不足或逐键写失败时保留两端原文，解除限制后可重选',async()=>{
+ for(const failure of ['full','guyuyizhang_save','guyuyizhang_meta','guyuyizhang_alternate_save','guyuyizhang_platform_import']){
+  const body=JSON.stringify({save:run(35,20,'run-B'),meta:{soul:500}}),shared={files:new Map(),archives:[{uuid:'other',fileId:'f',name:'guyuyizhang_main',body}]},f=fixture(keys(run(8,3)),shared);
+  await f.bridge.initialize(valid);const before=[...f.data].sort();if(failure==='full')f.control.limit=f.size()+150;else f.control.failKey=failure;
+  assert.throws(()=>f.bridge.choose('cloud'),/存储空间不足/);assert.equal(f.bridge.ready(),false);assert.deepEqual([...f.data].sort(),before);assert.equal(shared.archives[0].body,body);assert.equal(f.control.uploads+f.control.updates,0);
+  f.control.limit=Infinity;f.bridge.choose('local');assert.equal(f.bridge.ready(),true);assert.equal(JSON.parse(f.data.get('guyuyizhang_save')).day,8);
+ }
+});
+await check('旧全量与新差量的中断恢复均支持，差量不删除无关存档',async()=>{
+ for(const full of [false,true]){
+  const seed=keys(),f=fixture(seed),before=full?Object.fromEntries(Platform.keys.map(k=>[k,seed[k]??null])):{guyuyizhang_save:seed.guyuyizhang_save,guyuyizhang_alternate_save:null};
+  f.data.set('guyuyizhang_platform_import',JSON.stringify(full?{before}:{version:2,before:{guyuyizhang_save:false},changes:before}));f.data.set('guyuyizhang_save',JSON.stringify(run(99)));f.data.set('guyuyizhang_alternate_save','partial');
+  const b=Platform.create({...f.opts,getHost:()=>null});await b.initialize(valid);assert.deepEqual([...f.data].sort(),Object.entries(seed).sort());assert.equal(b.ready(),true);
+ }
+});
+await check('回滚也暂不可写时保留日志，重试先恢复原记录再切换',async()=>{
+ const shared={files:new Map(),archives:[{uuid:'other',fileId:'f',name:'guyuyizhang_main',body:JSON.stringify({save:run(35,20,'run-B'),meta:{soul:500}})}]},f=fixture(keys(run(8,3)),shared),before=[...f.data].sort();await f.bridge.initialize(valid);
+ const set=f.storage.setItem;let block=true;f.storage.setItem=(k,v)=>{if(block&&k==='guyuyizhang_alternate_save'){f.control.localFail=true;throw new DOMException('quota','QuotaExceededError');}return set(k,v);};
+ assert.throws(()=>f.bridge.choose('cloud'),/存储空间不足/);assert.ok(f.data.has('guyuyizhang_platform_import'));assert.equal(f.bridge.ready(),false);
+ const pending=f.data.get('guyuyizhang_platform_import');assert.throws(()=>f.bridge.choose('local'));assert.equal(f.data.get('guyuyizhang_platform_import'),pending);
+ // 缓存中的旧读取器必须在第一键停下，不能将差量里未列出的账号/备份删除。
+ const interrupted=[...f.data].sort();assert.throws(()=>{const j=JSON.parse(pending);for(const key of Platform.keys){const v=j.before[key];if(v==null)f.storage.removeItem(key);else if(typeof v==='string')f.storage.setItem(key,v);else throw Error('存档恢复记录不完整。');}},/不完整/);assert.deepEqual([...f.data].sort(),interrupted);
+ block=false;f.control.localFail=false;const b=Platform.create({...f.opts,getHost:()=>null});await b.initialize(valid);assert.deepEqual([...f.data].sort(),before);
+});
 console.log('通过 '+pass+' 项，失败 0 项\nRESULT:PASS');
 })().catch(e=>{console.error(e.stack);console.log('RESULT:FAIL');process.exitCode=1;});

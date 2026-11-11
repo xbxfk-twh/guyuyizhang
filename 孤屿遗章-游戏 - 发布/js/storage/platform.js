@@ -36,11 +36,22 @@ const PlatformSaveStore = (() => {
     const read=p=>invoke(fs,'readFile',{filePath:p,encoding:'utf8'}).then(r=>r.data);
     const write=(p,data)=>invoke(fs,'writeFile',{filePath:p,data,encoding:'utf8'});
     async function optionalRead(path){try{return await read(path);}catch(e){if(Number(e.errno)===400101||/no such file|not exist|not found|ENOENT/i.test(e.message))return null;throw e;}}
-    function restoreImport(){const raw=storage.getItem(IMPORT);if(!raw)return;const journal=parse(raw);if(!object(journal?.before))throw Error('存档恢复记录异常，请先导出原始备份。');for(const key of KEYS){const v=journal.before[key];if(v===null||v===undefined)storage.removeItem(key);else if(typeof v==='string')storage.setItem(key,v);else throw Error('存档恢复记录不完整。');}storage.removeItem(IMPORT);}
+    // 只记录发生变化的键；旧版本包含全部键的日志仍按原意恢复。
+    // 先释放缩小/删除的部分，避免全量回滚日志和重复写入耗尽手机网页配额。
+    function applyKeys(values){
+      const changed=KEYS.filter(key=>Object.hasOwn(values,key)&&storage.getItem(key)!==(values[key]??null));
+      changed.sort((a,b)=>((values[a]?.length||0)-(storage.getItem(a)?.length||0))-((values[b]?.length||0)-(storage.getItem(b)?.length||0)));
+      for(const key of changed){const v=values[key];if(v===null||v===undefined)storage.removeItem(key);else storage.setItem(key,v);}
+    }
+    function restoreImport(){const raw=storage.getItem(IMPORT);if(!raw)return;const journal=parse(raw),before=journal?.version===2?journal.changes:journal?.before;if(!object(before))throw Error('存档恢复记录异常，请先导出原始备份。');if(KEYS.some(key=>Object.hasOwn(before,key)&&before[key]!==null&&typeof before[key]!=='string'))throw Error('存档恢复记录不完整。');applyKeys(before);for(const key of KEYS)if(Object.hasOwn(before,key)&&storage.getItem(key)!==before[key])throw Error('恢复存档回滚校验失败');storage.removeItem(IMPORT);}
     function install(keys){
-      const before=capture();storage.setItem(IMPORT,JSON.stringify({before}));
-      try{for(const key of KEYS){const v=keys[key];if(v===null||v===undefined)storage.removeItem(key);else storage.setItem(key,v);}for(const key of KEYS)if(storage.getItem(key)!==(keys[key]??null))throw Error('恢复存档写入校验失败');storage.removeItem(IMPORT);}
-      catch(e){try{restoreImport();}catch(_){}throw e;}
+      restoreImport();
+      const before={},next={};for(const key of KEYS){const old=storage.getItem(key),value=keys[key]??null;if(old!==value){before[key]=old;next[key]=value;}}
+      if(!Object.keys(next).length)return;
+      let journalWritten=false;
+      // 旧页面不认识差量日志：让其在第一键校验时停下，不能把省略键误删。
+      try{storage.setItem(IMPORT,JSON.stringify({version:2,before:{guyuyizhang_save:false},changes:before}));journalWritten=true;applyKeys(next);for(const key of KEYS)if(storage.getItem(key)!==(keys[key]??null))throw Error('恢复存档写入校验失败');storage.removeItem(IMPORT);}
+      catch(e){if(journalWritten)try{restoreImport();}catch(_){}if(e.name==='QuotaExceededError'||e.code===22||e.code===1014||/quota/i.test(e.message))throw Object.assign(new Error('本机存储空间不足，未完成进度恢复。请保留当前页面并导出原始备份，不要清除应用数据。'),{name:'QuotaExceededError',cause:e});throw e;}
     }
     async function remoteRead(){
       listed=false;
