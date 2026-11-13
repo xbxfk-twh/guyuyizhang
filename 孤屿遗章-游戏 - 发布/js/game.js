@@ -1680,9 +1680,9 @@ function change() {
     timePass: (m) => { if (gameState.run) addMin(m || 1); },
     bind: (o) => { if (o.onLog) onLog = o.onLog; if (o.onChange) onChange = o.onChange; if (o.onFight) onFight = o.onFight; if (o.onEnding) onEnding = o.onEnding; if (o.onOverlay) onOverlay = o.onOverlay; if (o.onSaveFail) onSaveFail = o.onSaveFail; if (o.onSaveConflict) onSaveConflict = o.onSaveConflict; },
     // 存档加固：给刚开的新局/刚读的档一个"当前存档版本号"基线，用来识别"另一个标签页有更新进度"
-    saveRev: () => { try { return parseInt(localStorage.getItem('guyuyizhang_rev') || '0', 10) || 0; } catch (e) { return 0; } },
-    savedAt: () => { try { return parseInt(localStorage.getItem('guyuyizhang_savedAt') || '0', 10) || 0; } catch (e) { return 0; } },
-    forceSave: () => { if (gameState.run) { gameState.run._rev = 0; try { gameState.run._rev = parseInt(localStorage.getItem('guyuyizhang_rev') || '0', 10) || 0; } catch (e) {} } return save(); },
+    saveRev: saves.saveRev,
+    savedAt: saves.savedAt,
+    forceSave: saves.forceSave,
     difficultyUnlocked, nightmareInfo, nightmareEncounter, challengeNightmareBoss, separateSouls, infuseNightmare, nightmareInfusionBonus, loadPenalty, healthValue, pendingLootInfo, collectPending, setFocus, awardExperience, satchelAvailable, satchelEligible, satchelSelections, setSatchelSelections, toggleSatchelSelection, satchelStatus, cellarBuilt, cellarTransferMax, cellarState, cellarAccess, transferCellar, stackSize, itemUseCount, merchantSellCount, warehouseSite, warehouseAccess, warehouseDepositAccess, warehouseDepositCount, warehouseTransferMax, discardItems, warehouseAccessCheck, learnBlueprint, knowsBlueprint, storeAllWarehouse, warehouseCapacity, warehouseState, transferWarehouse, materialCount, warehouseAutoEligible, warehouseAutoItems, setWarehouseAutoItems, autoStoreWarehouse, equipBackpack, replacePending,
     newGame, load, hasSave, save,
     sceneOf, sceneUnlocked, canTravel, travel, atlantisTeleport, activatePortal, setZone, lightLevel, pointsOf, pointAvailable, pointStatus, doPoint, randomEventPool,

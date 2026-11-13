@@ -18,7 +18,10 @@ const SaveService = (() => {
     function initializeStorage(){transactions.recover();return repository.metaReload();}
     // 保持原时机：Game 装配结束后调用；宿主桥接存在时必须等异步核对后再初始化。
     function initializeLegacy(){if(!getBridge()){transactions.recover();repository.metaLoad();}}
-    return Object.freeze({storage,keys,...repository,persistPair:transactions.commit,recoverPendingWrite:transactions.recover,saveAndFlush,initializeStorage,initializeLegacy});
+    function numberAt(key){try{return parseInt(storage.getItem(key)||'0',10)||0;}catch(e){return 0;}}
+    const saveRev=()=>numberAt('guyuyizhang_rev'),savedAt=()=>numberAt('guyuyizhang_savedAt');
+    function forceSave(){if(state.run)state.run._rev=saveRev();return repository.save();}
+    return Object.freeze({storage,keys,...repository,persistPair:transactions.commit,recoverPendingWrite:transactions.recover,saveAndFlush,initializeStorage,initializeLegacy,saveRev,savedAt,forceSave});
   }
   return Object.freeze({port,create,get keys(){return SaveRepository.keys;}});
 })();
