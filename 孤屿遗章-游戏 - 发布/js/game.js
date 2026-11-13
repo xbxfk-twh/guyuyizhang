@@ -588,6 +588,7 @@ const Game = (() => {
   }
 function change() { 
     settleStoredFood();
+    // relics 是已拥有清单：拿到食之包即可了解卡面设置，不要求先装备。
     if(gameState.run?.relics?.includes('satchel')&&!gameState.run.flags.satchelHelpSeen){gameState.run.flags.satchelHelpSeen=true;log('长按食之包卡面，可选最多3种优先食物、饮料或禁食物品。','sys');}
     if (gameState.run) syncToolkit();   // 工具用坏了就从工具栏清掉、备用自动顶上（别让空壳一直挂在那）
     if (gameState.run && gameState.run.stats && gameState.run.stats.hp <= 0 && !gameState.run.ending && !gameState.run.death) { gameState.run.stats.hp = 0; die('你伤势太重，倒在了荒野里。'); return; }   // 兜底：生命≤0必定死亡
@@ -595,8 +596,8 @@ function change() {
     if (gameState.run && gameState.run.stats) { const ms = maxStam(); if (gameState.run.stats.stamina > ms) gameState.run.stats.stamina = ms; }
     if (gameState.run) gameState.run._dirty = true;      // 有改动 → 兜底自动存档（每 20 秒那次）才知道该不该写
     if (onChange) onChange();
-    if (!gameState.run.death) achCheck();
-    if (!gameState.run.death && !gameState.run.ending) dangerTip();
+    if (gameState.run && !gameState.run.death) achCheck();
+    if (gameState.run && !gameState.run.death && !gameState.run.ending) dangerTip();
   }
   function qtyParse(q) { if (typeof q === 'string' && q.includes('-')) { const [a,b] = q.split('-').map(Number); return rnd(a,b); } return q; }
 

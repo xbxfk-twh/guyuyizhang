@@ -22,6 +22,7 @@ function unlockDev(pw) {
     return { ok:true, soul: meta.soul };
   }
 
+// relicEquip 表示正在装备并生效的神物；relics 是拥有清单，不能互换旧档语义。
 function hasRelic(id) { return (gameState.run.relicEquip || []).includes(id); }
 
 function hpMax() { return 100 + (hasRelic('bloodvest') ? 20 : 0) + accessoryStat('hp') + buffV('hp') + 2 * ((gameState.run.permUsed && gameState.run.permUsed.tideVitalPill) || 0) + trainingHp(); }
