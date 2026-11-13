@@ -109,7 +109,7 @@ function triggerRandomEvent(sceneId) {
     }))});
   }
 
-function showOverlay(cfg) { if (deps.onOverlay) deps.onOverlay({ kind:'choice', ...cfg }); }
+function showOverlay(cfg) { if (deps.callbacks.onOverlay) deps.callbacks.onOverlay({ kind:'choice', ...cfg }); }
 
 function shrinePool() {
     return Object.keys(RELICS).filter(id => id !== 'atlantisSeed' && !(gameState.run.relics || []).includes(id));

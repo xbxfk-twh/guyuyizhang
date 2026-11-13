@@ -179,7 +179,7 @@ function settleEnding(id) {
     save();
     const ms = metaSettle();
     if (ms) log(`你的一生化为 ${ms.gain} 魂点，汇入了《历代遗章》。`, 'good');
-    if (deps.onEnding) deps.onEnding(gameState.run.ending, '');
+    if (deps.callbacks.onEnding) deps.callbacks.onEnding(gameState.run.ending, '');
     return { ok:true };
   }
 

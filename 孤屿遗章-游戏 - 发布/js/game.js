@@ -6,564 +6,186 @@
 const Game = (() => {
   const LOG_KEEP = 200;
   const gameState=StateStore.create();
+  const callbacks={onLog:null,onChange:null,onFight:null,onEnding:null,onOverlay:null,onSaveFail:null,onSaveConflict:null};
+  const activity={craftBatchConfirmed:false};
+  const ACT_CD_BASE = 20;
+  const BUFF_NAMES = {atk:'攻击',def:'防御',spd:'攻速',hp:'生命上限',accuracy:'命中'};
+  const CK=SaveService.keys;
+  const COOP_EXT_MAX = 2;                 // 鸡舍可扩建两次：3 只 → 4 只 → 5 只（羊圈不扩建）
+  const EXP_GATHER = 1, EXP_CRAFT = 1;
+  const FARM_EXTRA_MAX = 2;   // 锄头最多能多开垦 2 块田
+  const FARM_LIVESTOCK_IDS = ['coop', 'pen'];
+  const RANGE_BOW = 30, RANGE_GUN = 15, RANGE_MELEE = 0;
+  const ROAD_AMBUSH_MIN_DANGER = 3;
+  const SHELL_FOR_COIN = 30;    // 1 枚金币能换回多少贝壳
+  const SHELL_PER_COIN = 50;    // 换 1 枚金币要多少贝壳
+  const STORE_EXT_CAP = 15;
+  const VENDOR_RELIC_CHANCE = 0.30;
+  const session=GameSession.create();
+
   const rng=GameRandom.create();
   const {rnd,chance,pick}=rng;
   const getSaveBridge=()=>typeof window!=="undefined"?window.GuyuSaveBridge:null;
   const storagePort=SaveService.port({bridge:getSaveBridge(),storage:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value),removeItem:key=>localStorage.removeItem(key)}});
-  const runTutorial=TutorialRules.create({getState:()=>gameState.run,changed:change,items:ITEMS});
-  const lifecycleRules=RunLifecycle.create({
-    gameState,rng,
-    storage:storagePort,
-    get persistPair(){return persistPair;},
-    get onEnding(){return onEnding;},
-    get log(){return log;},
-    get change(){return change;},
-    get invCount(){return invCount;},
-    get removeItem(){return removeItem;},
-    get giveStart(){return giveStart;},
-    get CK(){return CK;},
-    get ckGet(){return ckGet;},
-    get save(){return save;},
-    get maxStam(){return maxStam;},
-    get diaryAdd(){return diaryAdd;},
-    get difficultyUnlocked(){return difficultyUnlocked;},
-    get identityUnlocked(){return identityUnlocked;},
-    get metaSave(){return metaSave;},
-    get metaState(){return metaState;},
-    get metaBonus(){return metaBonus;},
-    get ensureRunId(){return ensureRunId;},
-    get rememberSettledRun(){return rememberSettledRun;},
-    get metaSettle(){return metaSettle;},
-    get validSave(){return validSave;}
-  });
-  const saveSlotsRules=SaveSlotRules.create({
-    gameState,
-    get persistPair(){return persistPair;},
-    get metaSave(){return metaSave;},
-    get metaState(){return metaState;},
-    get ensureRunId(){return ensureRunId;},
-    get rememberSettledRun(){return rememberSettledRun;},
-    get backupPoints(){return backupPoints;},
-    get validSave(){return validSave;}
-  });
-  const noticeRules=NotificationRules.create({getMeta:()=>metaState(),getRun:()=>gameState.run,persistPair:(...a)=>persistPair(...a),dailySignState:()=>dailySignState(),dailyGiftState:()=>dailyGiftState(),mailboxCount:()=>mailboxCount()});
-  const shopRules=ShopRules.create({
-    gameState,
-    get persistPair(){return persistPair;},
-    get rnd(){return rnd;},
-    get log(){return log;},
-    get change(){return change;},
-    get metaSave(){return metaSave;},
-    get metaState(){return metaState;}
-  });
-  const relicsRules=RelicRules.create({
-    gameState,rng,
-    get chance(){return chance;},
-    get log(){return log;},
-    get change(){return change;},
-    get invCount(){return invCount;},
-    get removeItem(){return removeItem;},
-    get buffV(){return buffV;},
-    get accessoryStat(){return accessoryStat;},
-    get trainingHp(){return trainingHp;},
-    get metaSave(){return metaSave;},
-    get metaState(){return metaState;},
-    get VENDOR_RELIC_CHANCE(){return VENDOR_RELIC_CHANCE;}
-  });
-  const achievementsRules=AchievementRules.create({
-    gameState,
-    get log(){return log;},
-    get metaSave(){return metaSave;},
-    get metaState(){return metaState;}
-  });
-  const lotteryRules=LotteryRules.create({
-    gameState,
-    get adCurrencyName(){return adCurrencyName;},
-    get persistPair(){return persistPair;},
-    get log(){return log;},
-    get change(){return change;},
-    get invCount(){return invCount;},
-    get hasItem(){return hasItem;},
-    get addItem(){return addItem;},
-    get removeItem(){return removeItem;},
-    get syncToolkit(){return syncToolkit;},
-    get metaSave(){return metaSave;},
-    get updateMailCheckpoint(){return updateMailCheckpoint;},
-    get metaState(){return metaState;},
-    get todayKey(){return todayKey;},
-    get walletEntry(){return walletEntry;}
-  });
-  const mailboxRules=MailboxRules.create({
-    gameState,
-    get persistPair(){return persistPair;},
-    get log(){return log;},
-    get change(){return change;},
-    get addItem(){return addItem;},
-    get fitsInBag(){return fitsInBag;},
-    get metaLoad(){return metaLoad;},
-    get metaSave(){return metaSave;},
-    get walletEntry(){return walletEntry;},
-    get walletId(){return walletId;}
-  });
-  const accountRules=AccountRules.create({
-    gameState,
-    get saves(){return saves;},
-    get persistPair(){return persistPair;},
-    get log(){return log;},
-    get change(){return change;},
-    get reviveInfo(){return reviveInfo;},
-    get showOverlay(){return showOverlay;},
-    get hardCompleted(){return hardCompleted;},
-    get metaState(){return metaState;},
-    get mergeLotteryHistory(){return mergeLotteryHistory;},
-    get craftBatchConfirmed(){return craftBatchConfirmed;}, set craftBatchConfirmed(value){craftBatchConfirmed=value;},
-    get validSave(){return validSave;},
-    get adCurrencyName(){return adCurrencyName;}
-  });
-  const nightmareRules=NightmareRules.create({
-    gameState,rng,
-    get persistPair(){return persistPair;},
-    get chance(){return chance;},
-    get log(){return log;},
-    get change(){return change;},
-    get invCount(){return invCount;},
-    get removeItem(){return removeItem;},
-    get lanternRiskMul(){return lanternRiskMul;},
-    get gainItem(){return gainItem;},
-    get startFight(){return startFight;},
-    get metaState(){return metaState;},
-    get lotteryRandom(){return lotteryRandom;},
-    get walletEntry(){return walletEntry;}
-  });
-  const objectivesRules=ObjectiveRules.create({
-    gameState,
-    get invCount(){return invCount;},
-    get hasItem(){return hasItem;},
-    get knowsBlueprint(){return knowsBlueprint;},
-    get seasonInfo(){return seasonInfo;},
-    get materialCount(){return materialCount;},
-    get priceOf(){return priceOf;}
-  });
-  const endingsRules=EndingRules.create({
-    gameState,
-    get persistPair(){return persistPair;},
-    get onEnding(){return onEnding;},
-    get log(){return log;},
-    get change(){return change;},
-    get invCount(){return invCount;},
-    get hasItem(){return hasItem;},
-    get save(){return save;},
-    get showOverlay(){return showOverlay;},
-    get diaryAdd(){return diaryAdd;},
-    get unlockChallenges(){return unlockChallenges;},
-    get metaState(){return metaState;},
-    get achUnlock(){return achUnlock;},
-    get metaSettle(){return metaSettle;}
-  });
-  const consumablesRules=ConsumableRules.create({
-    gameState,
-    get chance(){return chance;},
-    get log(){return log;},
-    get change(){return change;},
-    get applyHarm(){return applyHarm;},
-    get restoreHealth(){return restoreHealth;},
-    get addMin(){return addMin;},
-    get BUFF_NAMES(){return BUFF_NAMES;},
-    get maxStam(){return maxStam;},
-    get medHeal(){return medHeal;},
-    get itemUseCount(){return itemUseCount;},
-    get takeUseItem(){return takeUseItem;},
-    get hpMax(){return hpMax;}
-  });
-  const tradingRules=TradingRules.create({
-    gameState,
-    get log(){return log;},
-    get change(){return change;},
-    get invCount(){return invCount;},
-    get hasItem(){return hasItem;},
-    get notifyBagFull(){return notifyBagFull;},
-    get addItem(){return addItem;},
-    get removeItem(){return removeItem;},
-    get gainItem(){return gainItem;},
-    get seasonInfo(){return seasonInfo;},
-    get isNight(){return isNight;},
-    get diaryAdd(){return diaryAdd;},
-    get supplyCount(){return supplyCount;},
-    get takeSupply(){return takeSupply;},
-    get merchantSupplySites(){return merchantSupplySites;},
-    get merchantSellCount(){return merchantSellCount;},
-    get materialSupplySites(){return materialSupplySites;},
-    get matsOk(){return matsOk;},
-    get takeMats(){return takeMats;},
-    get fitsInBag(){return fitsInBag;},
-    get SHELL_PER_COIN(){return SHELL_PER_COIN;},
-    get SHELL_FOR_COIN(){return SHELL_FOR_COIN;}
-  });
-  const productionRules=ProductionRules.create({
-    gameState,rng,
-    get rnd(){return rnd;},
-    get chance(){return chance;},
-    get log(){return log;},
-    get change(){return change;},
-    get invCount(){return invCount;},
-    get hasItem(){return hasItem;},
-    get knowsBlueprint(){return knowsBlueprint;},
-    get notifyBagFull(){return notifyBagFull;},
-    get foodLots(){return foodLots;},
-    get syncFood(){return syncFood;},
-    get addItem(){return addItem;},
-    get durList(){return durList;},
-    get durMaxOf(){return durMaxOf;},
-    get durSync(){return durSync;},
-    get removeItem(){return removeItem;},
-    get selectedTool(){return selectedTool;},
-    get drainTool(){return drainTool;},
-    get capUsed(){return capUsed;},
-    get capacity(){return capacity;},
-    get settleStoredFood(){return settleStoredFood;},
-    get warehouseSite(){return warehouseSite;},
-    get stackSize(){return stackSize;},
-    get warehouseAccess(){return warehouseAccess;},
-    get warehouseCapacity(){return warehouseCapacity;},
-    get cellarBuilt(){return cellarBuilt;},
-    get cellarAccess(){return cellarAccess;},
-    get hasTool(){return hasTool;},
-    get addMin(){return addMin;},
-    get gainItem(){return gainItem;},
-    get COOP_EXT_MAX(){return COOP_EXT_MAX;},
-    get coopCap(){return coopCap;},
-    get liveState(){return liveState;},
-    get sceneOf(){return sceneOf;},
-    get staminaCost(){return staminaCost;},
-    get nodeLv(){return nodeLv;},
-    get EXP_CRAFT(){return EXP_CRAFT;},
-    get cxTimeMul(){return cxTimeMul;},
-    get cxRefundChance(){return cxRefundChance;},
-    get cxExtraChance(){return cxExtraChance;},
-    get cxDurMul(){return cxDurMul;},
-    get awardExperience(){return awardExperience;},
-    get expLevel(){return expLevel;},
-    get diaryAdd(){return diaryAdd;},
-    get FARM_LIVESTOCK_IDS(){return FARM_LIVESTOCK_IDS;},
-    get STORE_EXT_CAP(){return STORE_EXT_CAP;},
-    get FARM_EXTRA_MAX(){return FARM_EXTRA_MAX;},
-    get metaBonus(){return metaBonus;},
-    get craftBatchConfirmed(){return craftBatchConfirmed;}, set craftBatchConfirmed(value){craftBatchConfirmed=value;},
-    get longActWarn(){return longActWarn;},
-    get hpMax(){return hpMax;}
-  });
-  const combatRules=CombatRules.create({
-    gameState,
-    get inventory(){return inventory;},
-    get onFight(){return onFight;},
-    get onEnding(){return onEnding;},
-    get rnd(){return rnd;},
-    get chance(){return chance;},
-    get log(){return log;},
-    get change(){return change;},
-    get qtyParse(){return qtyParse;},
-    get invCount(){return invCount;},
-    get hasItem(){return hasItem;},
-    get removeItem(){return removeItem;},
-    get weaponTurnSlot(){return weaponTurnSlot;},
-    get drainWeapon(){return drainWeapon;},
-    get drainEquipSlot(){return drainEquipSlot;},
-    get drainById(){return drainById;},
-    get applyHarm(){return applyHarm;},
-    get restoreHealth(){return restoreHealth;},
-    get gainItem(){return gainItem;},
-    get isNight(){return isNight;},
-    get raidWolves(){return raidWolves;},
-    get save(){return save;},
-    get die(){return die;},
-    get sceneOf(){return sceneOf;},
-    get arriveAt(){return arriveAt;},
-    get pointsOf(){return pointsOf;},
-    get doPoint(){return doPoint;},
-    get showOverlay(){return showOverlay;},
-    get meleeWeapons(){return meleeWeapons;},
-    get buffV(){return buffV;},
-    get playerAtk(){return playerAtk;},
-    get rangedAtk(){return rangedAtk;},
-    get maxStam(){return maxStam;},
-    get playerDef(){return playerDef;},
-    get shieldBlock(){return shieldBlock;},
-    get RANGE_MELEE(){return RANGE_MELEE;},
-    get enemyRange(){return enemyRange;},
-    get myAttackRange(){return myAttackRange;},
-    get myMoveSpeed(){return myMoveSpeed;},
-    get sweepInfo(){return sweepInfo;},
-    get ACT_CD_BASE(){return ACT_CD_BASE;},
-    get hasHeavy(){return hasHeavy;},
-    get hasSure(){return hasSure;},
-    get heavyInfo(){return heavyInfo;},
-    get sureInfo(){return sureInfo;},
-    get coverReduceOf(){return coverReduceOf;},
-    get rollEnemyIntents(){return rollEnemyIntents;},
-    get combatSpeed(){return combatSpeed;},
-    get wNameOf(){return wNameOf;},
-    get temperatureInfo(){return temperatureInfo;},
-    get rangedWeapon(){return rangedWeapon;},
-    get hasRanged(){return hasRanged;},
-    get rangedKind(){return rangedKind;},
-    get rangedAcc(){return rangedAcc;},
-    get ammoConsume(){return ammoConsume;},
-    get cxCrit(){return cxCrit;},
-    get critMul(){return critMul;},
-    get sweepCdTotal(){return sweepCdTotal;},
-    get sweepMul(){return sweepMul;},
-    get medHeal(){return medHeal;},
-    get vampRate(){return vampRate;},
-    get execThreshold(){return execThreshold;},
-    get revengeBonus(){return revengeBonus;},
-    get hasDualDagger(){return hasDualDagger;},
-    get wallBlockBonus(){return wallBlockBonus;},
-    get wallDurMul(){return wallDurMul;},
-    get rageAtkMul(){return rageAtkMul;},
-    get rageTakenMul(){return rageTakenMul;},
-    get ironTakenMul(){return ironTakenMul;},
-    get ironAtkMul(){return ironAtkMul;},
-    get awardExperience(){return awardExperience;},
-    get diaryAdd(){return diaryAdd;},
-    get nightmareInfusionBonus(){return nightmareInfusionBonus;},
-    get metaSave(){return metaSave;},
-    get metaState(){return metaState;},
-    get noteMissStreak(){return noteMissStreak;},
-    get metaBonus(){return metaBonus;},
-    get metaSettle(){return metaSettle;},
-    get hasRelic(){return hasRelic;},
-    get hpMax(){return hpMax;}
-  });
-  const skillsRules=SkillRules.create({
-    gameState,
-    get persistPair(){return persistPair;},
-    get chance(){return chance;},
-    get log(){return log;},
-    get change(){return change;},
-    get save(){return save;},
-    get meleeWeapons(){return meleeWeapons;},
-    get accessoryStat(){return accessoryStat;},
-    get metaState(){return metaState;}
-  });
-  const weaponCareRules=WeaponCare.create({
-    gameState,
-    get chance(){return chance;},
-    get log(){return log;},
-    get change(){return change;},
-    get hasItem(){return hasItem;},
-    get durList(){return durList;},
-    get durMaxOf(){return durMaxOf;},
-    get durSync(){return durSync;},
-    get removeItem(){return removeItem;},
-    get keepsBroken(){return keepsBroken;},
-    get addMin(){return addMin;},
-    get gainItem(){return gainItem;},
-    get pistolCalib(){return pistolCalib;},
-    get cxRepairFree(){return cxRepairFree;}
-  });
-  const combatStatsRules=CombatStats.create({
-    gameState,rng,
-    get chance(){return chance;},
-    get log(){return log;},
-    get invCount(){return invCount;},
-    get removeItem(){return removeItem;},
-    get meleeWeaponNow(){return meleeWeaponNow;},
-    get drainEquipSlot(){return drainEquipSlot;},
-    get healthValue(){return healthValue;},
-    get seasonOnDay(){return seasonOnDay;},
-    get BUFF_NAMES(){return BUFF_NAMES;},
-    get RANGE_BOW(){return RANGE_BOW;},
-    get RANGE_GUN(){return RANGE_GUN;},
-    get RANGE_MELEE(){return RANGE_MELEE;},
-    get sharpenAm(){return sharpenAm;},
-    get nodeLv(){return nodeLv;},
-    get cxAtk(){return cxAtk;},
-    get cxDef(){return cxDef;},
-    get swiftBonus(){return swiftBonus;},
-    get gunNodeLv(){return gunNodeLv;},
-    get ammoSaveChance(){return ammoSaveChance;},
-    get bedStamBonus(){return bedStamBonus;},
-    get trainingAtk(){return trainingAtk;},
-    get nightmareInfusionBonus(){return nightmareInfusionBonus;},
-    get metaBonus(){return metaBonus;},
-    get hpMax(){return hpMax;}
-  });
-  const eventsRules=WorldEventRules.create({
-    gameState,rng,
-    get onOverlay(){return onOverlay;},
-    get chance(){return chance;},
-    get log(){return log;},
-    get change(){return change;},
-    get hasItem(){return hasItem;},
-    get removeItem(){return removeItem;},
-    get applyHarm(){return applyHarm;},
-    get addMin(){return addMin;},
-    get gainItem(){return gainItem;},
-    get raidDay(){return raidDay;},
-    get die(){return die;},
-    get startFight(){return startFight;},
-    get diaryAdd(){return diaryAdd;},
-    get gainRandomRelic(){return gainRandomRelic;}
-  });
-  const gatheringRules=GatheringRules.create({
-    gameState,rng,
-    get onOverlay(){return onOverlay;},
-    get rnd(){return rnd;},
-    get chance(){return chance;},
-    get pick(){return pick;},
-    get log(){return log;},
-    get change(){return change;},
-    get qtyParse(){return qtyParse;},
-    get invCount(){return invCount;},
-    get hasItem(){return hasItem;},
-    get notifyBagFull(){return notifyBagFull;},
-    get addItem(){return addItem;},
-    get removeItem(){return removeItem;},
-    get selectedTool(){return selectedTool;},
-    get bestToolTier(){return bestToolTier;},
-    get autoToolsEnabled(){return autoToolsEnabled;},
-    get wearSelectedTool(){return wearSelectedTool;},
-    get autoToolkit(){return autoToolkit;},
-    get drainById(){return drainById;},
-    get hasTool(){return hasTool;},
-    get applyHarm(){return applyHarm;},
-    get lanternRiskMul(){return lanternRiskMul;},
-    get addMin(){return addMin;},
-    get gainItem(){return gainItem;},
-    get seasonInfo(){return seasonInfo;},
-    get isNight(){return isNight;},
-    get triggerStory(){return triggerStory;},
-    get die(){return die;},
-    get sceneOf(){return sceneOf;},
-    get canTravel(){return canTravel;},
-    get staminaCost(){return staminaCost;},
-    get travel(){return travel;},
-    get triggerRandomEvent(){return triggerRandomEvent;},
-    get showOverlay(){return showOverlay;},
-    get EXP_GATHER(){return EXP_GATHER;},
-    get gxYieldMul(){return gxYieldMul;},
-    get gxTimeMul(){return gxTimeMul;},
-    get gxEnergyMul(){return gxEnergyMul;},
-    get gxPineBonus(){return gxPineBonus;},
-    get gxWoodExtra(){return gxWoodExtra;},
-    get awardExperience(){return awardExperience;},
-    get startFight(){return startFight;},
-    get diaryAdd(){return diaryAdd;},
-    get doPeakRitual(){return doPeakRitual;},
-    get nightmareEncounter(){return nightmareEncounter;},
-    get achUnlock(){return achUnlock;}
-  });
-  const journeyRules=JourneyRules.create({
-    gameState,rng,
-    get chance(){return chance;},
-    get log(){return log;},
-    get change(){return change;},
-    get invCount(){return invCount;},
-    get hasItem(){return hasItem;},
-    get removeItem(){return removeItem;},
-    get capUsed(){return capUsed;},
-    get capacity(){return capacity;},
-    get autoStoreWarehouse(){return autoStoreWarehouse;},
-    get lanternRiskMul(){return lanternRiskMul;},
-    get addMin(){return addMin;},
-    get isNight(){return isNight;},
-    get ROAD_AMBUSH_MIN_DANGER(){return ROAD_AMBUSH_MIN_DANGER;},
-    get pointsOf(){return pointsOf;},
-    get lightLevel(){return lightLevel;},
-    get triggerRandomEvent(){return triggerRandomEvent;},
-    get showOverlay(){return showOverlay;},
-    get temperatureInfo(){return temperatureInfo;},
-    get temperatureEntered(){return temperatureEntered;},
-    get startFight(){return startFight;},
-    get diaryAdd(){return diaryAdd;},
-    get nightmareEncounter(){return nightmareEncounter;},
-    get metaBonus(){return metaBonus;},
-    get hasRelic(){return hasRelic;}
-  });
-  const livestockRules=LivestockRules.create({
-    gameState,
-    get rnd(){return rnd;},
-    get chance(){return chance;},
-    get log(){return log;},
-    get change(){return change;},
-    get hasItem(){return hasItem;},
-    get removeItem(){return removeItem;},
-    get warehouseCapacity(){return warehouseCapacity;},
-    get deliverToBag(){return deliverToBag;},
-    get COOP_EXT_MAX(){return COOP_EXT_MAX;},
-    get supplyRecords(){return supplyRecords;},
-    get supplyCount(){return supplyCount;},
-    get takeSupply(){return takeSupply;}
-  });
-  const survivalRules=SurvivalRules.create({
-    gameState,rng,
-    get onOverlay(){return onOverlay;},
-    get rnd(){return rnd;},
-    get chance(){return chance;},
-    get pick(){return pick;},
-    get log(){return log;},
-    get change(){return change;},
-    get hasItem(){return hasItem;},
-    get drainById(){return drainById;},
-    get HOUR_EFFECTS(){return HOUR_EFFECTS;},
-    get session(){return session;},
-    get deliverToBag(){return deliverToBag;},
-    get gainItem(){return gainItem;},
-    get collectDailyReport(){return collectDailyReport;},
-    get raidDay(){return raidDay;},
-    get storyDay(){return storyDay;},
-    get triggerStory(){return triggerStory;},
-    get snapshot(){return snapshot;},
-    get save(){return save;},
-    get die(){return die;},
-    get maxStam(){return maxStam;},
-    get chainTier(){return chainTier;},
-    get nightRaid(){return nightRaid;},
-    get diary(){return diary;},
-    get hasRelic(){return hasRelic;},
-    get hpMax(){return hpMax;},
-    get sleepQuality(){return sleepQuality;}
-  });
-  const inventory=InventoryRules.create({state:gameState,
-    get foodSatchel(){return foodSatchel;},
-    get persistPair(){return persistPair;},
-    get onOverlay(){return onOverlay;},
-    get log(){return log;},
-    get change(){return change;},
-    get save(){return save;},
-    get showOverlay(){return showOverlay;},
-    get meleeWeapons(){return meleeWeapons;},
-    get hasTwoHand(){return hasTwoHand;},
-    get wNameOf(){return wNameOf;},
-    get diaryAdd(){return diaryAdd;},
-    get supplyContainer(){return supplyContainer;},
-    get materialCount(){return materialCount;},
-    get STORE_EXT_CAP(){return STORE_EXT_CAP;},
-    get nowTick(){return nowTick;},
-    get atlantisCamp(){return atlantisCamp;},
-    get metaSave(){return metaSave;},
-    get metaState(){return metaState;},
-    get metaBonus(){return metaBonus;}
-  });            // 全局状态
-  const foodSatchel=FoodSatchel.create({getState:()=>gameState.run,ITEMS,warehouseSite,cellarBuilt,supplyCount,foodLots,nowTick,supplyRecords,supplyRecordsAll,supplyContainer,supplySites,invCount,hasRelic,save,change,log,takeSupply,applyFoodEffects});
-  const migrations=StateMigrations.create({getState:()=>gameState.run,ITEMS,DIFFICULTIES,WEATHER,DURA,LOG_KEEP,SKILL_TRUNK_COST,costMul,log,combatLv,nodeLv,trainingCount,durList,autoToolkit,reconcileLotteryInputs,reconcileNightmareSouls,settleStoredFood,supplyRecordsAll,addItem,
-    migrateFoodChoices:()=>foodSatchel.migrateSatchelChoices()});
-  
   const saves=SaveService.create({
     storage:storagePort,cookies:{get text(){return document.cookie;},set text(value){document.cookie=value;}},state:gameState,getBridge:getSaveBridge,
     LOG_KEEP,validSave,normalizeState,migrateSaltMeta,migrateRedeemReceipts,migrateNotices:NotificationRules.migrate,
     reconcile:()=>{reconcileLotteryInputs();reconcileNightmareSouls();},push:()=>cloudPush(false),
-    onConflict:revision=>{if(typeof onSaveConflict==='function')onSaveConflict(revision);},
-    onFailure:error=>{if(typeof onSaveFail==='function')onSaveFail(error);}
+    onConflict:revision=>{if(typeof callbacks.onSaveConflict==='function')callbacks.onSaveConflict(revision);},
+    onFailure:error=>{if(typeof callbacks.onSaveFail==='function')callbacks.onSaveFail(error);}
   });
+  const foodSatchel=FoodSatchel.create({getState:()=>gameState.run,ITEMS,warehouseSite,cellarBuilt,supplyCount,foodLots,nowTick,supplyRecords,supplyRecordsAll,supplyContainer,supplySites,invCount,hasRelic,save,change,log,takeSupply,applyFoodEffects});
+
+  const inventory=InventoryRules.create({state:gameState,
+    foodSatchel, persistPair, callbacks, log, change, save, showOverlay, meleeWeapons, hasTwoHand, wNameOf,
+    diaryAdd, supplyContainer, materialCount, STORE_EXT_CAP, nowTick, atlantisCamp, metaSave, metaState,
+    metaBonus
+  });
+  const runTutorial=TutorialRules.create({getState:()=>gameState.run,changed:change,items:ITEMS});
+  const lifecycleRules=RunLifecycle.create({
+    gameState,rng,
+    storage:storagePort,
+    persistPair, callbacks, log, change, invCount, removeItem, giveStart, CK, ckGet, save, maxStam, diaryAdd,
+    difficultyUnlocked, identityUnlocked, metaSave, metaState, metaBonus, ensureRunId, rememberSettledRun,
+    metaSettle,
+    validSave
+  });
+  const saveSlotsRules=SaveSlotRules.create({
+    gameState, persistPair, metaSave, metaState, ensureRunId, rememberSettledRun, backupPoints,
+    validSave
+  });
+  const noticeRules=NotificationRules.create({getMeta:()=>metaState(),getRun:()=>gameState.run,persistPair:(...a)=>persistPair(...a),dailySignState:()=>dailySignState(),dailyGiftState:()=>dailyGiftState(),mailboxCount:()=>mailboxCount()});
+  const shopRules=ShopRules.create({
+    gameState, persistPair, rnd, log, change, metaSave,
+    metaState
+  });
+  const relicsRules=RelicRules.create({
+    gameState,rng,
+    chance, log, change, invCount, removeItem, buffV, accessoryStat, trainingHp, metaSave, metaState,
+    VENDOR_RELIC_CHANCE
+  });
+  const achievementsRules=AchievementRules.create({
+    gameState, log, metaSave,
+    metaState
+  });
+  const lotteryRules=LotteryRules.create({
+    gameState, adCurrencyName, persistPair, log, change, invCount, hasItem, addItem, removeItem, syncToolkit,
+    metaSave, updateMailCheckpoint, metaState, todayKey,
+    walletEntry
+  });
+  const mailboxRules=MailboxRules.create({
+    gameState, persistPair, log, change, addItem, fitsInBag, metaLoad, metaSave, walletEntry,
+    walletId
+  });
+  const accountRules=AccountRules.create({
+    gameState, saves, persistPair, log, change, reviveInfo, showOverlay, hardCompleted, metaState,
+    mergeLotteryHistory, activity, validSave,
+    adCurrencyName
+  });
+  const nightmareRules=NightmareRules.create({
+    gameState,rng,
+    persistPair, chance, log, change, invCount, removeItem, lanternRiskMul, gainItem, startFight, metaState,
+    lotteryRandom,
+    walletEntry
+  });
+  const objectivesRules=ObjectiveRules.create({
+    gameState, invCount, hasItem, knowsBlueprint, seasonInfo, materialCount,
+    priceOf
+  });
+  const endingsRules=EndingRules.create({
+    gameState, persistPair, callbacks, log, change, invCount, hasItem, save, showOverlay, diaryAdd,
+    unlockChallenges, metaState, achUnlock,
+    metaSettle
+  });
+  const consumablesRules=ConsumableRules.create({
+    gameState, chance, log, change, applyHarm, restoreHealth, addMin, BUFF_NAMES, maxStam, medHeal,
+    itemUseCount, takeUseItem,
+    hpMax
+  });
+  const tradingRules=TradingRules.create({
+    gameState, log, change, invCount, hasItem, notifyBagFull, addItem, removeItem, gainItem, seasonInfo,
+    isNight, diaryAdd, supplyCount, takeSupply, merchantSupplySites, merchantSellCount, materialSupplySites,
+    matsOk, takeMats, fitsInBag, SHELL_PER_COIN,
+    SHELL_FOR_COIN
+  });
+  const productionRules=ProductionRules.create({
+    gameState,rng,
+    rnd, chance, log, change, invCount, hasItem, knowsBlueprint, notifyBagFull, foodLots, syncFood, addItem,
+    durList, durMaxOf, durSync, removeItem, selectedTool, drainTool, capUsed, capacity, settleStoredFood,
+    warehouseSite, stackSize, warehouseAccess, warehouseCapacity, cellarBuilt, cellarAccess, hasTool, addMin,
+    gainItem, COOP_EXT_MAX, coopCap, liveState, sceneOf, staminaCost, nodeLv, EXP_CRAFT, cxTimeMul,
+    cxRefundChance, cxExtraChance, cxDurMul, awardExperience, expLevel, diaryAdd, FARM_LIVESTOCK_IDS,
+    STORE_EXT_CAP, FARM_EXTRA_MAX, metaBonus, activity, longActWarn,
+    hpMax
+  });
+  const combatRules=CombatRules.create({
+    gameState, inventory, callbacks, rnd, chance, log, change, qtyParse, invCount, hasItem, removeItem,
+    weaponTurnSlot, drainWeapon, drainEquipSlot, drainById, applyHarm, restoreHealth, gainItem, isNight,
+    raidWolves, save, die, sceneOf, arriveAt, pointsOf, doPoint, showOverlay, meleeWeapons, buffV, playerAtk,
+    rangedAtk, maxStam, playerDef, shieldBlock, RANGE_MELEE, enemyRange, myAttackRange, myMoveSpeed, sweepInfo,
+    ACT_CD_BASE, hasHeavy, hasSure, heavyInfo, sureInfo, coverReduceOf, rollEnemyIntents, combatSpeed, wNameOf,
+    temperatureInfo, rangedWeapon, hasRanged, rangedKind, rangedAcc, ammoConsume, cxCrit, critMul,
+    sweepCdTotal, sweepMul, medHeal, vampRate, execThreshold, revengeBonus, hasDualDagger, wallBlockBonus,
+    wallDurMul, rageAtkMul, rageTakenMul, ironTakenMul, ironAtkMul, awardExperience, diaryAdd,
+    nightmareInfusionBonus, metaSave, metaState, noteMissStreak, metaBonus, metaSettle, hasRelic,
+    hpMax
+  });
+  const skillsRules=SkillRules.create({
+    gameState, persistPair, chance, log, change, save, meleeWeapons, accessoryStat,
+    metaState
+  });
+  const weaponCareRules=WeaponCare.create({
+    gameState, chance, log, change, hasItem, durList, durMaxOf, durSync, removeItem, keepsBroken, addMin,
+    gainItem, pistolCalib,
+    cxRepairFree
+  });
+  const combatStatsRules=CombatStats.create({
+    gameState,rng,
+    chance, log, invCount, removeItem, meleeWeaponNow, drainEquipSlot, healthValue, seasonOnDay, BUFF_NAMES,
+    RANGE_BOW, RANGE_GUN, RANGE_MELEE, sharpenAm, nodeLv, cxAtk, cxDef, swiftBonus, gunNodeLv, ammoSaveChance,
+    bedStamBonus, trainingAtk, nightmareInfusionBonus, metaBonus,
+    hpMax
+  });
+  const eventsRules=WorldEventRules.create({
+    gameState,rng,
+    callbacks, chance, log, change, hasItem, removeItem, applyHarm, addMin, gainItem, raidDay, die, startFight,
+    diaryAdd,
+    gainRandomRelic
+  });
+  const gatheringRules=GatheringRules.create({
+    gameState,rng,
+    callbacks, rnd, chance, pick, log, change, qtyParse, invCount, hasItem, notifyBagFull, addItem, removeItem,
+    selectedTool, bestToolTier, autoToolsEnabled, wearSelectedTool, autoToolkit, drainById, hasTool, applyHarm,
+    lanternRiskMul, addMin, gainItem, seasonInfo, isNight, triggerStory, die, sceneOf, canTravel, staminaCost,
+    travel, triggerRandomEvent, showOverlay, EXP_GATHER, gxYieldMul, gxTimeMul, gxEnergyMul, gxPineBonus,
+    gxWoodExtra, awardExperience, startFight, diaryAdd, doPeakRitual, nightmareEncounter,
+    achUnlock
+  });
+  const journeyRules=JourneyRules.create({
+    gameState,rng,
+    chance, log, change, invCount, hasItem, removeItem, capUsed, capacity, autoStoreWarehouse, lanternRiskMul,
+    addMin, isNight, ROAD_AMBUSH_MIN_DANGER, pointsOf, lightLevel, triggerRandomEvent, showOverlay,
+    temperatureInfo, temperatureEntered, startFight, diaryAdd, nightmareEncounter, metaBonus,
+    hasRelic
+  });
+  const livestockRules=LivestockRules.create({
+    gameState, rnd, chance, log, change, hasItem, removeItem, warehouseCapacity, deliverToBag, COOP_EXT_MAX,
+    supplyRecords, supplyCount,
+    takeSupply
+  });
+  const survivalRules=SurvivalRules.create({
+    gameState,rng,
+    callbacks, rnd, chance, pick, log, change, hasItem, drainById, HOUR_EFFECTS, session, deliverToBag,
+    gainItem, collectDailyReport, raidDay, storyDay, triggerStory, snapshot, save, die, maxStam, chainTier,
+    nightRaid, diary, hasRelic, hpMax,
+    sleepQuality
+  });
+            // 全局状态
+  const migrations=StateMigrations.create({getState:()=>gameState.run,ITEMS,DIFFICULTIES,WEATHER,DURA,LOG_KEEP,SKILL_TRUNK_COST,costMul,log,combatLv,nodeLv,trainingCount,durList,autoToolkit,reconcileLotteryInputs,reconcileNightmareSouls,settleStoredFood,supplyRecordsAll,addItem,
+    migrateFoodChoices:()=>foodSatchel.migrateSatchelChoices()});
+  
+
   function persistPair(nextS,nextM,normalize){return saves.persistPair(nextS,nextM,normalize);}
-  let onLog = null;        // 文本回调（ui 注册）
-  let onChange = null;     // 状态刷新回调（ui 注册）
-  let onFight = null;      // 战斗界面回调
-  let onEnding = null;     // 结局回调
-  let onOverlay = null;    // 弹窗（选择/事件）回调
-  let onSaveFail = null;      // 存档写不进去时通知界面（配额满 / 被浏览器限制）
-  let onSaveConflict = null;  // 检测到别的标签页有更新进度时通知界面
 
   const fmtTime = () => { const h = Math.floor(gameState.run.minute / 60), m = gameState.run.minute % 60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; };
 
@@ -571,7 +193,7 @@ const Game = (() => {
   // （曾经一天天攒到 4810 条 / 378KB，把存档码顶到 940KB，逼近 localStorage 上限有掉档风险）
 
   function log(text, cls) {
-    if (onLog) onLog(text, cls);
+    if (callbacks.onLog) callbacks.onLog(text, cls);
     if (gameState.run && text) {
       gameState.run.log.unshift({ t:`第${gameState.run.day}天 ${fmtTime()}`, text, cls });
       if (gameState.run.log.length > LOG_KEEP) gameState.run.log.length = LOG_KEEP;
@@ -586,7 +208,7 @@ function change() {
     // 精神低落会压低体力上限，体力要跟着上限走（喝药透支后不该还能顶着一管超额的体力）
     if (gameState.run && gameState.run.stats) { const ms = maxStam(); if (gameState.run.stats.stamina > ms) gameState.run.stats.stamina = ms; }
     if (gameState.run) gameState.run._dirty = true;      // 有改动 → 兜底自动存档（每 20 秒那次）才知道该不该写
-    if (onChange) onChange();
+    if (callbacks.onChange) callbacks.onChange();
     if (gameState.run && !gameState.run.death) achCheck();
     if (gameState.run && !gameState.run.death && !gameState.run.ending) dangerTip();
   }
@@ -713,7 +335,7 @@ function change() {
   function restoreHealth(...args){return survivalRules.restoreHealth(...args);}
   function debuffTick(...args){return survivalRules.debuffTick(...args);}
 
-  const HOUR_EFFECTS = (effectTick) => {
+  function HOUR_EFFECTS(effectTick) {
     const season = seasonInfo();
     const nightNow = isNight();   // 与全局 isNight() 同一份判定，避免 22点/6点 边界散落两处
     // 食之包：饱食/水分低于 50 自动进食饮水
@@ -772,7 +394,6 @@ function change() {
   // 看背包/装备/技能/图鉴这些界面时不该被时间推着走（也免得边翻东西边掉饱食度）。
   // 由 ui.js 在开关这些弹窗时调用 setTimeFreeze()；营地面板/制造/交易/耕地那些"要花时间的操作"
   // 不在此列（它们本身就是主动消耗时间的行为）。
-  const session=GameSession.create();
   function setHostSuspended(...args){return survivalRules.setHostSuspended(...args);}
   function hostSuspended(...args){return survivalRules.hostSuspended(...args);}
   function setTimeFreeze(...args){return survivalRules.setTimeFreeze(...args);}
@@ -810,7 +431,6 @@ function change() {
   // 鸡：小鸡连喂 5 天小麦变母鸡；母鸡每天吃 1 小麦 → 下 1 蛋，20~30 天后寿终（留 1 兽肉）
   // 规则：没喂上就不产出也不长大（不会饿死）；产出直接进背包，满包时允许超载。
   
-  const COOP_EXT_MAX = 2;                 // 鸡舍可扩建两次：3 只 → 4 只 → 5 只（羊圈不扩建）
   function coopCap(...args){return livestockRules.coopCap(...args);}
   function liveCap(...args){return livestockRules.liveCap(...args);}
   function liveState(...args){return livestockRules.liveState(...args);}
@@ -878,7 +498,6 @@ function change() {
   // 为什么：手机 WebView 里"清缓存、平台升级"有时只清 localStorage，
   // 而 cookie 往往能留下来（网页游戏最老牌的兜底）。两边都写，读的时候取"更新的那份"。
   // ⚠️ 单个 cookie 约 4KB 上限：只镜像主存档与账号数据，太长（比如带满三个备份槽的导出码）就跳过。
-  const CK=SaveService.keys;
   function ckGet(key){return saves.cookieGet(key);}
   function save(){return saves.save();}
   function saveAndFlush(){return saves.saveAndFlush();}
@@ -926,7 +545,6 @@ function change() {
   // ---------- 赶路遇袭：危险度 ≥3 的区域，路上会被狼 / 熊拦路 ----------
   // 设置里可关（默认开）。为什么给"迎战/退回"两个选择而不是强制开战：
   // 危险度 5 的山顶走过去就撞上 120 血的洞穴熊，没得选太惩罚；退回的代价是白花体力与时间。
-  const ROAD_AMBUSH_MIN_DANGER = 3;
   function roadAmbushChance(...args){return journeyRules.roadAmbushChance(...args);}   // 3→15% 4→20% 5→25%
   function roadAmbushPool(...args){return journeyRules.roadAmbushPool(...args);}
   // 返回 true 表示"拦路了，这次移动先不落地"（等玩家在弹窗里选）
@@ -993,7 +611,6 @@ function change() {
   // 由 ITEMS 条目反查它的键（装备槽里存的正是这个键；对象自带的 .id 并非所有武器都有：木棒/石矛/猎弓等没有）。
   // 命名加成按键存取，必须用键去读，否则\"给无 id 字段的武器命名后 +1 伤害不生效\"。
   function itemKeyOf(...args){return combatStatsRules.itemKeyOf(...args);}
-  const BUFF_NAMES = {atk:'攻击',def:'防御',spd:'攻速',hp:'生命上限',accuracy:'命中'};
   function activeBuffs(...args){return combatStatsRules.activeBuffs(...args);}
   // 近战伤害：双持时不再取两把平均，而是【轮流出手】——本轮轮到哪把就用哪把的伤害，
   // 每挥一次换手。所以快匕首配重武器是"一轻一重交替"，而不是"用匕首的攻速吃大剑的伤害"。
@@ -1018,7 +635,6 @@ function change() {
   //   → 带弓的人可以在敌人冲到近身前先射好几轮，这就是"弓的额外回合"。
   // ⛔ 这里原来是 `RANGE_BOW = 30, RANGE_GUN = 15, RANGE_MELEE = 0, FIGHT_START_DIST = 30`。
   //    FIGHT_START_DIST 已删除：开局距离不再是一个固定值，改成"双方射程取大"（见 startFight）。
-  const RANGE_BOW = 30, RANGE_GUN = 15, RANGE_MELEE = 0;
   
   function rangedRangeOf(...args){return combatStatsRules.rangedRangeOf(...args);}   // 手枪 15 / 弓 30
   function enemyRange(...args){return combatStatsRules.enemyRange(...args);}
@@ -1034,7 +650,6 @@ function change() {
   //   现在两个都要在技能树里点（互斥），**不学重击就没有重击**；两个共用 20 单位时间的冷却
   //   （与横扫同一套时间单位：每次出手推进 100/攻速）。
   //   老存档兼容见 load 时的 migCombat2 迁移。
-  const ACT_CD_BASE = 20;
   function heavyNodeLv(...args){return combatStatsRules.heavyNodeLv(...args);}
   function sureNodeLv(...args){return combatStatsRules.sureNodeLv(...args);}
   function hasHeavy(...args){return combatStatsRules.hasHeavy(...args);}
@@ -1126,7 +741,6 @@ function change() {
   
   // 经验到手量：每次采集/每件制造都是 +1（**不要**改这里，作者 2026-09-19 澄清过口径），
   // 只有首领从 +10 提到 +15（见战斗结算里的 xg）。
-  const EXP_GATHER = 1, EXP_CRAFT = 1;
   // 升级消耗的倍率（作者 2026-09-19 真正要的是这个）：采集树 ×2、制造树 ×3、战斗树不变。
   // data.js 里存的仍是基准数字，这里统一乘；显示 / 扣除 / 遗忘返还全走下面这几个函数，不会两处对不上。
   
@@ -1314,7 +928,6 @@ function change() {
   function furnTakesSlot(...args){return productionRules.furnTakesSlot(...args);}
   // 农田畜牧位：农田每升一级 +1 个（苗床 1 / 田垄 2 / 水田 3）。
   // 鸡舍、羊圈只能建在这里，也只能在农田的「农场管理」里建（营地的家具列表已经不列它们了）。
-  const FARM_LIVESTOCK_IDS = ['coop', 'pen'];
   function farmLiveSlots(...args){return productionRules.farmLiveSlots(...args);}
   function farmLiveUsed(...args){return productionRules.farmLiveUsed(...args);}
   function farmLiveFree(...args){return productionRules.farmLiveFree(...args);}
@@ -1347,7 +960,6 @@ function change() {
   function buildHouseExt(...args){return productionRules.buildHouseExt(...args);}
 
   // ---------- 扩建仓库（仓库每升一级获得 1 次扩建，仓库容量 +15） ----------
-  const STORE_EXT_CAP = 15;
   function storeExtCap(...args){return productionRules.storeExtCap(...args);}
   function storeExtMax(...args){return productionRules.storeExtMax(...args);}   // 储物箱即可扩建1次，之后每升一级 +1，四阶最多4次
   function storeExtMats(...args){return productionRules.storeExtMats(...args);}
@@ -1396,7 +1008,6 @@ function change() {
   function repairDive(...args){return productionRules.repairDive(...args);}
 
   // ---------- 种植 ----------
-  const FARM_EXTRA_MAX = 2;   // 锄头最多能多开垦 2 块田
   function farmExt(...args){return productionRules.farmExt(...args);}
   function farmPlots(...args){return productionRules.farmPlots(...args);}
   function plant(...args){return productionRules.plant(...args);}
@@ -1489,8 +1100,6 @@ function change() {
   // 老潮的兑换：**双向**（作者 2026-09-25 定案）。两个方向各走各的价，中间留一道价差就套不了利：
   //   50 贝壳 → 1 金币      1 金币 → 30 贝壳
   // 于是「贝壳→金币→贝壳」走一圈 50 变 30（亏），「金币→贝壳→金币」走一圈 30 贝壳换不到 1 枚金币（也亏）。
-  const SHELL_PER_COIN = 50;    // 换 1 枚金币要多少贝壳
-  const SHELL_FOR_COIN = 30;    // 1 枚金币能换回多少贝壳
   function exchangeShells(...args){return tradingRules.exchangeShells(...args);}
   function exchangeGold(...args){return tradingRules.exchangeGold(...args);}
 
@@ -1587,7 +1196,6 @@ function change() {
   function metaBonus(...args){return accountRules.metaBonus(...args);}
   function metaBuy(...args){return accountRules.metaBuy(...args);}
   
-  let craftBatchConfirmed = false;   // 批量制作"超过 5 小时"的二次确认：确认过这一次就不再拦
   // 统一的"长时间动手"预警（作者 2026-09-19）：批量制作、造家具、建建筑只要预计超过 5 小时，
   // 都先弹一次确认——这段时间饱食和水分一直在掉，已经有人把自己做没了。
   function longActWarn(...args){return accountRules.longActWarn(...args);}
@@ -1618,7 +1226,6 @@ function change() {
   // ---------- 深海售卖机（遗失的交易机）：每天随机上架一件神物 ----------
   
   // 作者 2026-09-19：以前这台机器**每天必上架**一件神物，等于稳定白拿；现在改成每天 30% 概率有货
-  const VENDOR_RELIC_CHANCE = 0.30;
   function atlVendor(...args){return relicsRules.atlVendor(...args);}
   function atlVendorInfo(...args){return relicsRules.atlVendorInfo(...args);}
   function buyRelicFromVendor(...args){return relicsRules.buyRelicFromVendor(...args);}
@@ -1678,7 +1285,7 @@ function change() {
     S: () => gameState.run, setS: (s) => { gameState.run = s; }, validSave, initializeStorage, saveAndFlush,
     skipTutorial:()=>runTutorial.skip(), tutorialBagViewed:()=>runTutorial.bagViewed(),
     timePass: (m) => { if (gameState.run) addMin(m || 1); },
-    bind: (o) => { if (o.onLog) onLog = o.onLog; if (o.onChange) onChange = o.onChange; if (o.onFight) onFight = o.onFight; if (o.onEnding) onEnding = o.onEnding; if (o.onOverlay) onOverlay = o.onOverlay; if (o.onSaveFail) onSaveFail = o.onSaveFail; if (o.onSaveConflict) onSaveConflict = o.onSaveConflict; },
+    bind: (o) => { if (o.onLog) callbacks.onLog = o.onLog; if (o.onChange) callbacks.onChange = o.onChange; if (o.onFight) callbacks.onFight = o.onFight; if (o.onEnding) callbacks.onEnding = o.onEnding; if (o.onOverlay) callbacks.onOverlay = o.onOverlay; if (o.onSaveFail) callbacks.onSaveFail = o.onSaveFail; if (o.onSaveConflict) callbacks.onSaveConflict = o.onSaveConflict; },
     // 存档加固：给刚开的新局/刚读的档一个"当前存档版本号"基线，用来识别"另一个标签页有更新进度"
     saveRev: saves.saveRev,
     savedAt: saves.savedAt,

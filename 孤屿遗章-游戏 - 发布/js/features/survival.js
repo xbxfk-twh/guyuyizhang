@@ -209,22 +209,22 @@ function newDay() {
     // 每日晨报：牧场消耗/产量 + 陷阱情况。
     // ⚠️ 只在"确实有内容"时才弹：没养牲畜、没饲料缺口、没陷阱就不打扰玩家。
     // ⚠️ 跳过第 1 天（刚开局没必要弹）；读档不会走到这里（读档不调 newDay）
-    if (gameState.run.day > 1 && gameState.run.dailyReport && deps.onOverlay) {
+    if (gameState.run.day > 1 && gameState.run.dailyReport && deps.callbacks.onOverlay) {
       const rep = gameState.run.dailyReport;
       const r = rep.ranch;
       const ranchHasNews = !!(r && (r.hayUsed || r.wool || r.wheatUsed || r.egg || r.grown || r.meat || r.lackHay || r.lackWheat));
       const tp = rep.trap;
       const trapHasNews = !!(tp && (tp.caught || tp.waiting));
-      if (ranchHasNews || trapHasNews) deps.onOverlay({ kind:'daily', title:`第 ${gameState.run.day} 天 · 晨报` });
+      if (ranchHasNews || trapHasNews) deps.callbacks.onOverlay({ kind:'daily', title:`第 ${gameState.run.day} 天 · 晨报` });
     }
     if (((gameState.run.day - 1) % 60) + 1 === 43) log('三天后入冬：河畔取水点会结冰。提前储水；冬季可每天采雪3次，在营地篝火用积雪×2、木材×1烧成淡水×1。', 'warn');
     // 冬季来临（作者 2026-09-25）："冬天来的时候弹个窗，提示资源有限、很难熬。注意不要和其他弹窗冲突。"
     //   ① 只在**冬天第一天**弹（winterJustStarted），每轮冬天各弹一次：flags.winterWarned 记的是"哪一天弹过"。
     //   ② 不抢屏幕：走 kind:'winter'，ui.js 会给它**排队** —— 当时要是正开着别的弹窗
     //      （最典型的就是上面刚推出去的「晨报」），就先揣着，等那个弹窗关掉再弹。
-    if (gameState.run.day > 1 && deps.onOverlay && winterJustStarted() && gameState.run.flags.winterWarned !== gameState.run.day) {
+    if (gameState.run.day > 1 && deps.callbacks.onOverlay && winterJustStarted() && gameState.run.flags.winterWarned !== gameState.run.day) {
       gameState.run.flags.winterWarned = gameState.run.day;
-      deps.onOverlay({ kind:'winter' });
+      deps.callbacks.onOverlay({ kind:'winter' });
     }
   }
 

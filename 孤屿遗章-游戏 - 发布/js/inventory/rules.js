@@ -39,7 +39,7 @@ function notifyBagFull() {
     showOverlay({
       title: '背包已满',
       text: `背包装不下了：${capUsed()}/${capacity()} 格。\n\n· 回营地存进仓库，或丢弃不需要的东西\n· 更换容量更大的背包\n· 采集和战斗掉落仍可收入；超载会增加移动体力消耗`,
-      choices: [{label:'整理背包',ok:()=>deps.onOverlay&&deps.onOverlay({kind:'inv'})},{ label: '知道了', ok: () => {} }],
+      choices: [{label:'整理背包',ok:()=>deps.callbacks.onOverlay&&deps.callbacks.onOverlay({kind:'inv'})},{ label: '知道了', ok: () => {} }],
     });
   }
 

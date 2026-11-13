@@ -233,13 +233,13 @@ let _lastSettle = null;
 
 function longActWarn(minutes, what, retry) {
     const total = Math.max(0, Math.round(minutes || 0));
-    if (total <= 300 || deps.craftBatchConfirmed) return false;
+    if (total <= 300 || deps.activity.craftBatchConfirmed) return false;
     const hrs = (total / 60).toFixed(1);
     showOverlay({
       title: '⚠ 这活儿要花很久',
       text: `「${what}」大约要花 ${hrs} 小时——这段时间饱食和水分会一直掉，饿着肚子硬干会出事（已经有人这么做把自己做没了）。\n\n要不要先吃点东西、喝口水再来？`,
       choices: [
-        { label:`仍然开工（${hrs} 小时）`, hint:'我知道风险', ok: () => { deps.craftBatchConfirmed = true; try { if (typeof retry === 'function') retry(); } finally { deps.craftBatchConfirmed = false; } } },
+        { label:`仍然开工（${hrs} 小时）`, hint:'我知道风险', ok: () => { deps.activity.craftBatchConfirmed = true; try { if (typeof retry === 'function') retry(); } finally { deps.activity.craftBatchConfirmed = false; } } },
         { label:'再想想', hint:'先去吃东西 / 喝水', ok: () => { log('你把材料先放下，打算准备准备再动手。', 'sys'); } },
       ],
     });

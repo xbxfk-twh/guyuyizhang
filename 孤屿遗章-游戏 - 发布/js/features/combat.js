@@ -153,7 +153,7 @@ function startFight(enemy, confirmed) {
     }
     C.spdP = combatSpeed(); C.spdE = enemy.spd; C.spdBank = 0;
     gameState.run.combat = C;
-    if (deps.onFight) deps.onFight('start', C);
+    if (deps.callbacks.onFight) deps.callbacks.onFight('start', C);
     change();
   }
 
@@ -517,7 +517,7 @@ function fightAction(act, ti) {
     if (C.fled) { endFight(false); return; }
     if (!C.enemies.length) { endFight(true); return; }
     if (gameState.run.stats.hp <= 0) { endFight(false); die('你在战斗中倒下了。'); return; }
-    if (deps.onFight) deps.onFight('update', C);
+    if (deps.callbacks.onFight) deps.callbacks.onFight('update', C);
     change();
   }
 
@@ -530,7 +530,7 @@ function endFight(win) {
     if (gameState.run._raid) {
       const cb = gameState.run._raid; gameState.run._raid = null;
       gameState.run.combat = null;
-      if (deps.onFight) deps.onFight('end', fin);
+      if (deps.callbacks.onFight) deps.callbacks.onFight('end', fin);
       if(broken.length && gameState.run.stats.hp>0)showOverlay({title:'装备损坏',text:broken.map(id=>'你的'+ITEMS[id].name+'已损坏').join('\n'),choices:[{label:'知道了',ok:()=>{}}]});
       if (win) { if (cb.win) cb.win(); } else { if (cb.lose) cb.lose(); }
       change();
@@ -569,7 +569,7 @@ function endFight(win) {
     const _cb = gameState.run._onFightWin; gameState.run._onFightWin = null;
     const road = gameState.run._roadAmbush;
     const continued = win && gameState.run.stats.hp>0 && !gameState.run.death && !gameState.run.ending;
-    if (deps.onFight) deps.onFight('end', fin);
+    if (deps.callbacks.onFight) deps.callbacks.onFight('end', fin);
       if(broken.length && gameState.run.stats.hp>0)showOverlay({title:'装备损坏',text:broken.map(id=>'你的'+ITEMS[id].name+'已损坏').join('\n'),choices:[{label:'知道了',ok:()=>{}}]});
     if (continued && _cb) _cb();
     else if(continued && road && road.enemy===en.id && sceneOf(road.id)) {
@@ -586,7 +586,7 @@ function endFight(win) {
     change();
     if (win && en.id==='nightmareBoss' && gameState.run.difficulty==='nightmare') {
       gameState.run.flags.ended_N=1;gameState.run.flags.settled_N=1;gameState.run.flags.settledEnding='N';gameState.run.ending='N';
-      metaSettle();save();if(deps.onEnding)deps.onEnding('N','');
+      metaSettle();save();if(deps.callbacks.onEnding)deps.callbacks.onEnding('N','');
     }
   }
 
@@ -599,8 +599,8 @@ function useItemInFight(id) {
     removeItem(id, 1);
     C.usedItems = (C.usedItems || 0) + 1;   // 每场战斗最多 2 次道具：以前只检查不计数，等于可以无限用
     const leftTip = () => `（本场道具 ${C.usedItems}/2）`;
-    if (id === 'smokeBomb') { C.smoke = true; C.log.push(`你掷出简易烟雾弹，浓烟弥漫——下一次逃跑必定成功！${leftTip()}`); if (deps.onFight) deps.onFight('update', C); return true; }
-    if (id === 'poisonCoat') { C.coat = 3; C.log.push(`你把淬毒剂抹在武器上——接下来 3 次命中会让敌人中毒。${leftTip()}`); if (deps.onFight) deps.onFight('update', C); return true; }
+    if (id === 'smokeBomb') { C.smoke = true; C.log.push(`你掷出简易烟雾弹，浓烟弥漫——下一次逃跑必定成功！${leftTip()}`); if (deps.callbacks.onFight) deps.callbacks.onFight('update', C); return true; }
+    if (id === 'poisonCoat') { C.coat = 3; C.log.push(`你把淬毒剂抹在武器上——接下来 3 次命中会让敌人中毒。${leftTip()}`); if (deps.callbacks.onFight) deps.callbacks.onFight('update', C); return true; }
     restoreHealth(it);
     if(it.healthRestore)C.log.push(`你使用${it.name}，健康+${it.healthRestore}${it.cureInfection?'，感染已处理':''}。`);
     if (it.heal) { const h = medHeal(it.heal); gameState.run.stats.hp = Math.min(hpMax(), gameState.run.stats.hp + h); C.log.push(`你使用${it.name}，生命+${h}。`); }
@@ -613,7 +613,7 @@ function useItemInFight(id) {
       C.log.push(it.spirit > 0 ? `精神+${it.spirit}。` : `精神${it.spirit}——眼前一阵发黑。`);
     }
     C.log.push(`你使用了${it.name}。${leftTip()}`);
-    if (deps.onFight) deps.onFight('update', C);
+    if (deps.callbacks.onFight) deps.callbacks.onFight('update', C);
     return true;
   }
 
@@ -657,7 +657,7 @@ function startRaidFight(cb) {
     deps.inventory.resetSwingTurn();   // 双持换手从主手重新开始（DPS 核查 #6：这计数器以前跨战斗留着，新战斗第一刀用哪把要看上一场）
     gameState.run.combat = C;
     gameState.run._raid = cb;
-    if (deps.onFight) deps.onFight('start', C);
+    if (deps.callbacks.onFight) deps.callbacks.onFight('start', C);
     change();
   }
 

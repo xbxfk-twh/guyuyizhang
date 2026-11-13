@@ -624,7 +624,7 @@ function craftBatch(r, n, onReady) {
     }
     if (longActWarn(craftMinutes(r) * n, `连续制作 ${n} 件「${r.name}」`, () => craftBatch(r,n,onReady))) return {ok:false, pending:true, reason:''};
     // 界面先确认长耗时，再播放动画；执行时重新验料和容量。
-    if(typeof onReady==='function'){onReady(()=>{const previous=deps.craftBatchConfirmed;deps.craftBatchConfirmed=true;try{return craftBatch(r,n);}finally{deps.craftBatchConfirmed=previous;}},n);return {pending:true};}
+    if(typeof onReady==='function'){onReady(()=>{const previous=deps.activity.craftBatchConfirmed;deps.activity.craftBatchConfirmed=true;try{return craftBatch(r,n);}finally{deps.activity.craftBatchConfirmed=previous;}},n);return {pending:true};}
     cinB=craftIn(r,n);
     takeMats(cinB);
     if (r.out && r.out.lotusPill) gameState.run.lotusMade = (gameState.run.lotusMade || 0) + n;

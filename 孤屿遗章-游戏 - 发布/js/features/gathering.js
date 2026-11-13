@@ -233,7 +233,7 @@ function doPoint(p) {
       const overlayKind = p.type === 'townTrade' ? 'town' : p.type === 'townMission' ? 'mission'
         : p.type === 'townInfo' ? 'info' : (p.type === 'trade' && p.id === 'cove_black') ? 'black'
         : (p.type === 'trade' && p.id === 'atl_fishman') ? 'fishman' : p.type;
-      if (deps.onOverlay) deps.onOverlay({ kind: overlayKind, title: p.name, p });
+      if (deps.callbacks.onOverlay) deps.callbacks.onOverlay({ kind: overlayKind, title: p.name, p });
       return;
     }
 
@@ -445,7 +445,7 @@ function doPoint(p) {
       const chk0 = canTravel('atlantis');
       if (!chk0.ok) { log(chk0.reason, 'warn'); return; }
       log('你朝沟底那点微光游去……');
-      if (deps.onOverlay) { deps.onOverlay({ kind:'atlAnim' }); return; }
+      if (deps.callbacks.onOverlay) { deps.callbacks.onOverlay({ kind:'atlAnim' }); return; }
       travel('atlantis'); return;
     } else {
       // （farm / trade / townTrade / townMission / townInfo / atlTrade 这些弹窗类点位

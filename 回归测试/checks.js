@@ -2664,7 +2664,7 @@ section('7l. 牧场（鸡舍/羊圈）与草地陷阱');
        /function collectDailyReport\(\)/.test(_GAME_SRC) && /rep\.ranch = livestockNewDay\(\);/.test(_GAME_SRC) &&
        /rep\.trap = resolveTrapDaily\(\);/.test(_GAME_SRC));
     ck('newDay 里调用晨报，并在有内容时弹窗', /collectDailyReport\(\);/.test(_GAME_SRC) &&
-       /if \(gameState\.run\.day > 1 && gameState\.run\.dailyReport && deps\.onOverlay\)/.test(_GAME_SRC) && /ranchHasNews \|\| trapHasNews/.test(_GAME_SRC));
+       /if \(gameState\.run\.day > 1 && gameState\.run\.dailyReport && deps\.callbacks\.onOverlay\)/.test(_GAME_SRC) && /ranchHasNews \|\| trapHasNews/.test(_GAME_SRC));
     // ⚠️ 白名单在 2026-09-25 多了 'winter'（冬季来临弹窗），断言跟着扩 —— 这条本来就是
     //    "新加弹窗别漏了往白名单里补"，所以它拦住过我们一次正是它该干的事。
     ck("ui 的 onOverlay 白名单包含 'daily' / 'fishman' / 'winter'（漏了会渲染成空壳窗口）",

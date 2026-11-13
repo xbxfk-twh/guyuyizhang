@@ -233,11 +233,11 @@ function die(reason) {
     // 真·死亡：结算魂点并结束本局（弹死亡结算窗）
     const ms = metaSettle();
     if (ms) log(`你的一生化为 ${ms.gain} 魂点，汇入了《历代遗章》。`, 'good');
-    if (deps.onEnding) deps.onEnding('D', reason);
+    if (deps.callbacks.onEnding) deps.callbacks.onEnding('D', reason);
     return false;
   }
 
-function endingD(reason) { gameState.run.ending = 'D'; const ms = metaSettle(); if (ms) log(`你的一生化为 ${ms.gain} 魂点，汇入了《历代遗章》。`, 'good'); if (deps.onEnding) deps.onEnding('D', reason); }
+function endingD(reason) { gameState.run.ending = 'D'; const ms = metaSettle(); if (ms) log(`你的一生化为 ${ms.gain} 魂点，汇入了《历代遗章》。`, 'good'); if (deps.callbacks.onEnding) deps.callbacks.onEnding('D', reason); }
 
 function continueRun() {
     if (!gameState.run) return;
