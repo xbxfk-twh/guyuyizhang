@@ -166,7 +166,7 @@ function newGame(identity, difficulty) {
     const stStart = (DIFFICULTIES[difficulty] && DIFFICULTIES[difficulty].start) || {};
     if (stStart.food) {
       const pool = ['berry','wildveg','fish','meat','mushroom','bambooShoot','cactusfruit'];
-      for (let i = 0; i < stStart.food; i++) giveStart(pool[Math.floor(Math.random() * pool.length)], 1, true);
+      for (let i = 0; i < stStart.food; i++) giveStart(pool[Math.floor(deps.rng.random() * pool.length)], 1, true);
     }
     if (stStart.spear) giveStart('spear', stStart.spear, true);
     // 历代遗章：家传补给

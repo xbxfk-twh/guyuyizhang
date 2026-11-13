@@ -6,9 +6,11 @@
 const Game = (() => {
   const LOG_KEEP = 200;
   const gameState=StateStore.create();
+  const rng=GameRandom.create();
+  const {rnd,chance,pick}=rng;
   const runTutorial=TutorialRules.create({getState:()=>gameState.run,changed:change,items:ITEMS});
   const lifecycleRules=RunLifecycle.create({
-    gameState,
+    gameState,rng,
     get persistPair(){return persistPair;},
     get onEnding(){return onEnding;},
     get log(){return log;},
@@ -52,7 +54,7 @@ const Game = (() => {
     get metaState(){return metaState;}
   });
   const relicsRules=RelicRules.create({
-    gameState,
+    gameState,rng,
     get chance(){return chance;},
     get log(){return log;},
     get change(){return change;},
@@ -116,7 +118,7 @@ const Game = (() => {
     get adCurrencyName(){return adCurrencyName;}
   });
   const nightmareRules=NightmareRules.create({
-    gameState,
+    gameState,rng,
     get persistPair(){return persistPair;},
     get chance(){return chance;},
     get log(){return log;},
@@ -195,7 +197,7 @@ const Game = (() => {
     get SHELL_FOR_COIN(){return SHELL_FOR_COIN;}
   });
   const productionRules=ProductionRules.create({
-    gameState,
+    gameState,rng,
     get rnd(){return rnd;},
     get chance(){return chance;},
     get log(){return log;},
@@ -357,7 +359,7 @@ const Game = (() => {
     get cxRepairFree(){return cxRepairFree;}
   });
   const combatStatsRules=CombatStats.create({
-    gameState,
+    gameState,rng,
     get chance(){return chance;},
     get log(){return log;},
     get invCount(){return invCount;},
@@ -384,7 +386,7 @@ const Game = (() => {
     get hpMax(){return hpMax;}
   });
   const eventsRules=WorldEventRules.create({
-    gameState,
+    gameState,rng,
     get onOverlay(){return onOverlay;},
     get chance(){return chance;},
     get log(){return log;},
@@ -401,7 +403,7 @@ const Game = (() => {
     get gainRandomRelic(){return gainRandomRelic;}
   });
   const gatheringRules=GatheringRules.create({
-    gameState,
+    gameState,rng,
     get onOverlay(){return onOverlay;},
     get rnd(){return rnd;},
     get chance(){return chance;},
@@ -449,7 +451,7 @@ const Game = (() => {
     get achUnlock(){return achUnlock;}
   });
   const journeyRules=JourneyRules.create({
-    gameState,
+    gameState,rng,
     get chance(){return chance;},
     get log(){return log;},
     get change(){return change;},
@@ -491,7 +493,7 @@ const Game = (() => {
     get takeSupply(){return takeSupply;}
   });
   const survivalRules=SurvivalRules.create({
-    gameState,
+    gameState,rng,
     get onOverlay(){return onOverlay;},
     get rnd(){return rnd;},
     get chance(){return chance;},
@@ -571,9 +573,6 @@ const Game = (() => {
   let onSaveFail = null;      // 存档写不进去时通知界面（配额满 / 被浏览器限制）
   let onSaveConflict = null;  // 检测到别的标签页有更新进度时通知界面
 
-  const rnd = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
-  const chance = (p) => Math.random() < p;
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const fmtTime = () => { const h = Math.floor(gameState.run.minute / 60), m = gameState.run.minute % 60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; };
 
   // 界面上的日志是 DOM 里最近 80 条；S.log 只是为了存档留个尾巴，绝不能无限长

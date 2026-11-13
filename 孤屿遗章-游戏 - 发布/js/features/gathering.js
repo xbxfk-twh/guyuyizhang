@@ -187,7 +187,7 @@ function doPoint(p) {
     // 关键：这一判定要在「计次、打一次性标记、扣体力」之前——否则守卫会把这次采集机会顶掉，
     // 一次性点位（如深殿核心）会永久失去奖励。
     if (p.guard && gameState.run._guardPass !== p.id && chance(p.guardChance === undefined ? 0.8 : p.guardChance)) {
-      const gid = Array.isArray(p.guard) ? p.guard[Math.floor(Math.random() * p.guard.length)] : p.guard;
+      const gid = Array.isArray(p.guard) ? p.guard[Math.floor(deps.rng.random() * p.guard.length)] : p.guard;
       if (ENEMIES[gid]) {
         log(`你刚动手，${ENEMIES[gid].name}就扑了过来——先解决它！`, 'danger');
         gameState.run._guardPass = p.id;
@@ -324,7 +324,7 @@ function doPoint(p) {
         const protection = lanternRiskMul();
         amb *= protection; rabbit *= protection;
         if (rabbit && chance(rabbit) && ENEMIES.rabbit) ambush = ENEMIES.rabbit;
-        else if (pool.length && chance(amb)) ambush = ENEMIES[pool[Math.floor(Math.random() * pool.length)]];
+        else if (pool.length && chance(amb)) ambush = ENEMIES[pool[Math.floor(deps.rng.random() * pool.length)]];
         if (!ambush && p.risk && ENEMIES[p.risk] && chance(0.25 * protection)) ambush = ENEMIES[p.risk];
         // 海底远程精英（深海哨兵）：只在中层黑暗及以上（照明 ≥2）出没，作者 2026-09-19
         if (!ambush && gameState.run.scene === 'atlantis' && lightLevel() >= 2 && ENEMIES.atlSentry && chance(0.12)) ambush = ENEMIES.atlSentry;
@@ -389,7 +389,7 @@ function doPoint(p) {
       }
       if (p.rareFishChance && chance(p.rareFishChance)) {
         const RF = ['rareFishA','rareFishB','rareFishC','rareFishD','rareFishE'];
-        const rid = RF[Math.floor(Math.random() * RF.length)];
+        const rid = RF[Math.floor(deps.rng.random() * RF.length)];
         if (gainItem(rid, 1)) got.push(`${ITEMS[rid].name}×1`);
         log(`网里还兜着一条罕见的鱼：${ITEMS[rid].name}！`, 'good');
       }
@@ -432,7 +432,7 @@ function doPoint(p) {
       awardExperience('gather',deps.EXP_GATHER);
     } else if (p.type === 'drift') {
       if (chance(0.6)) {
-        const roll = Math.random();
+        const roll = deps.rng.random();
         if (roll < 0.5) { const q = rnd(1,3); gainItem('wood', q); log(`你捞起几根上游漂来的木头（木材×${q}）。`, 'good'); }
         else if (roll < 0.8) { gainItem('plank', 1); log('你捞起一块完整的木板。', 'good'); }
         else if (roll < 0.9) { gainItem('driftbottle', 1); log('一个漂流瓶！你把它捞了上来。', 'good'); triggerStory({ id:'e_driftbottle' }); }
@@ -555,7 +555,7 @@ function adventure(p) {
       showOnce({ title:'遗迹石板', text:'断柱之间，一块石板完整无缺，刻着与洞中相同的文字。', choices:[{ label:'带走石板', ok:()=>{ if (gainItem('slate',1)) { markDone(); log('获得：石板×1。','good'); } } }]});
       return;
     } else if (id === 'ruins_explore') {
-      choices.push({ label:'摸进废墟', hint:'可能得金币/遇守卫/迷路', ok:()=>{ const r = Math.random(); if (r < 0.4) { const n = rnd(2,5); addItem('coin', n); if (chance(0.3)) gainItem('crystal',1); log(`你在废墟里找到古金币×${n}。`,'good'); } else if (r < 0.7) { log('石像的阴影动了！'); startFight(ENEMIES.guard); } else { gameState.run.stats.spirit = Math.max(0, gameState.run.stats.spirit-8); log('你在断壁间迷了路，许久才转出来。（精神-8）','warn'); } addMin(30);} });
+      choices.push({ label:'摸进废墟', hint:'可能得金币/遇守卫/迷路', ok:()=>{ const r = deps.rng.random(); if (r < 0.4) { const n = rnd(2,5); addItem('coin', n); if (chance(0.3)) gainItem('crystal',1); log(`你在废墟里找到古金币×${n}。`,'good'); } else if (r < 0.7) { log('石像的阴影动了！'); startFight(ENEMIES.guard); } else { gameState.run.stats.spirit = Math.max(0, gameState.run.stats.spirit-8); log('你在断壁间迷了路，许久才转出来。（精神-8）','warn'); } addMin(30);} });
       choices.push({ label:'只在边缘看看', hint:'无风险', ok:()=>{ log('你沿着外墙走了一圈。'); } });
     } else {
       log('你在这里转了一圈，没什么特别的。');

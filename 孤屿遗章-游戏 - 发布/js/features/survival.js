@@ -195,10 +195,10 @@ function newDay() {
     // （已移除寿命/老死设定——本作没有寿命上限）
     // 灵灰：每天必说一句话；另有 20% 概率带一份基础资源回来（数量克制，只在这一天发一次）
     if (gameState.run.identity === 'linghui') {
-      log(LINGHUI_LINES[Math.floor(Math.random()*LINGHUI_LINES.length)], 'blue');
+      log(LINGHUI_LINES[Math.floor(deps.rng.random()*LINGHUI_LINES.length)], 'blue');
       if (chance(0.2)) {
         const pool = [['wood',2],['stone',2],['thatch',3],['berry',2],['wildveg',2]];
-        const g = pool[Math.floor(Math.random()*pool.length)];
+        const g = pool[Math.floor(deps.rng.random()*pool.length)];
         if (gainItem(g[0], g[1])) log(`灵灰不知从哪抱来的，递给你：${ITEMS[g[0]].name}×${g[1]}。`, 'good');
       }
     }

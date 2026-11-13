@@ -145,7 +145,7 @@ function rollTravelAmbush(id, force) {
     if (!force && !chance(roadAmbushChance(danger) * ((id === 'sea' || gameState.run.scene === 'sea') ? 1 : lanternRiskMul()))) return false;
     const pool = roadAmbushPool(danger);
     if (!pool.length) return false;
-    const eid = pool[Math.floor(Math.random() * pool.length)];
+    const eid = pool[Math.floor(deps.rng.random() * pool.length)];
     const en = ENEMIES[eid];
     const isWolf = eid === 'wolf';
     gameState.run._roadAmbush = { id, enemy: eid };
@@ -279,7 +279,7 @@ function setZone(z) {
     if (swam && !gameState.run.combat && typeof ATLANTIS_DEEP_ZONES !== 'undefined' && (ATLANTIS_DEEP_ZONES.includes(z) || ATLANTIS_DEEP_ZONES.includes(fromZone))) {
       if (chance(0.4)) {
         const pool = ['deepGuard','tentacle','mechGuard'].filter(k => ENEMIES[k]);
-        const en = ENEMIES[pool[Math.floor(Math.random() * pool.length)]];
+        const en = ENEMIES[pool[Math.floor(deps.rng.random() * pool.length)]];
         log(`深水里一道影子直冲你而来——${en.name}拦住了去路！`, 'danger');
         startFight(en);
       }

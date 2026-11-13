@@ -172,7 +172,7 @@ function rollEnemyIntents(C) {
       if (e.ehp <= 0) { e.intent = null; continue; }
       if (e.isBoss) { e.intent = null; e.cover = 0; e.charged = 0; continue; }
       // 已执行的掩护保留到该敌人的下一次行动，不能在重掷意图时提前取消。
-      const r = Math.random();
+      const r = deps.rng.random();
       e.intent = (r < 0.20) ? 'charge' : (r < 0.40) ? 'cover' : (r < 0.70) ? 'heavy' : 'attack';
     }
   }

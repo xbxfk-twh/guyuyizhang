@@ -544,7 +544,7 @@ function craft(r) {
     log(`你开始制作：${r.name}（${r.time} 分钟）……`, 'sys');
     const t = craftMinutes(r);
     const refundKeys = Object.keys(cin).filter(k=>cin[k]>0);
-    const refund = chance(cxRefundChance()) && refundKeys.length ? refundKeys[Math.floor(Math.random()*refundKeys.length)] : null;
+    const refund = chance(cxRefundChance()) && refundKeys.length ? refundKeys[Math.floor(deps.rng.random()*refundKeys.length)] : null;
     addMin(t);
     // 跨日的家具产出可能占满背包：重新校验全部产物，失败按实际扣料返还，不能部分发货。
     if (!fitsInBag(r.out)) {
@@ -639,7 +639,7 @@ function craftBatch(r, n, onReady) {
     const refunds = [], cinKeys = Object.keys(cinB).filter(k=>cinB[k]>0);
     for(let i=0;i<n;i++) {
       if(chance(cxExtraChance())) bonusN++;
-      if(cinKeys.length && chance(cxRefundChance())) refunds.push(cinKeys[Math.floor(Math.random()*cinKeys.length)]);
+      if(cinKeys.length && chance(cxRefundChance())) refunds.push(cinKeys[Math.floor(deps.rng.random()*cinKeys.length)]);
     }
     const outKeys=Object.keys(r.out), baseOut={};
     for(const k of outKeys) baseOut[k]=r.out[k]*n;

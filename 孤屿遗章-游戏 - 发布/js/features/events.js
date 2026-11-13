@@ -77,7 +77,7 @@ function triggerRandomEvent(sceneId) {
     const pool = randomEventPool(sceneId);
     if (!pool.length) return;
     const total = pool.reduce((a,b)=>a+b.w,0);
-    let r = Math.random() * total;
+    let r = deps.rng.random() * total;
     let ev = pool[0];
     for (const e of pool) { r -= e.w; if (r <= 0) { ev = e; break; } }
     // 石龛：选项要按"你还没拿到哪些神物"现场生成，走不了下面那套通用 choices → 单独一条路
@@ -124,7 +124,7 @@ function shrineChoices(ev) {
     }
     // 抽三件：在"事件触发的这一刻"抽定，之后弹窗重绘也不会换人
     const bag = pool.slice(), show = [];
-    while (bag.length && show.length < 3) show.push(bag.splice(Math.floor(Math.random() * bag.length), 1)[0]);
+    while (bag.length && show.length < 3) show.push(bag.splice(Math.floor(deps.rng.random() * bag.length), 1)[0]);
     const choices = show.map(id => ({
       label: `取走「${RELICS[id].name}」`,
       hint: RELICS[id].desc,

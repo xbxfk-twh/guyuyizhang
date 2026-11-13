@@ -46,7 +46,7 @@ function nightmareInfo() {
 function nightmareEncounter(kind) {
     const n=nightmareInfo();
     if(!n.active || gameState.run.combat || gameState.run.death || gameState.run.ending || !chance((kind==='move'?n.moveChance:n.gatherChance) * lanternRiskMul()))return false;
-    let roll=Math.random()*n.weights.reduce((a,b)=>a+b,0),tier=n.tiers[n.tiers.length-1];
+    let roll=deps.rng.random()*n.weights.reduce((a,b)=>a+b,0),tier=n.tiers[n.tiers.length-1];
     for(let i=0;i<n.tiers.length;i++){roll-=n.weights[i];if(roll<0){tier=n.tiers[i];break;}}
     log('空气忽然安静。一道不属于这里的影子挡住了你。','danger');startFight(ENEMIES['nightmare'+tier],true);return true;
   }

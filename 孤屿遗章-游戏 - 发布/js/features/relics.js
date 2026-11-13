@@ -75,7 +75,7 @@ function gainRandomRelic() {
     //    奇遇都可能把它随机掉出来——石龛改版时顺手把这条口子也堵上。
     const pool = Object.keys(RELICS).filter(id => id !== 'atlantisSeed' && !(gameState.run.relics || []).includes(id));
     if (!pool.length) { log('你已集齐所有神物。', 'sys'); return; }
-    const id = pool[Math.floor(Math.random() * pool.length)];
+    const id = pool[Math.floor(deps.rng.random() * pool.length)];
     gameState.run.relics.push(id);
     log(`你获得了神物【${RELICS[id].name}】——${RELICS[id].desc}`, 'good');
     change();
@@ -90,7 +90,7 @@ function atlVendor() {
     // 亚特兰蒂斯之种不进这台机器（走剧情/奇遇路线，属于特殊神物）
     const pool = Object.keys(RELICS).filter(id => id !== 'atlantisSeed' && !(gameState.run.relics || []).includes(id));
     const hasStock = pool.length > 0 && chance(deps.VENDOR_RELIC_CHANCE);
-    const id = hasStock ? pool[Math.floor(Math.random() * pool.length)] : null;
+    const id = hasStock ? pool[Math.floor(deps.rng.random() * pool.length)] : null;
     gameState.run.atlantis.vendor = { day: gameState.run.day, id, sold: false, rolled: true, noStock: !hasStock && pool.length > 0 };
     return gameState.run.atlantis.vendor;
   }
