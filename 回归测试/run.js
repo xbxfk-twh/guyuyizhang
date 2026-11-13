@@ -17,6 +17,7 @@ if (args.some(arg => arg !== '--browser' && !arg.startsWith('--only='))) {
 }
 fs.mkdirSync(out, { recursive: true });
 const checks = [
+  '回归测试/refactor-baseline.test.js',
   '回归测试/platform-save.test.js', '回归测试/save-recovery.test.js',
   '回归测试/server-save.test.js', '回归测试/native-ad-receipt.test.js', '回归测试/native-ad-adapter.test.js',
   '回归测试/notification-shop.test.js', '回归测试/temporary-save.test.js', '回归测试/platform-local-mode.test.js',

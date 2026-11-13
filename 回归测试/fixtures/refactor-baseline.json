@@ -1,0 +1,161 @@
+{
+  "baseline": "dfe4de5",
+  "cases": [
+    {
+      "seed": 17,
+      "name": "新开局",
+      "hash": "c0d8e3c738276b692237fcd00f8d94c20cb7a0053eb2d13441cd257357707776",
+      "randomCalls": 7
+    },
+    {
+      "seed": 17,
+      "name": "采集与耗时",
+      "hash": "e5f6f6f89badc2b3c7c8770472188c938f86b34ae3d27d188eb09ab7343c6650",
+      "randomCalls": 11
+    },
+    {
+      "seed": 17,
+      "name": "手工配方",
+      "hash": "3a2badb92020a56c9f7b9fc69f9d88b771650098743c15343d0cdb19de10aaa4",
+      "randomCalls": 13
+    },
+    {
+      "seed": 17,
+      "name": "建造储物",
+      "hash": "9a4afbc47f66a825e979844a8db303ee663ca9b9cbb7dc2f632701f02b83eb2c",
+      "randomCalls": 13
+    },
+    {
+      "seed": 17,
+      "name": "交易买卖",
+      "hash": "91eb7f549a7e9ee5db610b3108651c298e00f774ab547a408ed53138ca5de516",
+      "randomCalls": 13
+    },
+    {
+      "seed": 17,
+      "name": "战斗与战利品",
+      "hash": "1195b62ec4aef2328350dbab584228f6eba4bcb66a44385fc1ddf2692fcabff1",
+      "randomCalls": 14
+    },
+    {
+      "seed": 17,
+      "name": "抽奖投入",
+      "hash": "cbf6a03e7a668fd41db8e90e006a81894089c33bf6b33ab98c645a4ff98def12",
+      "randomCalls": 14
+    },
+    {
+      "seed": 17,
+      "name": "抽奖结果",
+      "hash": "e4ffa1c2dcb20e3613ab577d7edfd927eeba4341d7157c911533402cead18c13",
+      "randomCalls": 14
+    },
+    {
+      "seed": 17,
+      "name": "时间推进",
+      "hash": "3ba75e25673c387d78c8b235e88e3aa7d8ba927c04cad5b5fe135bc20e920693",
+      "randomCalls": 14
+    },
+    {
+      "seed": 17,
+      "name": "休息",
+      "hash": "5e7f73b9006ad76fee4f9af00b80a52fa1b1ed8636b231fc15a175fa35cc7afa",
+      "randomCalls": 14
+    },
+    {
+      "seed": 17,
+      "name": "保存并读取",
+      "hash": "35063cf211b1d358d8a55b6e63b7d3377a8feda6e77e2cbbf5f064202196f1a3",
+      "randomCalls": 14
+    },
+    {
+      "seed": 17,
+      "name": "存档码往返",
+      "hash": "3e8aeacc772f53220dde2389069cb34beb384fdf30887baa7fd7404485d07889",
+      "randomCalls": 14
+    },
+    {
+      "seed": 17,
+      "name": "结局结算",
+      "hash": "86da31e8b68fd91b41704f939be695002f22eea24c0a9b12e0d9e39131129809",
+      "randomCalls": 14
+    },
+    {
+      "seed": 982451653,
+      "name": "新开局",
+      "hash": "76574c3c73f08b74dc377a6d6dc8543d2603d9c5f3d9701807adfe5e26f3a217",
+      "randomCalls": 7
+    },
+    {
+      "seed": 982451653,
+      "name": "采集与耗时",
+      "hash": "e440bb8053c699f455451728a95cf77ad42607b395fe0090248214df7499fb32",
+      "randomCalls": 11
+    },
+    {
+      "seed": 982451653,
+      "name": "手工配方",
+      "hash": "3521389acf0ce1e7c889b4ef271956cdafa83681093282abd77495199500cbc2",
+      "randomCalls": 13
+    },
+    {
+      "seed": 982451653,
+      "name": "建造储物",
+      "hash": "6df19f75dd448f31becb7c1fa5ab2d3b0e56cdaefd883c5820ad85626337ab7c",
+      "randomCalls": 13
+    },
+    {
+      "seed": 982451653,
+      "name": "交易买卖",
+      "hash": "e9bdbc5ba6b8138154d9f222d5d0df9cdb07edae81b9bc047c70f7407edf0408",
+      "randomCalls": 13
+    },
+    {
+      "seed": 982451653,
+      "name": "战斗与战利品",
+      "hash": "ca4c138e31e5173d1f6e6f48e11d9460325813daa9c6ed5cbc60389bcdec4101",
+      "randomCalls": 14
+    },
+    {
+      "seed": 982451653,
+      "name": "抽奖投入",
+      "hash": "9c1eeeb91f69141f7ee080cd5031b2710c2eae6c9488f288a2249a1a311fae8d",
+      "randomCalls": 14
+    },
+    {
+      "seed": 982451653,
+      "name": "抽奖结果",
+      "hash": "78837e4cb9a38e22d4f87416a5f1e2bbeb1e34e87b0dee9257b50496b1a73033",
+      "randomCalls": 14
+    },
+    {
+      "seed": 982451653,
+      "name": "时间推进",
+      "hash": "a3f08a879f5bf2084d17e58f85e4ba67a7bd20530bed7bb214c1e26c804a48ca",
+      "randomCalls": 14
+    },
+    {
+      "seed": 982451653,
+      "name": "休息",
+      "hash": "f7a771dcef14d144522d777346a5317a169810c67b4b405a0f93eea2ac13881b",
+      "randomCalls": 14
+    },
+    {
+      "seed": 982451653,
+      "name": "保存并读取",
+      "hash": "3c97f9eac8a37c0a490f516838cf4316283103cae1b195e98cbe71d739a49410",
+      "randomCalls": 14
+    },
+    {
+      "seed": 982451653,
+      "name": "存档码往返",
+      "hash": "24212d9dbdad09e419543b3d535a1f3b6caf5cd4324c2c238de504f571ab28f5",
+      "randomCalls": 14
+    },
+    {
+      "seed": 982451653,
+      "name": "结局结算",
+      "hash": "90fef40a451cf4e6a993627fd876b6f7c4d497683dcd8ef2c31d961e51ac18ea",
+      "randomCalls": 14
+    }
+  ]
+}
