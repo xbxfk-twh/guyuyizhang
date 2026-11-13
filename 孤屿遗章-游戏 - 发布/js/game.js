@@ -550,7 +550,7 @@ const Game = (() => {
     getPair:()=>({save:gameState.run,meta:gameState.profile}),setPair:(save,meta)=>{gameState.run=save;gameState.profile=meta;},
     migrateMeta:()=>migrateSaltMeta(gameState.profile),normalize:revision=>{normalizeState();gameState.run._rev=revision;},
     reconcile:()=>{reconcileLotteryInputs();reconcileNightmareSouls();},saveRun:()=>save(),saveMeta:()=>metaSave(),
-    mirror:()=>{if(gameState.run)ckMirror(CK.save,CK.saveAt,localStorage.getItem('guyuyizhang_save'));ckMirror(CK.meta,CK.metaAt,localStorage.getItem('guyuyizhang_meta'));},
+    mirror:()=>{if(gameState.run)ckMirror(CK.save,CK.saveAt,storagePort.getItem('guyuyizhang_save'));ckMirror(CK.meta,CK.metaAt,storagePort.getItem('guyuyizhang_meta'));},
     push:()=>cloudPush(false),onFailure:error=>{if(typeof onSaveFail==='function')onSaveFail(error);}
   });
   const repository=SaveRepository.create({
