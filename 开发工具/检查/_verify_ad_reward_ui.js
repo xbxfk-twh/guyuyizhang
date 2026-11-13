@@ -44,7 +44,8 @@ const usable=`!TapAds.busy()&&!document.querySelector('#modal .modal-content').i
     await tap('#watch-reward-ad');await b.ev(`__ad.handlers.close({isEnded:true})`);
     await check('第'+n+'次观看实际到账且次数准确',`Game.adRewardState().uses===${n}&&Game.adCoinBalance()-__second>=${(n-2)*3}&&Game.adCoinBalance()-__second<=${(n-2)*6}`);
   }
-  await check('五次上限明确显示且按钮禁用，商城其他按钮仍可点击',`document.querySelector('#watch-reward-ad').disabled&&document.querySelector('#watch-reward-ad').textContent.includes('今天已领取 5 次')&&!document.querySelector('#modal .modal-content').inert`);
+  await check('五次上限明确显示且按钮禁用，商城其他按钮仍可点击',`document.querySelector('#watch-reward-ad').disabled&&document.querySelector('#watch-reward-ad').getAttribute('aria-label').includes('今天已领取 5 次')&&!document.querySelector('#modal .modal-content').inert`);
+  await tap('.shop-title .ui-help summary');await check('播放键精简后仍可点说明看到今日五次上限',`document.querySelector('.shop-title .ui-help').open&&document.querySelector('.shop-title .ui-help-text').textContent.includes('今天已领取 5 次')`);
   await b.shot('ad-reward-five.png');const coins=await b.ev('Game.adCoinBalance()');
   await b.send('Page.reload');await b.sleep(1200);
   await check('重新加载游戏保留奖励钱包与每日五次上限',`Game.adCoinBalance()===${coins}&&Game.adRewardState().uses===5`);
