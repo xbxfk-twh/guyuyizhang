@@ -69,11 +69,11 @@ function preserveMetaGrowth(incoming, local) {
     for (const key of ['runs','totalSoul']) incoming[key] = Math.max(Number(incoming[key]) || 0,Number(local[key]) || 0);
   }
 
-function metaLoad(){return deps.repository.metaLoad();}
+function metaLoad(){return deps.saves.metaLoad();}
 
-function metaSave(){return deps.repository.metaSave();}
+function metaSave(){return deps.saves.metaSave();}
 
-function metaReload(){return deps.repository.metaReload();}
+function metaReload(){return deps.saves.metaReload();}
 
 function cloudStatus() { return typeof window!=='undefined'&&window.GuyuSaveBridge ? window.GuyuSaveBridge.status() : {supported:false,msg:'本地存档已启用；换设备请生成取件码，并在10分钟内导入。',at:0,applied:0,uuid:null,diag:'local-only',pending:false}; }
 
@@ -92,7 +92,7 @@ function inspectCode(code) {
 function exportCode() {
     try {
       if (!gameState.profile) metaLoad();
-      const current = gameState.run ? JSON.parse(JSON.stringify(gameState.run)) : JSON.parse(localStorage.getItem('guyuyizhang_save') || 'null');
+      const current = gameState.run ? JSON.parse(JSON.stringify(gameState.run)) : JSON.parse(deps.saves.storage.getItem('guyuyizhang_save') || 'null');
       if (current) { delete current._snap; delete current._dirty; delete current._savedAt; }
       const payload = { v: 1, t: (typeof window !== 'undefined' && window.BUILD_VER) || '', meta: gameState.profile, save:current };
       return SaveCodec.encode(payload);

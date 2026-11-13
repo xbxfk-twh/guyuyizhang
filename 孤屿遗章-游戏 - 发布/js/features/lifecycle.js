@@ -25,19 +25,19 @@ const RESCUE_KEY = 'guyuyizhang_rescue';
 
 function rescueStash() {
     try {
-      const raw = localStorage.getItem('guyuyizhang_save');
+      const raw = deps.storage.getItem('guyuyizhang_save');
       if (!raw) return false;
       const j = JSON.parse(raw);
       if (!j || !(j.day > 1)) return false;
       if (j.setted) {}
       const st = { at: Date.now(), day: j.day, identity: j.identity, save: raw };
-      localStorage.setItem(RESCUE_KEY, JSON.stringify(st));
+      deps.storage.setItem(RESCUE_KEY, JSON.stringify(st));
       return true;
     } catch (e) { return false; }
   }
 
 function rescueInfo() {
-    try { const st = JSON.parse(localStorage.getItem(RESCUE_KEY) || 'null'); return (st && st.save) ? st : null; } catch (e) { return null; }
+    try { const st = JSON.parse(deps.storage.getItem(RESCUE_KEY) || 'null'); return (st && st.save) ? st : null; } catch (e) { return null; }
   }
 
 function scanLocalSaves() {
@@ -48,12 +48,12 @@ function scanLocalSaves() {
       if (!j || !j.day) return;
       out.push({ src, label, day: j.day, identity: j.identity, at: atHint || 0, size: String(raw).length });
     };
-    add('main', '当前存档（新开的那局）', localStorage.getItem('guyuyizhang_save'), parseInt(localStorage.getItem('guyuyizhang_savedAt') || '0', 10) || 0);
+    add('main', '当前存档（新开的那局）', deps.storage.getItem('guyuyizhang_save'), parseInt(deps.storage.getItem('guyuyizhang_savedAt') || '0', 10) || 0);
     const rs = rescueInfo(); if (rs) add('rescue', '开新游戏前的上一局（自动保留）', rs.save, rs.at);
-    try{const other=JSON.parse(localStorage.getItem('guyuyizhang_alternate_save')||'null');if(other)add('alternate','本机与云端冲突时保留的另一份进度',other.guyuyizhang_save,0);}catch(e){}
-    add('bak', '上一次保存前的状态（回退一步）', localStorage.getItem('guyuyizhang_save_bak'),
-      (function () { try { return parseInt(localStorage.getItem('guyuyizhang_savedAt') || '0', 10) || 0; } catch (e) { return 0; } })());
-    try { const ck = ckGet(deps.CK.save); if (ck && ck !== localStorage.getItem('guyuyizhang_save')) add('cookie', 'cookie 镜像（平台清缓存前的最后一份）', ck, parseInt(ckGet(deps.CK.saveAt) || '0', 10) || 0); } catch (e) {}
+    try{const other=JSON.parse(deps.storage.getItem('guyuyizhang_alternate_save')||'null');if(other)add('alternate','本机与云端冲突时保留的另一份进度',other.guyuyizhang_save,0);}catch(e){}
+    add('bak', '上一次保存前的状态（回退一步）', deps.storage.getItem('guyuyizhang_save_bak'),
+      (function () { try { return parseInt(deps.storage.getItem('guyuyizhang_savedAt') || '0', 10) || 0; } catch (e) { return 0; } })());
+    try { const ck = ckGet(deps.CK.save); if (ck && ck !== deps.storage.getItem('guyuyizhang_save')) add('cookie', 'cookie 镜像（平台清缓存前的最后一份）', ck, parseInt(ckGet(deps.CK.saveAt) || '0', 10) || 0); } catch (e) {}
     const m = metaState();
     (m.slots || []).forEach((sl, i) => { if (sl && sl.data) add('slot' + i, `备份槽 ${i + 1}`, JSON.stringify(sl.data), 0); });
     return out.sort((a, b) => (b.at || 0) - (a.at || 0));
@@ -61,11 +61,11 @@ function scanLocalSaves() {
 
 function restoreLocalSave(src) {
     let raw = '';
-    if (src === 'main') raw = localStorage.getItem('guyuyizhang_save');
-    else if (src === 'bak') raw = localStorage.getItem('guyuyizhang_save_bak');
+    if (src === 'main') raw = deps.storage.getItem('guyuyizhang_save');
+    else if (src === 'bak') raw = deps.storage.getItem('guyuyizhang_save_bak');
     else if (src === 'cookie') { try { raw = ckGet(deps.CK.save); } catch (e) {} }
     else if (src === 'rescue') { const rs = rescueInfo(); raw = rs ? rs.save : ''; }
-    else if (src === 'alternate') { try{raw=JSON.parse(localStorage.getItem('guyuyizhang_alternate_save')||'null')?.guyuyizhang_save;}catch(e){} }
+    else if (src === 'alternate') { try{raw=JSON.parse(deps.storage.getItem('guyuyizhang_alternate_save')||'null')?.guyuyizhang_save;}catch(e){} }
     else if (/^slot\d$/.test(String(src))) {
       const i = parseInt(String(src).slice(4), 10);
       const m = metaState(); const sl = m.slots && m.slots[i];
@@ -204,7 +204,7 @@ function newGame(identity, difficulty) {
     }
     gameState.run.stats.stamina = maxStam();   // 开局体力=满上限（含传承加成）
     gameState.run.seen = {};
-    gameState.run._rev = (() => { try { return parseInt(localStorage.getItem('guyuyizhang_rev') || '0', 10) || 0; } catch (e) { return 0; } })();
+    gameState.run._rev = (() => { try { return parseInt(deps.storage.getItem('guyuyizhang_rev') || '0', 10) || 0; } catch (e) { return 0; } })();
     diaryAdd('海难之后，我在这片沙滩上醒来。天是灰的，海也是。');
     log('第 1 天。你从沙滩上醒来，海浪把船的残骸和你一起冲上了岸。', 'sys');
     // 普通开局自带三件套；传奇难度刻意从空地开始，提示也必须区别。

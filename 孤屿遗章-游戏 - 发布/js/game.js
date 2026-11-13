@@ -8,9 +8,12 @@ const Game = (() => {
   const gameState=StateStore.create();
   const rng=GameRandom.create();
   const {rnd,chance,pick}=rng;
+  const getSaveBridge=()=>typeof window!=="undefined"?window.GuyuSaveBridge:null;
+  const storagePort=SaveService.port({bridge:getSaveBridge(),storage:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value),removeItem:key=>localStorage.removeItem(key)}});
   const runTutorial=TutorialRules.create({getState:()=>gameState.run,changed:change,items:ITEMS});
   const lifecycleRules=RunLifecycle.create({
     gameState,rng,
+    storage:storagePort,
     get persistPair(){return persistPair;},
     get onEnding(){return onEnding;},
     get log(){return log;},
@@ -104,7 +107,7 @@ const Game = (() => {
   });
   const accountRules=AccountRules.create({
     gameState,
-    get repository(){return repository;},
+    get saves(){return saves;},
     get persistPair(){return persistPair;},
     get log(){return log;},
     get change(){return change;},
@@ -546,25 +549,14 @@ const Game = (() => {
   const migrations=StateMigrations.create({getState:()=>gameState.run,ITEMS,DIFFICULTIES,WEATHER,DURA,LOG_KEEP,SKILL_TRUNK_COST,costMul,log,combatLv,nodeLv,trainingCount,durList,autoToolkit,reconcileLotteryInputs,reconcileNightmareSouls,settleStoredFood,supplyRecordsAll,addItem,
     migrateFoodChoices:()=>foodSatchel.migrateSatchelChoices()});
   
-  const storagePort = typeof window!=='undefined'&&window.GuyuSaveBridge ? window.GuyuSaveBridge.storage : {getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value),removeItem:key=>localStorage.removeItem(key)};
-  const saveTransactions=SaveTransactions.create({
-    storage:{getItem:key=>storagePort.getItem(key),setItem:(key,value)=>storagePort.setItem(key,value),removeItem:key=>storagePort.removeItem(key)},
-    getPair:()=>({save:gameState.run,meta:gameState.profile}),setPair:(save,meta)=>{gameState.run=save;gameState.profile=meta;},
-    migrateMeta:()=>migrateSaltMeta(gameState.profile),normalize:revision=>{normalizeState();gameState.run._rev=revision;},
-    reconcile:()=>{reconcileLotteryInputs();reconcileNightmareSouls();},saveRun:()=>save(),saveMeta:()=>metaSave(),
-    mirror:()=>{if(gameState.run)ckMirror(CK.save,CK.saveAt,storagePort.getItem('guyuyizhang_save'));ckMirror(CK.meta,CK.metaAt,storagePort.getItem('guyuyizhang_meta'));},
-    push:()=>cloudPush(false),onFailure:error=>{if(typeof onSaveFail==='function')onSaveFail(error);}
-  });
-  const repository=SaveRepository.create({
-    storage:{getItem:key=>storagePort.getItem(key),setItem:(key,value)=>storagePort.setItem(key,value),removeItem:key=>storagePort.removeItem(key)},
-    cookies:{get text(){return document.cookie;},set text(value){document.cookie=value;}},
-    getState:()=>gameState.run,setState:value=>{gameState.run=value;},getMeta:()=>gameState.profile,setMeta:value=>{gameState.profile=value;},isStaging:()=>gameState.staging,
-    transactions:saveTransactions,LOG_KEEP,validSave,normalizeState,migrateSaltMeta,migrateRedeemReceipts,migrateNotices:NotificationRules.migrate,
+  const saves=SaveService.create({
+    storage:storagePort,cookies:{get text(){return document.cookie;},set text(value){document.cookie=value;}},state:gameState,getBridge:getSaveBridge,
+    LOG_KEEP,validSave,normalizeState,migrateSaltMeta,migrateRedeemReceipts,migrateNotices:NotificationRules.migrate,
+    reconcile:()=>{reconcileLotteryInputs();reconcileNightmareSouls();},push:()=>cloudPush(false),
     onConflict:revision=>{if(typeof onSaveConflict==='function')onSaveConflict(revision);},
-    onFailure:error=>{if(typeof onSaveFail==='function')onSaveFail(error);},push:()=>cloudPush(false)
+    onFailure:error=>{if(typeof onSaveFail==='function')onSaveFail(error);}
   });
-  function recoverPendingWrite(){saveTransactions.recover();}
-  function persistPair(nextS,nextM,normalize){return saveTransactions.commit(nextS,nextM,normalize);}
+  function persistPair(nextS,nextM,normalize){return saves.persistPair(nextS,nextM,normalize);}
   let onLog = null;        // 文本回调（ui 注册）
   let onChange = null;     // 状态刷新回调（ui 注册）
   let onFight = null;      // 战斗界面回调
@@ -886,14 +878,13 @@ function change() {
   // 为什么：手机 WebView 里"清缓存、平台升级"有时只清 localStorage，
   // 而 cookie 往往能留下来（网页游戏最老牌的兜底）。两边都写，读的时候取"更新的那份"。
   // ⚠️ 单个 cookie 约 4KB 上限：只镜像主存档与账号数据，太长（比如带满三个备份槽的导出码）就跳过。
-  const CK=SaveRepository.keys;
-  function ckGet(key){return repository.cookieGet(key);}
-  function ckMirror(key,atKey,json){return repository.mirror(key,atKey,json);}
-  function save(){return repository.save();}
-  async function saveAndFlush(){const result=save();if(!result.ok)return result;const bridge=typeof window!=='undefined'&&window.GuyuSaveBridge;return bridge?bridge.flush():result;}
-  function initializeStorage(){recoverPendingWrite();return repository.metaReload();}
-  function load(retried=false){return repository.load(retried);}
-  function hasSave(){return repository.hasSave();}
+  const CK=SaveService.keys;
+  function ckGet(key){return saves.cookieGet(key);}
+  function save(){return saves.save();}
+  function saveAndFlush(){return saves.saveAndFlush();}
+  function initializeStorage(){return saves.initializeStorage();}
+  function load(retried=false){return saves.load(retried);}
+  function hasSave(){return saves.hasSave();}
   // 安全模式用：把"上次保存前的滚动备份"当主档读回来
   // （save() 每次写入前都会把旧档滚到 guyuyizhang_save_bak，所以最多退回几步）
   function restoreBackupSave() {
@@ -1606,7 +1597,7 @@ function change() {
   function legacySlotSettled(...args){return accountRules.legacySlotSettled(...args);}
   function rememberSettledRun(...args){return accountRules.rememberSettledRun(...args);}
   function metaSettle(...args){return accountRules.metaSettle(...args);}
-  if(!(typeof window!=='undefined'&&window.GuyuSaveBridge)){recoverPendingWrite();metaLoad();}
+  saves.initializeLegacy();
 
 
   // ---------- 隐藏：开发者模式（点击"章"×4 → 输入密码解锁） ----------
