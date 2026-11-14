@@ -45,6 +45,8 @@ node 回归测试/run.js --browser --only=_verify_oct29_saves
 
 开始修改前阅读 [开发约定](AGENTS.md)、[参与维护](CONTRIBUTING.md) 和 [维护现状](文档/维护现状.md)。当前已知问题和完整测试边界以维护现状为准，不能把重点检查通过理解为全套界面通过。
 
+[装配与存储重构记录](文档/开发协作/装配层与存储重构_20261114.md)说明 SaveService、统一随机端口、显式依赖和修改前的行为基线。完整状态比较使用 `node 回归测试/refactor-baseline.test.js`，统一核心入口也会执行；普通测试不会重写基线。
+
 ## 运行版本与下载
 
 当前源码版本只在游戏 `index.html` 定义，缓存参数由工具同步；不在多份文档手工维护版本号。[官网安卓下载页](https://guyuyizhang.top:8443/download.html) 提供独立测试 APK。独立 APK 使用本地存档，迁移方式及平台能力限制见 [安卓说明](安卓包装/README.md)。
