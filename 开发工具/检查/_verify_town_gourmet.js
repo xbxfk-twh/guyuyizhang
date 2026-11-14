@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const os = require('os');
+const {pressElement} = require('../../回归测试/helpers/browser');
 const CHROME = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const ROOT = process.env.GUYU_GAME_ROOT || 'C:\\Users\\34297\\Desktop\\孤屿遗章\\孤屿遗章-游戏 - 发布';
 const OUT = path.join(__dirname, '_out', 'town');
@@ -103,32 +104,21 @@ const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —
   }
 
   // ③ 点进美食家，买一张图纸 —— 买完钱要真扣、图纸要真进包（以前会被当成杂货商）
-  const buy = await ev(`(async () => {
-    const w = ms => new Promise(r => setTimeout(r, ms));
-    // ⚠️ 买/卖按钮是 bindPress（pointerdown/up）绑的，**click() 不触发**。
-    //    探针里必须像真手指那样发 pointer 事件（第一版就是栽在这儿：点了没反应，误判成"买不到"）。
-    const tap = (el) => {
-      const o = { bubbles:true, cancelable:true, clientX:0, clientY:0, pointerId:1, pointerType:'mouse', isPrimary:true, button:0, buttons:1 };
-      el.dispatchEvent(new PointerEvent('pointerdown', o));
-      el.dispatchEvent(new PointerEvent('pointerup', Object.assign({}, o, { buttons:0 })));
-    };
-    const b = [...document.querySelectorAll('#modal [data-shop]')].find(x => /美食家/.test(x.textContent));
-    if (!b) return { __err: '没有美食家标签' };
-    b.click(); await w(600);
-    const 货 = [...document.querySelectorAll('#modal [data-tbuy]')].map(x => ({ 键: x.dataset.tbuy, 文: x.parentElement.parentElement.textContent.replace(/\\s+/g, ' ').trim() }));
-    const before = { 贝壳: Game.invCount('beibi'), 图纸: Game.invCount('bpStew') };
-    const btn = document.querySelector('#modal [data-tbuy="gourmet:bpStew"]');
-    if (!btn) return { __err: '美食家摊位里没有萝卜炖肉食谱的购买按钮', 货 };
-    tap(btn); await w(900);
-    const honeyBefore = Game.invCount('honey');
-    const shellBeforeHoney = Game.invCount('beibi');
-    const honeyBtn = document.querySelector('#modal [data-tbuy="gourmet:honey"]');
-    if (honeyBtn) { tap(honeyBtn); await w(600); }
-    return { 货, before, 贝壳: Game.invCount('beibi'), 图纸: Game.invCount('bpStew'),
-             蜂蜜按钮: !!honeyBtn, 蜂蜜前: honeyBefore, 蜂蜜后: Game.invCount('honey'),
-             买蜜前贝壳: shellBeforeHoney,
-             还在美食家: !!document.querySelector('#modal [data-tbuy="gourmet:bpOmelette"]') };
+  await ev(`(() => {
+    const tab = [...document.querySelectorAll('#modal [data-shop]')].find(x => /美食家/.test(x.textContent));
+    if (!tab) throw Error('没有美食家标签');
+    tab.click();
   })()`);
+  await sleep(600);
+  const beforeBuy = await ev(`({
+    货: [...document.querySelectorAll('#modal [data-tbuy]')].map(x => ({键:x.dataset.tbuy, 文:x.parentElement.parentElement.textContent.replace(/\\s+/g,' ').trim()})),
+    before: {贝壳:Game.invCount('beibi'), 图纸:Game.invCount('bpStew')}
+  })`);
+  // 正式输入层在 click 提交短按；用 CDP 实际命中可见按钮，包含浏览器生成的 click。
+  await pressElement(send,ev,'#modal [data-tbuy="gourmet:bpStew"]',{touch:false});
+  const beforeHoney = await ev(`({蜂蜜前:Game.invCount('honey'),买蜜前贝壳:Game.invCount('beibi'),蜂蜜按钮:!!document.querySelector('#modal [data-tbuy="gourmet:honey"]')})`);
+  await pressElement(send,ev,'#modal [data-tbuy="gourmet:honey"]',{touch:false});
+  const buy = {...beforeBuy,...beforeHoney,...await ev(`({贝壳:Game.invCount('beibi'),图纸:Game.invCount('bpStew'),蜂蜜后:Game.invCount('honey'),还在美食家:!!document.querySelector('#modal [data-tbuy="gourmet:bpOmelette"]')})`)};
   console.log('③ 购买：' + JSON.stringify(buy));
   if (buy.__err) { ck('③ 能进美食家摊位买图纸', false, JSON.stringify(buy)); }
   else {

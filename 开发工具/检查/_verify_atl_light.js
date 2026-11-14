@@ -110,7 +110,10 @@ const ck = (l, c, e) => { if (c) { ok++; console.log('    OK   ' + l + (e ? '  �
     S.capacity = 999;
     if (!Game.addItem('lightStrong', 1, true)) throw Error('照明测试物品未成功装入背包');
     (S.toolkit = S.toolkit || [])[0] = 'lightStrong';
-    document.querySelector('#nav [data-nav="map"]').click(); await w(900);
+    // 地图键现在是切换入口：已在地图时只刷新，不再点回场景。
+    Game.change();
+    if (!document.querySelector('#map-img')) document.querySelector('#nav [data-nav="map"]').click();
+    await w(900);
     const a = document.querySelector('#map-arrows .map-arrow[data-zone="abyss"]');
     return { light: Game.lightLevel(), abyssLocked: a ? a.classList.contains('locked') : null, abyssUnlocked: a ? a.classList.contains('unlocked') : null };
   })()`);

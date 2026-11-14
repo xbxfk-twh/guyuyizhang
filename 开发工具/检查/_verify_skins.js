@@ -175,7 +175,8 @@ const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —
       const b = [...document.querySelectorAll('#modal [data-set^="skin:"]')].find(x => x.textContent.includes(n));
       return b ? b.classList.contains('active') : null; });
     const mx = document.querySelector('#modal .modal-x'); if (mx) mx.click(); await w(400);
-    clk('#nav [data-nav="map"]'); await w(1200);
+    if (!document.querySelector('#map-img')) clk('#nav [data-nav="map"]');
+    await w(1200);
     const mi = document.querySelector('#map-img');
     return { 全关后: after, body类: document.body.classList.contains('skin-accent'),
              地图: mi ? (mi.getAttribute('src') || '') : null, 存档值: localStorage.getItem('guyuyizhang_skin') };
@@ -199,7 +200,8 @@ const ck = (l, c, e) => { if (c) { ok++; console.log('  OK   ' + l + (e ? '  —
     clk('#btn-new'); await w(300); clk('.identity'); await w(300); clk('.identity'); await w(300); clk('.identity'); await w(1500);
     for (let i = 0; i < 8; i++) { const b = document.querySelector('#modal .modal-actions button, #modal #modal-close'); if (!b) break; b.click(); await w(180); }
     Game.S().tut = null;
-    clk('#nav [data-nav="map"]'); await w(1200);
+    if (!document.querySelector('#map-img')) clk('#nav [data-nav="map"]');
+    await w(1200);
     const mi = document.querySelector('#map-img');
     return { 地图: mi ? (mi.getAttribute('src') || '') : null, body类: document.body.classList.contains('skin-accent') };
   })()`);
