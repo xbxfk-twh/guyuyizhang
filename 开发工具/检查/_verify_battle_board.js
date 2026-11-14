@@ -34,7 +34,8 @@ let passed=0,fail=0,ws,ch;const errors=[];
    await shot('battle-approach-667.png');await idle();
    await ev(`(()=>{const C=Game.S().combat;C.dist=0;C.accE=0;C.enemy.spd=C.enemies[0].spd=Game.combatSpeed();C.enemies[0].ehp=10000;window.effects=[];window.playBefore=AudioFX.play;AudioFX.play=(name)=>effects.push({name,at:performance.now()});window.oldRandom=Math.random;Math.random=()=>.5;document.querySelector('[data-fact="attack"]').click();Math.random=oldRandom;})()`);await sleep(550);
    await check('受击使用半透明红色咬合特效',`!!document.querySelector('#battle-impact.bite.active .bite-upper')&&getComputedStyle(document.querySelector('.bite-upper')).backgroundImage.includes('rgba(')`);await shot('battle-impact-667.png');await idle();
-   await check('双方伤害反馈实测间隔半秒',`effects.length===2&&['combatstrike','combatcritical'].includes(effects[0].name)&&effects[1].name==='combatbite'&&effects[1].at-effects[0].at>=450&&effects[1].at-effects[0].at<850`);
+   console.log('伤害音效序列 '+JSON.stringify(await ev('effects')));
+   await check('双方伤害反馈实测间隔半秒',`effects.length===3&&effects[0].name==='click'&&['combatstrike','combatcritical'].includes(effects[1].name)&&effects[2].name==='combatbite'&&effects[2].at-effects[1].at>=450&&effects[2].at-effects[1].at<850`);
    await ev(`AudioFX.play=playBefore;Game.startFight(ENEMIES.wolf,true);Game.S().combat.dist=0;Game.S().stats.hp=10000;`);
   }
 

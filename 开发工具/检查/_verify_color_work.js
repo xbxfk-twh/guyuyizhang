@@ -31,7 +31,8 @@ let passed=0,fail=0,ws,ch;const errors=[];
   await ev('Game.S().combat.smoke=true;document.querySelector("[data-fact=flee]").click();');await until('!document.querySelector(".battle-board")');
   await ev('Game.S().scene="forest";Game.S().stats.stamina=150;Game.S().stats.hp=100;UI.render();window.played=[];window.originalPlay=AudioFX.play;AudioFX.play=n=>played.push(n);[...document.querySelectorAll(".hotspot.point")].find(e=>e.textContent.includes("野莓")).click();');
   await until('document.querySelector("#busy.open .busy-img")?.naturalWidth>0');
-  await check('采集透明图按皮肤切换 '+colored,'document.querySelector("#busy .busy-img").getAttribute("src").includes('+JSON.stringify(colored?'anim-colored':'anim-clean')+')&&played[0]==="forage"');
+  console.log('采集图与音效 '+JSON.stringify(await ev('({src:document.querySelector("#busy .busy-img").getAttribute("src"),played})')));
+  await check('采集透明图按皮肤切换 '+colored,'document.querySelector("#busy .busy-img").getAttribute("src").includes('+JSON.stringify(colored?'anim-colored':'anim-clean')+')&&played[0]==="click"&&played[1]==="forage"&&played.slice(1).every(n=>n==="forage")');
   if(colored)await check('全彩采集不会被样式灰度化','!getComputedStyle(document.querySelector("#busy .busy-img")).filter.includes("grayscale")');
   await shot('gather-color-'+colored+'.png');await until('!document.querySelector("#busy.open")');await ev('AudioFX.play=originalPlay;');
  }
