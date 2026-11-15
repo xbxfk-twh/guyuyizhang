@@ -20,10 +20,10 @@
     // 在游戏脚本之前运行；即使脚本加载/解析失败，也留下可见的诊断入口。
     (function () {
       var ready = false, recoveryShown = false, failure = '';
-      function show(message) {
+      function show(message, waiting) {
         failure = message || failure;
         var box = document.getElementById('boot-status');
-        if (box) box.textContent = '暂时无法进入游戏，请重试。';
+        if (box) box.textContent = waiting ? '加载较慢，可以继续等待或重试。' : '暂时无法进入游戏，请重试。';
         var actions = document.getElementById('boot-actions');
         if (actions) actions.hidden = false;
       }
@@ -59,7 +59,7 @@
         else if (event.message) show(event.message + '（行 ' + (event.lineno || '?') + '）');
       }, true);
       window.addEventListener('DOMContentLoaded', function () { if (failure && !ready && !recoveryShown) show(failure); });
-      setTimeout(function () { if (!ready && !recoveryShown) show(failure || '游戏启动超时，可能是资源加载或运行环境异常'); }, 30000);
+      setTimeout(function () { if (!ready && !recoveryShown) show(failure || '启动等待超过30秒', !failure); }, 30000);
     })();
   </script>
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -76,7 +76,7 @@
       <div id="boot-actions" hidden>
         <button onclick="location.reload()">重新尝试</button>
         <button onclick="window.__guyuBoot.diagnostic()">查看诊断信息</button>
-        <button onclick="window.__guyuBoot.backup()">抢救本地原始备份</button>
+        <button onclick="window.__guyuBoot.backup()">导出原始备份</button>
         <p>反复失败时，可查看诊断或保留本地备份。</p>
       </div>
       <textarea id="boot-diagnostic" hidden readonly style="width:100%;height:160px" aria-label="可复制的诊断或备份内容"></textarea>

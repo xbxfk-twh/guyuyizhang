@@ -214,11 +214,12 @@ function showModal(kind, cfg) {
     else if (kind === 'buybp') html = `<div class="modal-title">购买备份点</div><div class="overlay-text">是否用 20 魂点购买一个备份点？</div><div class="modal-actions"><button data-buybp-yes="1">是</button><button data-buybp-no="1">否</button></div>`;
     else if (kind === 'buyslot') html = `<div class="modal-title">解锁第四存档位</div><div class="overlay-text">支付 100 魂点，永久解锁一个新的备份槽。购买后可消耗备份点向槽内备份。</div><div class="modal-actions"><button data-buyslot-yes="1">确认解锁</button><button data-buyslot-no="1">取消</button></div>`;
     else if (kind === 'codex') {
-      const mobile=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)||matchMedia('(pointer:coarse)').matches;
+      const nativeFiles=typeof window.GuyuFileBackup?.save==='function'&&typeof window.GuyuFileBackup?.open==='function';
+      const mobile=!nativeFiles&&(/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)||matchMedia('(pointer:coarse)').matches);
       html = cfg && cfg.mode === 'export'
         ? `<div class="modal-title">临时取件码</div><div class="overlay-text">8位字母和数字，10分钟有效；每账号每小时最多生成3次。</div>
            <input id="codex-text" readonly aria-label="临时取件码" placeholder="点击生成取件码" style="width:100%;padding:10px;box-sizing:border-box;background:var(--paper);color:var(--ink);border:2px solid var(--ink);font-size:18px;text-align:center">
-           <div class="batch-hint" id="transfer-status" role="status">${esc(backupSummary(Game.inspectCode(cfg.code || '')))}</div><div class="modal-actions"><button id="codex-generate">生成取件码</button><button id="codex-copy" disabled>复制取件码</button>${mobile?'':'<button id="codex-download">保存备份文件</button>'}<button id="modal-close">关 闭</button></div>`
+           <div class="batch-hint" id="transfer-status" role="status">进度会在点击生成或下载时备份。</div><div class="modal-actions"><button id="codex-generate">生成取件码</button><button id="codex-copy" disabled>复制取件码</button>${mobile?'':'<button id="codex-download">保存备份文件</button>'}<button id="modal-close">关 闭</button></div>`
         : `<div class="modal-title">导入存档</div><div class="overlay-text">输入8位取件码，预览后确认导入。</div>
            <input id="codex-text" aria-label="取件码" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="8位字母和数字" style="width:100%;font-size:20px;letter-spacing:3px;padding:10px;box-sizing:border-box;background:var(--paper);color:var(--ink);border:2px solid var(--ink)">
            <div class="batch-hint" id="codex-preview" aria-live="polite">请先输入取件码</div>${mobile?'':'<input id="codex-file" type="file" accept=".txt,text/plain" hidden>'}<div class="modal-actions">${mobile?'':'<button id="codex-file-pick">选择备份文件</button><button id="codex-current-backup">备份当前进度</button>'}<button id="codex-do">预览并导入</button><button id="modal-close">取 消</button></div>`;
@@ -384,16 +385,16 @@ function bindModal(kind, cfg) {
       doLoad();
     });
     m.querySelectorAll('[data-buybp]').forEach(b => b.onclick = () => { const r = Game.buyBackupPoint(); if (r.ok) { addLog('购买了 1 个备份点。', 'good'); } else addLog(r.reason, 'warn'); showModal('backup'); });
-    m.querySelectorAll('[data-codex]').forEach(b => b.onclick = () => showModal('codex', { mode: b.dataset.codex, code: b.dataset.codex === 'export' ? Game.exportCode() : '' }));
+    m.querySelectorAll('[data-codex]').forEach(b => b.onclick = () => showModal('codex', { mode: b.dataset.codex }));
     const transfer=TemporarySaveTransfer.create({owner:()=>Game.transferOwner(),authorize:force=>transferIdentity.authorize(force),send:(url,data)=>RedeemTransport.send(window,url,data,{timeoutMs:12000}),inspect:code=>Game.inspectCode(code)});
     const ccopy = m.querySelector('#codex-copy'); if (ccopy) ccopy.onclick = () => { const t = m.querySelector('#codex-text'); try { t.select(); if(!document.execCommand('copy'))throw Error('copy');centerToast('已复制取件码，请在10分钟内使用。'); } catch (e) { centerToast('复制失败，请长按文本框手动复制'); } };
-    const cd=m.querySelector('#codex-download');if(cd)cd.onclick=()=>downloadBackup(cfg.code||Game.exportCode());
+    const cd=m.querySelector('#codex-download');if(cd)cd.onclick=()=>downloadBackup(Game.exportCode());
     const cb=m.querySelector('#codex-current-backup');if(cb)cb.onclick=()=>downloadBackup(Game.exportCode());
     const codeText=m.querySelector('#codex-text'),preview=m.querySelector('#codex-preview');
     const generate=m.querySelector('#codex-generate');
     if(generate)generate.onclick=async()=>{
       const status=m.querySelector('#transfer-status');generate.disabled=true;status.textContent='正在生成……';
-      try{const result=await transfer.upload(cfg.code||Game.exportCode());if(!codeText.isConnected)return;codeText.value=result.code;codeText.dataset.expires=String(result.expiresAt);ccopy.disabled=false;status.textContent='10分钟内有效，请只发给自己。';}
+      try{const result=await transfer.upload(Game.exportCode());if(!codeText.isConnected)return;codeText.value=result.code;codeText.dataset.expires=String(result.expiresAt);ccopy.disabled=false;status.textContent='10分钟内有效，请只发给自己。';}
       catch(e){if(codeText.isConnected)status.textContent=e.message;}
       finally{if(generate.isConnected)generate.disabled=false;}
     };
@@ -443,7 +444,7 @@ function bindModal(kind, cfg) {
     if (v === 'save') {
       b.disabled=true;
       const saved=await Game.saveAndFlush();
-      if(!saved.ok){b.disabled=false;centerToast(saved.reason==='other-tab'?'检测到另一处有更新进度，未覆盖。':saved.reason||'保存失败，请重试。');return;}
+      if(!saved.ok){b.disabled=false;centerToast(saved.reason==='other-tab'?'检测到另一处有更新进度，未覆盖。':'本次未能保存，请保留本页并到菜单备份进度。');return;}
       const cs = Game.cloudStatus();                       // 保存 = 本地 + cookie + 尝试云同步（平台限制一分钟一次）
       addLog('已保存。' + (cs.supported ? `云存档：${cs.msg}` : '进度已保存在本机。'), 'sys');
       showModal('savemenu');
@@ -454,7 +455,7 @@ function bindModal(kind, cfg) {
       else if (v === 'skill') showModal('skill');
       else if (v === 'backup') showModal('backup');
       else if (v === 'settings') showModal('settings');
-    else if (v === 'title') { b.disabled=true;const saved=await Game.saveAndFlush();if(!saved.ok){b.disabled=false;centerToast(saved.reason||'保存失败，请重试。');return;}closeModal(); showTitle(); }
+    else if (v === 'title') { b.disabled=true;const saved=await Game.saveAndFlush();if(!saved.ok){b.disabled=false;centerToast('本次未能保存，请保留本页并到菜单备份进度。');return;}closeModal(); showTitle(); }
     else if (v === 'guide') showModal('guide');
     else if (v === 'mail') {deps.mailTab='mail';showModal('mailbox');}
     else if (v === 'adshop') showModal('adshop');

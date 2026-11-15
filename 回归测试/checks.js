@@ -3761,14 +3761,12 @@ section('11. 玩家反馈（蛛巢白扣体力 / 救了四个小满 / 双持不�
     G.drainTool('axe');                     // 按等级先用铁斧；这里只验"坏了会被清/补位"的逻辑不崩
     ck('工具栏同步不会把还有备用的工具清空（口径以背包为准）', Array.isArray(s2.toolkit) && G.invCount('axeStone') + G.invCount('axeIron') >= 1);
   }
-  // ⑥ 「下午一开就一直闪退」：崩溃自检 + 安全模式 + 渲染兜底（玩家再也进不去是最糟的情况）
-  ck('★ 启动崩溃自检：连续两次没走到渲染成功就进安全模式',
-     /const BOOT_KEY = 'guyuyizhang_boot', CRASH_KEY = 'guyuyizhang_crashes', ERR_KEY = 'guyuyizhang_lasterr';/.test(UI) &&
-     /function noteBootStart\(\)/.test(UI) && /function noteBootOk\(\)/.test(UI) && /showSafeMode\(crashes\)/.test(UI) &&
-     /function showSafeMode\(crashes\)/.test(UI));
+  // 历史计数不证明本次存档损坏；当前实际失败仍有诊断和手动恢复。
+  ck('★ 正常启动不根据历史崩溃次数弹窗',
+     !/showSafeMode|guyuyizhang_savecrash|noteBootStart/.test(UI) && /await bridge.initialize\(Game.validSave\)/.test(UI));
   ck('★ 报错会留痕（window.onerror / unhandledrejection 都记）',
      /addEventListener\('error', \(e\) => \{ recordError/.test(UI) && /addEventListener\('unhandledrejection'/.test(UI));
-  ck('★ 安全模式能救出存档：用备份存档打开 / 导出存档码',
+  ck('★ 保留备份恢复实现与导出入口',
      /function restoreBackupSave\(\)/.test(_GAME_SRC) && /guyuyizhang_save_bak/.test(_GAME_SRC) &&
      /restoreBackupSave/.test(_GAME_SRC) && /data.*restoreBackupSave|restoreBackupSave,/.test(_GAME_SRC));
   ck('★ 渲染出错不再整屏空白（try/catch + 顶部提示条）',
@@ -4746,10 +4744,8 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
       try { mainDay = (JSON.parse(localStorage.getItem('guyuyizhang_save')) || {}).day || 0; } catch (e) {}
       ck('★ 从备份继续后主存档立刻同步（标题页「继续上次游戏」能接着玩）', mainDay === 77, '主存档 day=' + mainDay);
     }
-    // 安全模式不再把"只打开标题页"当成崩溃
-    ck('★ 标题页画出来就算"启动成功"（以前只开标题页也计一次崩溃 → 安全模式误报）',
-       /const finish = \(\) => \{ Game.initializeStorage\(\);applySkin\(\);showTitle\(\); noteBootOk\(\);/.test(UI) && /await bridge.initialize\(Game.validSave\)/.test(UI) && /guyuyizhang_savecrash/.test(UI) &&
-       /if \(crashes >= 2 \|\| inGame >= 2\) showSafeMode/.test(UI));
+    ck('★ 账号核对和标题渲染成功后才标记启动完成',
+       /const finish = \(\) => \{ Game.initializeStorage\(\);applySkin\(\);showTitle\(\);/.test(UI) && /window.__guyuBoot.ready\(\)/.test(UI));
   }
 }
 

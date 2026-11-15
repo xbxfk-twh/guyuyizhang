@@ -20,39 +20,12 @@ function render() {
     finally { document.body.classList.toggle('modal-open', !!$('#modal.open')); NoticeBadges.refresh(); }
   }
 
-const BOOT_KEY = 'guyuyizhang_boot', CRASH_KEY = 'guyuyizhang_crashes', ERR_KEY = 'guyuyizhang_lasterr';
-
-const SVCRASH_KEY = 'guyuyizhang_savecrash';
-
-function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-
-function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-
-function recordError(msg) { lsSet(ERR_KEY, String(msg === undefined ? 'unknown' : msg).slice(0, 300)); }
-
-function bootCrashes() { return parseInt(lsGet(CRASH_KEY) || '0', 10) || 0; }
-
-function noteBootStart() {
-    let prevOk = false;
-    try { const p = lsGet(BOOT_KEY); prevOk = !!(p && JSON.parse(p).ok); } catch (e) {}
-    const n = prevOk ? 0 : bootCrashes() + (lsGet(BOOT_KEY) ? 1 : 0);
-    lsSet(CRASH_KEY, String(n));
-    lsSet(BOOT_KEY, JSON.stringify({ at: Date.now(), ok: false }));
-    return n;
-  }
-
-function noteBootOk() { lsSet(BOOT_KEY, JSON.stringify({ at: Date.now(), ok: true })); lsSet(CRASH_KEY, '0'); }
-
-function inGameCrashes() { return parseInt(lsGet(SVCRASH_KEY) || '0', 10) || 0; }
-
-function noteInGameCrash() { const n = inGameCrashes() + 1; lsSet(SVCRASH_KEY, String(n)); return n; }
-
-function clearInGameCrash() { lsSet(SVCRASH_KEY, '0'); }
+// 只记录本次实际错误，不以历史退出次数推断存档损坏。
+function recordError(msg) { try { localStorage.setItem('guyuyizhang_lasterr', String(msg === undefined ? 'unknown' : msg).slice(0, 300)); } catch (e) {} }
 
 function onRenderCrash(e) {
     const msg = (e && (e.message || e)) + ' @ ' + ((e && e.stack) ? String(e.stack).split('\n')[1] || '' : '');
     recordError(msg);
-    noteInGameCrash();   // 这一崩发生在"已经进游戏"之后（启动本身成功的）→ 记到另一个计数里
     try { console.error('[孤屿遗章] 渲染出错：', e); } catch (err) {}
     const t = document.getElementById('crash-toast');
     if (!t) {
@@ -60,7 +33,7 @@ function onRenderCrash(e) {
       d.id = 'crash-toast';
       d.style.cssText = 'position:fixed;left:50%;bottom:calc(var(--navh,30px) + 8px);transform:translateX(-50%);z-index:3000;'
         + 'background:rgba(24,21,12,0.96);border:1px solid #c9b98a;color:#efe9d6;padding:6px 12px;border-radius:8px;font-size:12px;max-width:92vw';
-      d.textContent = '界面出错了（已记录，可在菜单→备份中迁移进度）：' + String(msg).slice(0, 90);
+      d.textContent = '界面暂时未显示，请重试操作；详情已记录。';
       document.body.appendChild(d);
       setTimeout(() => { if (d.parentNode) d.parentNode.removeChild(d); }, 8000);
     }
@@ -101,14 +74,12 @@ function renderInner() {
       AudioFX.setTension(st.stats.hp / Game.hpMax() < 0.35 ? 1 : 0);
     }
     lastEnv = { scene: st.scene, night, weather: st.weather, fire: fireBuilt };
-    noteBootOk();        // 这一帧渲染完了 = 这次启动没崩，清掉崩溃计数
-    clearInGameCrash();  // 游戏界面正常渲染 = 上次"读档就崩"的状态已经好了
   }
 
 let lastEnv = null;
 
 let _lastView = null;
-    return Object.freeze({render,lsGet,lsSet,recordError,bootCrashes,noteBootStart,noteBootOk,inGameCrashes,noteInGameCrash,clearInGameCrash,onRenderCrash,renderInner});
+    return Object.freeze({render,recordError,onRenderCrash,renderInner});
   }
   return Object.freeze({create});
 })();

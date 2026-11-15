@@ -15,9 +15,6 @@ const UI = (() => {
     get applySkin(){return applySkin;},
     get applyLogMode(){return applyLogMode;},
     get render(){return render;},
-    get noteBootStart(){return noteBootStart;},
-    get noteBootOk(){return noteBootOk;},
-    get inGameCrashes(){return inGameCrashes;},
     get animSpeed(){return animSpeed;}, set animSpeed(value){animSpeed=value;},
     get restHours(){return restHours;}, set restHours(value){restHours=value;},
     get uiBusy(){return uiBusy;},
@@ -500,18 +497,19 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   function esc(...args){return artView.esc(...args);}
   function inlineHelp(...args){return artView.inlineHelp(...args);}
 
+  let lastSaveFailureNotice = -Infinity;
   // ---------- 绑定 ----------
   Game.bind({
     onLog: (text, cls) => addLog(text, cls),
     onChange: () => render(),
-    // 存档写不进去（配额满 / 浏览器限制）时，必须让玩家知道，并马上引导他备份与迁移
+    // 真实失败保留提醒，但自动保存重试不能反复打断操作或覆盖当前弹窗。
     onSaveFail: (err) => {
-      addLog('⚠ 存档写入失败！请到「菜单 → 备份·读档」生成取件码，在另一设备确认恢复后再刷新本页。电脑也可保存备份文件。', 'danger');
-      try { centerToast('存档写入失败！'); } catch (e) {}
-      showModal('overlay', { title:'存档写入失败', text:`浏览器没能把存档写进本地存储（${(err && err.name) || '未知原因'}）。\n\n这通常是存储空间满了或被浏览器限制。\n\n请到「菜单 → 备份·读档」生成取件码，在另一设备的10分钟内确认恢复，再刷新本页。电脑也可保存备份文件；确认备份成功前请保留本页。`, choices:[
-        { label:'知道了', ok:()=>{} },
-        { label:'去备份进度', ok:()=>showModal('codex', { mode:'export', code: Game.exportCode() }) },
-      ]});
+      recordError('存档操作失败：' + ((err && err.message) || err || '未知原因'));
+      const now = Date.now();
+      if (now - lastSaveFailureNotice < 30000) return;
+      lastSaveFailureNotice = now;
+      addLog('本次存档未能保存。请保留本页，可到「菜单 → 备份·读档」备份进度后重试。', 'warn');
+      floatingNotice('本次未能保存，请保留本页并到菜单备份进度。', 'danger');
     },
     // 另一个标签页/窗口写入了更新的进度：默认不覆盖，交给玩家决定
     onSaveConflict: () => {
@@ -519,7 +517,7 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
       window.__guyuSaveConflictShown = true;
       addLog('⚠ 检测到另一个标签页有更新的进度，本页没有覆盖它（避免丢档）。', 'warn');
       showModal('overlay', { title:'检测到另一个标签页', text:'这个游戏在另一个标签页/窗口里有更新的进度。\n\n为了避免用旧进度覆盖新进度，本页暂时不会自动存档。\n\n最稳的做法：关掉多余的标签页，只留最新在玩的那一个；如果你确定本页才是最新的，再选「用本页覆盖」。', choices:[
-        { label:'用本页覆盖', ok:()=>{ window.__guyuSaveConflictShown = false; Game.forceSave(); addLog('已用本页进度覆盖存档。', 'good'); } },
+        { label:'用本页覆盖', ok:()=>{ const saved=Game.forceSave(); window.__guyuSaveConflictShown = false; if(saved.ok){addLog('已用本页进度覆盖存档。', 'good');} } },
         { label:'我知道了（不覆盖）', ok:()=>{} },
       ]});
     },
@@ -650,24 +648,8 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
 
   // ---------- 主渲染 ----------
   function render(...args){return renderView.render(...args);}
-  // ⚠️ 玩家反馈"上午还好好的，下午一开就一直闪退"。手机 WebView 里的"闪退"通常是页面抛异常
-  //    或者被系统判定内存吃紧后杀掉。纯前端游戏最怕的是：读档后某一步抛异常 → **每次打开都崩**，
-  //    玩家再也进不去、还没法导出存档。所以这里加一道自检：
-  //    ① 把最后一次报错留在本机  ② 数"连续几次启动没走到渲染成功"  ③ 连着崩就把玩家放进安全模式。
-  
-  
-  function lsGet(...args){return renderView.lsGet(...args);}
-  function lsSet(...args){return renderView.lsSet(...args);}
+  // 实际界面异常保留诊断；历史启动/渲染计数不再触发自动回退提示。
   function recordError(...args){return renderView.recordError(...args);}
-  function bootCrashes(...args){return renderView.bootCrashes(...args);}
-  function noteBootStart(...args){return renderView.noteBootStart(...args);}
-  function noteBootOk(...args){return renderView.noteBootOk(...args);}
-  // ⚠️ 以前 noteBootOk() 只在"进入游戏主界面"时才调，于是"只打开标题页就退出"也被当成崩溃 ——
-  //    玩家反馈"什么叫刷新一次就启动异常，太频繁了"（安全模式误报）。
-  //    现在分成两个计数：① 启动崩溃（连标题页都没出来）② 进游戏后崩溃（读档就崩那种）。
-  function inGameCrashes(...args){return renderView.inGameCrashes(...args);}
-  function noteInGameCrash(...args){return renderView.noteInGameCrash(...args);}
-  function clearInGameCrash(...args){return renderView.clearInGameCrash(...args);}
   function onRenderCrash(...args){return renderView.onRenderCrash(...args);}
   window.addEventListener('error', (e) => { recordError((e && (e.message || (e.error && e.error.message))) || 'error'); });
   window.addEventListener('unhandledrejection', (e) => { recordError((e && e.reason && (e.reason.message || e.reason)) || 'rejection'); });
@@ -1142,7 +1124,6 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   function init(...args){return startupView.init(...args);}
   // 安全模式：连着两次启动都没成功 → 大概率是"某份存档/某个状态一进来就崩"。
   // 给玩家一个出口：看到报错、救出存档码、用上一次的备份存档继续。
-  function showSafeMode(...args){return startupView.showSafeMode(...args);}
   // 原生壳只调用这两个明确接口，不直接修改场景、装备或存档字段。
   function setHostSuspended(...args){return startupView.setHostSuspended(...args);}
   function handleBack(...args){return startupView.handleBack(...args);}

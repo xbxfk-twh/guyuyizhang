@@ -19,6 +19,7 @@ fs.mkdirSync(out, { recursive: true });
 const checks = [
   '回归测试/refactor-baseline.test.js',
   '回归测试/assembly-safety.test.js',
+  '回归测试/save-notices.test.js',
   '回归测试/platform-save.test.js', '回归测试/save-recovery.test.js',
   '回归测试/server-save.test.js', '回归测试/native-ad-receipt.test.js', '回归测试/native-ad-adapter.test.js',
   '回归测试/notification-shop.test.js', '回归测试/temporary-save.test.js', '回归测试/platform-local-mode.test.js',
@@ -61,7 +62,7 @@ const checks = [
   // 这类"数据对、界面没接上"的 bug 不会让别的测试变红，只有从数据反查入口才抓得到）
   '开发工具/检查/_audit_wiring.js',
 ];
-if (args.includes('--browser')) checks.push('开发工具/检查/_verify_icon_refresh.js','开发工具/检查/_verify_meta_recovery_ui.js','开发工具/检查/_verify_shop_bounds.js','开发工具/检查/_verify_notice_shop.js','开发工具/检查/_verify_collection_navigation.js','开发工具/检查/_verify_ad_reward_ui.js','开发工具/检查/_verify_native_ad_ui.js');
+if (args.includes('--browser')) checks.push('开发工具/检查/_verify_save_notices.js','开发工具/检查/_verify_icon_refresh.js','开发工具/检查/_verify_meta_recovery_ui.js','开发工具/检查/_verify_shop_bounds.js','开发工具/检查/_verify_notice_shop.js','开发工具/检查/_verify_collection_navigation.js','开发工具/检查/_verify_ad_reward_ui.js','开发工具/检查/_verify_native_ad_ui.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_character_voices.js', '开发工具/检查/_verify_one_time_redeem_ui.js', '开发工具/检查/_verify_weapon_ui.js', '开发工具/检查/_verify_lantern.js', '开发工具/检查/_verify_oct16_feedback.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_platform_quota.js','开发工具/检查/_verify_oct27_feedback.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_oct29_saves.js');

@@ -4,4 +4,7 @@ function make(channel,stored){const store={};if(stored)store.guyuyizhang_languag
 assert.equal(make('web').current(),'en');assert.equal(make('taptap').current(),'zh');assert.equal(make('taptap','en').current(),'en');assert.equal(make('web','zh').current(),'zh');assert.equal(make('web','bad').current(),'en');
 const en=make('web');assert.equal(en.text('星之点'),'Star Points');assert.equal(en.text('魂点'),'Soul Points');assert.equal(en.text('背包'),'Backpack');assert.equal(en.text('第1天'),'Day 1');assert.equal(make('taptap').text('星之点'),'星之点');assert.equal(en.text('HAPPY1 / https://example.com / 300 + 30'),'HAPPY1 / https://example.com / 300 + 30');
 assert.equal(make(undefined).current(),'zh');assert.equal(make('standalone').current(),'en');assert.equal(make('taptap','bad').current(),'zh');assert.equal(make('taptap','zh').current(),'zh');
-console.log('通过 15 项，失败 0 项\nRESULT:PASS');
+assert.equal(en.text('恢复本机备份'),'Restore a local backup');
+assert.equal(en.text('本次未能保存，请保留本页并到菜单备份进度。'),'Saving failed. Keep this page open and back up your progress from the menu.');
+assert.equal(en.text('进度会在点击生成或下载时备份。'),'Your progress is backed up when you generate a code or download a file.');
+console.log('通过 18 项，失败 0 项\nRESULT:PASS');

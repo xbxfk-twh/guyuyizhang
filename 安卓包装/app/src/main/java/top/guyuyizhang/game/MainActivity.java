@@ -116,7 +116,7 @@ public final class MainActivity extends Activity {
                     result.confirm("pending");
                 } catch (RuntimeException unavailable) {
                     pendingBackup = null; backupPickerOpen = false; result.cancel();
-                    backupNotice("无法打开系统文件选择器，请使用存档码复制备份。");
+                    backupNotice("无法打开文件选择器，可使用取件码迁移。");
                 }
                 return true;
             }
@@ -218,7 +218,7 @@ public final class MainActivity extends Activity {
                     });
                 }
             } catch (Exception error) {
-                runOnUiThread(() -> backupNotice("文件操作失败，请重试或使用存档码复制备份。"));
+                runOnUiThread(() -> backupNotice("文件操作失败，请重试或使用取件码迁移。"));
             }
         }, "GuyuBackupFile").start();
     }
@@ -280,7 +280,7 @@ public final class MainActivity extends Activity {
                             else {
                                 setWebSuspended(false);
                                 new AlertDialog.Builder(this).setTitle("进度未保存")
-                                    .setMessage("请继续游戏并导出存档码，再退出。")
+                                    .setMessage("请先留在游戏中，通过取件码备份进度后再退出。")
                                     .setPositiveButton("知道了", null).show();
                             }
                         }))

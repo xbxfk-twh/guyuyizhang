@@ -51,7 +51,7 @@ const SaveRepository = (() => {
         return { ok:true, size: json.length };
       } catch (e) {
         console.warn('save failed', e);
-        if (typeof onFailure === 'function') onFailure(e);
+        if (!transactions.active() && typeof onFailure === 'function') onFailure(e);
         return { ok:false, reason:(e && e.name) || 'error' };
       }
     }

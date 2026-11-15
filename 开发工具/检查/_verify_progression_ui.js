@@ -32,14 +32,14 @@ let passed=0,fail=0,ws,ch;const errors=[];
  await ev(`document.querySelector('[data-set="autoTools"]').closest('.help-item').scrollIntoView({block:'start'});`);await sleep(100);await shot('progression-tools-'+w+'.png');
  await ev(`Locale.set('en');`);await sleep(200);await check('新增工具设置英文完整 '+w,`!/[\u4e00-\u9fff]/.test(document.querySelector('[data-set="autoTools"]').closest('.help-item').textContent)`);
  await ev(`Locale.set('zh');`);await tap('[data-codex="export"]');
- await check('导出预览完整性校验 '+w,`document.querySelector('#modal').textContent.includes('完整性校验通过')`);
+ await check('导出界面说明点击时备份 '+w,`document.querySelector('#transfer-status').textContent.includes('点击生成或下载时备份')`);
  await check('临时取档界面不再展示长码 '+w,`document.querySelector('#codex-text').value===''&&!!document.querySelector('#codex-generate')`);
  await check('手机隐藏无法使用的文件入口 '+w,`!document.querySelector('#codex-download')`);
  await dismissPanels();await send('Emulation.setTouchEmulationEnabled',{enabled:false});
  await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');await tap('[data-codex="import"]');
  // 先以手机条件实际验证，再切桌面条件覆盖永久文件备份。
  await dismissPanels();await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');await tap('[data-codex="export"]');
- const code=await ev(`Game.exportCode()`);await tap('#codex-download');
+ const code=await ev(`Game.exportCode()`);await check('实际导出内容通过完整性校验 '+w,`Game.inspectCode(${JSON.stringify(code)}).ok&&Game.inspectCode(${JSON.stringify(code)}).checked`);await tap('#codex-download');
  let saved;for(let i=0;i<30&&!saved;i++){await sleep(100);saved=fs.readdirSync(downloads).filter(x=>x.endsWith('.txt')).find(x=>fs.readFileSync(path.join(downloads,x),'utf8')===code);}
  assert.ok(saved,'下载文件内容与完整导出码一致');passed++;console.log('OK 实际下载完整备份 '+w);
  await shot('progression-export-'+w+'.png');

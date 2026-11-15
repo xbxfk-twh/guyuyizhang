@@ -8,9 +8,6 @@ const StartupView = (() => {
     const applySkin=(...args)=>deps.applySkin(...args);
     const applyLogMode=(...args)=>deps.applyLogMode(...args);
     const render=(...args)=>deps.render(...args);
-    const noteBootStart=(...args)=>deps.noteBootStart(...args);
-    const noteBootOk=(...args)=>deps.noteBootOk(...args);
-    const inGameCrashes=(...args)=>deps.inGameCrashes(...args);
     const withAnimation=(...args)=>deps.withAnimation(...args);
     const restoreCombatView=(...args)=>deps.restoreCombatView(...args);
     const showModal=(...args)=>deps.showModal(...args);
@@ -145,11 +142,9 @@ function begin() {
 
 function init() {
     applyLogMode();   // 开局先把上次选的日志显示方式套上
-    const crashes = noteBootStart();   // 上次是不是"没走到渲染成功就没了"（=崩了）
-    const inGame = inGameCrashes();
     // 标题页能画出来 = 启动成功（这一步以前漏了，导致"只开标题页"被算成崩溃）
     // 先恢复账号，再核对付费皮肤所有权；读取中不能把“尚未读到”当成未拥有。
-    const finish = () => { Game.initializeStorage();applySkin();showTitle(); noteBootOk(); if (window.__guyuBoot) window.__guyuBoot.ready(); if (crashes >= 2 || inGame >= 2) showSafeMode(Math.max(crashes, inGame)); };
+    const finish = () => { Game.initializeStorage();applySkin();showTitle(); if (window.__guyuBoot) window.__guyuBoot.ready(); };
     const go = async () => {
       try{
         const bridge=window.GuyuSaveBridge,result=bridge?await bridge.initialize(Game.validSave):{ok:true};
@@ -181,24 +176,6 @@ function init() {
     else go();
   }
 
-function showSafeMode(crashes) {
-    const err = (function () { try { return localStorage.getItem('guyuyizhang_lasterr') || '（没记到具体报错）'; } catch (e) { return '（读不到）'; } })();
-    showModal('overlay', {
-      title: '启动异常 · 安全模式',
-      text: '上次打开游戏时中途出错了（连续 ' + crashes + ' 次）。\n\n报错记录：' + String(err).slice(0, 160)
-        + '\n\n建议先保存完整备份文件，再试「用备份存档打开」（备份是上一次保存前的状态，最多丢几步）。',
-      choices: [
-        { label: '用备份存档打开', hint: '回退到上次保存前的状态', ok: () => {
-          const r = Game.restoreBackupSave ? Game.restoreBackupSave() : { ok:false, reason:'这个版本没有备份存档功能' };
-          if (r && r.ok) { begin(); addLog('已用备份存档打开。', 'good'); }
-          else { centerToast('打不开备份：' + ((r && r.reason) || '未知')); }
-        } },
-        { label: '备份与迁移', hint: '生成10分钟有效的取件码；电脑可保存备份文件', ok: () => showModal('codex', { mode: 'export', code: Game.exportCode() }) },
-        { label: '继续进入游戏', hint: '我了解风险', ok: () => {} },
-      ],
-    });
-  }
-
 function setHostSuspended(on) {
     Game.setHostSuspended(on);
     AudioFX.setHostSuspended(on);
@@ -213,7 +190,7 @@ function handleBack() {
     if (deps.view === 'map' && Game.S()) { deps.view = 'scene'; render(); return true; }
     return false; // 由原生壳弹出保存并退出确认。
   }
-    return Object.freeze({begin,init,showSafeMode,setHostSuspended,handleBack});
+    return Object.freeze({begin,init,setHostSuspended,handleBack});
   }
   return Object.freeze({create});
 })();

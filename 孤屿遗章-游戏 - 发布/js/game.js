@@ -496,7 +496,7 @@ function change() {
 
   // ---------- 存档多重落地：localStorage 之外再镜像一份 cookie ----------
   // 为什么：手机 WebView 里"清缓存、平台升级"有时只清 localStorage，
-  // 而 cookie 往往能留下来（网页游戏最老牌的兜底）。两边都写，读的时候取"更新的那份"。
+  // 而 cookie 往往能留下来（网页游戏最老牌的兜底）。完整主档优先，只有主档与滚动备份不可用时才读取 cookie。
   // ⚠️ 单个 cookie 约 4KB 上限：只镜像主存档与账号数据，太长（比如带满三个备份槽的导出码）就跳过。
   function ckGet(key){return saves.cookieGet(key);}
   function save(){return saves.save();}

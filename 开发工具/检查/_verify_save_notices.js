@@ -1,0 +1,44 @@
+/* 手机实际输入：健康存档安静进入，失败不抢弹窗，手动备份按需编码。 */
+const assert=require('node:assert/strict'),{openBrowser,pressElement}=require('../../回归测试/helpers/browser');
+let b,passed=0;async function check(name,expression){assert.ok(await b.ev(expression),name);passed++;console.log('OK '+name);}
+(async()=>{try{
+ b=await openBrowser({width:844,height:390});
+ const fixture=await b.ev(`(()=>{Game.newGame('fisher','normal');Game.S().day=31;Game.S().tut=null;Game.metaState().soul=321;Game.save();return {save:localStorage.getItem('guyuyizhang_save'),meta:JSON.stringify(Game.metaState())}})()`);
+ await b.close();b=null;
+ b=await openBrowser({width:844,height:390,init:`if(!sessionStorage.seeded){localStorage.setItem('guyuyizhang_save',${JSON.stringify(fixture.save)});localStorage.setItem('guyuyizhang_meta',${JSON.stringify(fixture.meta)});for(const k of ['guyuyizhang_savecrash','guyuyizhang_crashes'])localStorage.setItem(k,'99');localStorage.setItem('guyuyizhang_boot',JSON.stringify({at:Date.now()-5000,ok:false}));sessionStorage.seeded='1';}`});await b.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:1});await b.sleep(250);
+ await check('历史崩溃标记存在时正常显示继续，无安全模式或回档弹窗',`!!document.querySelector('#btn-load')&&!document.querySelector('#modal')?.textContent.trim()&&Game.metaState().soul===321`);
+ await b.shot('nov15-save-title-mobile.png');await pressElement(b.send,b.ev,'#btn-load');
+ await check('继续原本的31天进度和321魂点',`Game.S().day===31&&Game.metaState().soul===321`);
+ await pressElement(b.send,b.ev,'[data-nav="save"]');await pressElement(b.send,b.ev,'[data-savemenu="backup"]');
+ await check('备份页保留手动本机恢复入口',`document.querySelector('#modal').textContent.includes('恢复本机备份')`);
+ await b.shot('nov15-save-backup-mobile.png');
+ await b.ev(`window.__exports=0;window.__realExport=Game.exportCode;Game.exportCode=(...args)=>{window.__exports++;return window.__realExport(...args);}`);
+ await pressElement(b.send,b.ev,'[data-codex="export"]');
+ await check('打开取件码页面不编码大存档，手机控件可用',`window.__exports===0&&!!document.querySelector('#codex-generate')&&document.querySelector('#codex-text').value===''&&!document.querySelector('#codex-download')`);
+ await b.shot('nov15-save-export-mobile.png');
+ await b.ev(`window.__fetch=window.fetch;window.fetch=async(url,options)=>{if(!String(url).endsWith('/transfer/create'))throw Error('Unexpected network call');const p=JSON.parse(options.body);window.__uploaded=Game.inspectCode(p.body);return {status:200,json:async()=>({ok:true,code:'ABCD1234',expiresAt:Date.now()/1000+600})};};Game.S().day=32;`);
+ await pressElement(b.send,b.ev,'#codex-generate');
+ await check('点击生成才编码，并包含点击时的新进度',`window.__exports===1&&window.__uploaded.ok&&window.__uploaded.day===32&&document.querySelector('#codex-text').value==='ABCD1234'&&!document.querySelector('#codex-copy').disabled`);
+ await b.ev(`window.fetch=window.__fetch;Game.S().day=31;`);
+ await pressElement(b.send,b.ev,'#modal-close');
+ await b.ev(`window.__before=localStorage.getItem('guyuyizhang_save');window.__set=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='guyuyizhang_save')throw new DOMException('quota test','QuotaExceededError');return window.__set.call(this,k,v);};window.__modalBefore=document.querySelector('#modal').innerHTML;window.__failResults=[Game.save(),Game.save(),Game.save()];`);
+ await check('连续真实写入失败明确返回失败，原存档保留，当前面板不被覆盖',`window.__failResults.every(r=>r.ok===false)&&localStorage.getItem('guyuyizhang_save')===window.__before&&document.querySelector('#modal').innerHTML===window.__modalBefore`);
+ await check('保存失败只留一次非阻塞提示，不刷屏',`[...document.querySelectorAll('#logbody .logline')].filter(x=>x.textContent.includes('本次存档未能保存')).length===1&&document.querySelector('#floating-notice').textContent.includes('本次未能保存')`);
+ await b.shot('nov15-save-failure-mobile.png');
+ await b.ev(`Storage.prototype.setItem=window.__set;Game.exportCode=window.__realExport;`);
+ await check('解除模拟配额故障后仍能正常保存',`Game.save().ok===true&&Game.S().day===31`);
+ await b.ev(`window.GuyuFileBackup={save:code=>{window.__nativeSaved=Game.inspectCode(code);},open:()=>{window.__nativePicked=true;}};`);
+ await pressElement(b.send,b.ev,'[data-codex="export"]');
+ await pressElement(b.send,b.ev,'#codex-download');
+ await check('APK原生文件桥存在时手机可保存完整备份',`window.__nativeSaved?.ok&&window.__nativeSaved.day===31`);
+ await b.shot('nov15-save-native-file-mobile.png');
+ await pressElement(b.send,b.ev,'#modal-close');await pressElement(b.send,b.ev,'[data-codex="import"]');await pressElement(b.send,b.ev,'#codex-file-pick');
+ await check('APK手机可打开原生文件导入，覆盖前仍有预览步骤',`window.__nativePicked&&!!document.querySelector('#codex-preview')&&document.querySelector('#codex-text').value===''&&Game.S().day===31`);
+ await pressElement(b.send,b.ev,'#modal-close');
+ await b.ev(`localStorage.setItem('guyuyizhang_rev',String(Game.S()._rev+1));window.__beforeForced=localStorage.getItem('guyuyizhang_save');window.__forcedSuccess=[...document.querySelectorAll('#logbody .logline')].filter(x=>x.textContent.includes('已用本页进度覆盖存档')).length;Game.save();Storage.prototype.setItem=function(k,v){if(k==='guyuyizhang_save')throw new DOMException('quota test','QuotaExceededError');return window.__set.call(this,k,v);};`);
+ await check('真实标签页修订冲突仍要求选择',`document.querySelector('.modal-title').textContent==='检测到另一个标签页'`);
+ await pressElement(b.send,b.ev,'[data-choice="0"]');
+ await check('强制覆盖失败不报成功，原档保留并允许再尝试',`localStorage.getItem('guyuyizhang_save')===window.__beforeForced&&!window.__guyuSaveConflictShown&&[...document.querySelectorAll('#logbody .logline')].filter(x=>x.textContent.includes('已用本页进度覆盖存档')).length===window.__forcedSuccess`);
+ await b.ev(`Storage.prototype.setItem=window.__set;`);
+ assert.deepEqual(b.errors,[]);console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);
+}catch(e){console.error(e.stack);await b?.shot('nov15-save-notices-failure.png');console.log('RESULT:FAIL');process.exitCode=1;}finally{await b?.close();}})();

@@ -28,9 +28,9 @@ function devpwModal() {
 
 function rescueModal() {
     const list = Game.scanLocalSaves();
-    let html = `<div class="modal-title">🛟 救援 · 找回被覆盖的存档</div>
+    let html = `<div class="modal-title">恢复本机备份</div>
       <div class="hint">下面是这台设备上还能读出来的所有进度痕迹，按时间从新到旧排。挑一份「恢复这一份」，它会立刻变成当前存档（并写回主存档）。</div><div class="help-list">`;
-    if (!list.length) html += '<div class="help-item"><b>什么都没扫到</b><span>说明这台设备上已经没有可恢复的痕迹了——如果以前导出过「存档码」，用存档码还能把魂点、成就和备份槽搬回来。</span></div>';
+    if (!list.length) html += '<div class="help-item"><b>什么都没扫到</b><span>未找到可用的本机备份。如保存过备份文件或仍有有效取件码，可从「导入存档」恢复。</span></div>';
     for (const it of list) {
       const when = it.at ? new Date(it.at).toLocaleString('zh-CN', { hour12: false }).slice(0, 16) : '时间未知';
       html += `<div class="help-item"><b>第 ${it.day} 天 · ${esc(it.identity || '')}</b>
@@ -55,7 +55,7 @@ function renderBackup() {
         <button class="mini-btn" data-bk="${i}">${s ? '覆盖备份' : '备份到此'}</button>${s ? `<button class="mini-btn" data-ld="${i}">从此继续</button>` : ''}${s ? `<button class="mini-btn danger-btn" data-delslot="${i}">删除备份</button>` : ''}</div>`;
     }
     const rs = Game.rescueInfo();
-    html += `<div class="help-item"><b>🛟 救援 · 找回被覆盖的存档</b><span>可扫描本机存档，选择进度恢复。${rs ? `<br>已自动保留：<b>第 ${rs.day} 天</b>（${new Date(rs.at).toLocaleString('zh-CN', { hour12: false }).slice(0, 16)}）` : ''}</span>
+    html += `<div class="help-item"><b>恢复本机备份</b><span>可扫描本机存档，选择进度恢复。${rs ? `<br>已自动保留：<b>第 ${rs.day} 天</b>（${new Date(rs.at).toLocaleString('zh-CN', { hour12: false }).slice(0, 16)}）` : ''}</span>
       <div class="modal-actions"><button class="mini-btn" data-rescue="scan">扫描本机存档</button></div></div>`;
     html += `<div class="hint">换设备可生成8位取件码，10分钟有效，每账号每小时最多3次；电脑可保存备份文件。</div>
       <div class="modal-actions"><button data-codex="export">取件码 / 文件备份</button><button data-codex="import">导入存档</button><button id="modal-close">关 闭</button></div>`;
