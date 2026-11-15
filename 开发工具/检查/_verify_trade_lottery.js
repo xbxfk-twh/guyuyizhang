@@ -71,7 +71,10 @@ const json=u=>new Promise((resolve,reject)=>http.get(u,res=>{let s='';res.on('da
   await ev(`document.querySelector('#modal-close').click();const saltState=Game.S();saltState.inv.salt=2;saltState.inv.seasalt=3;Game.save();Game.load();Game.S().scene='shore';Game.S().zone='saltTown';Game.S().fame=5;UI.render();[...document.querySelectorAll('.hotspot')].find(x=>x.textContent.includes('集市')).click();document.querySelector('[data-shop="grocer"]').click();`);
   check('old sea salt merges into salt and town offers both buy and sell',await ev(`Game.invCount('salt')===5&&!Game.invCount('seasalt')&&!!document.querySelector('[data-tbuy="grocer:salt"]')&&!!document.querySelector('[data-tsell="salt"]')&&!document.querySelector('[data-tsell="seasalt"]')&&!document.querySelector('#modal').textContent.includes('海盐')`));
   await shot('salt-town-mobile');
-  const saltButton=await ev(`(()=>{const b=document.querySelector('[data-tsell="salt"]');b.scrollIntoView({block:'center'});const r=b.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()`);
+  // 新弹窗有 350ms 防点击穿透；CI 截图较快，必须等保护期结束再模拟下一次独立点击。
+  await sleep(400);
+  const saltButton=await ev(`(()=>{const b=document.querySelector('[data-tsell="salt"]');b.scrollIntoView({block:'center',behavior:'instant'});const r=b.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()`);
+  check('salt sell button receives the next independent click',await ev(`document.querySelector('[data-tsell="salt"]').contains(document.elementFromPoint(${saltButton.x},${saltButton.y}))`));
   await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...saltButton});
   await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...saltButton});
   check('merged salt can be sold through actual town button',await ev(`Game.invCount('salt')===4`));
