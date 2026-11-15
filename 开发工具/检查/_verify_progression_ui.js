@@ -20,10 +20,12 @@ let passed=0,fail=0,ws,ch;const errors=[];
  const downloads=fs.mkdtempSync(path.join(out,'progression-files-'));
  await send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:downloads});
  const tap=async selector=>{if(!await ev(`!!document.querySelector(${JSON.stringify(selector)})`)){await shot('progression-missing.png');console.error(await ev(`document.querySelector('#modal')?.textContent`));throw Error('Missing '+selector);}await sleep(400);await ev(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'center'});`);const r=await ev(`document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect().toJSON()`);await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:r.x+r.width/2,y:r.y+r.height/2}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await sleep(450);};
+ // 冷启动耗时因机器和资源缓存而异；等待真实就绪，不把 1400ms 当作加载完成。
+ const waitForStartup=async()=>{for(let i=0;i<150;i++){if(await ev(`document.readyState==='complete'&&typeof Game!=='undefined'&&typeof UI!=='undefined'&&!document.documentElement.classList.contains('boot-pending')`))return;await sleep(200);}await shot('progression-startup-failure.png');throw Error('游戏未在 30 秒内完成启动');};
  const dismissPanels=async()=>{await ev(`for(let i=0;i<12&&document.querySelector('#modal.open');i++)UI.handleBack()`);assert.equal(await ev(`!!document.querySelector('#modal.open')`),false,'先逐级退出迁移设置再操作主界面');};
  for(const [w,h] of [[667,375],[926,428]]) {
  await send('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:1,mobile:true});await send('Emulation.setTouchEmulationEnabled',{enabled:true});
- await send('Page.navigate',{url:require('url').pathToFileURL(path.join(root,'孤屿遗章-游戏 - 发布/index.html')).href});await sleep(1400);
+ await send('Page.navigate',{url:require('url').pathToFileURL(path.join(root,'孤屿遗章-游戏 - 发布/index.html')).href});await waitForStartup();
  await ev(`Game.newGame('fisher','normal');Game.S().tut=null;Game.S().capacity=999;Game.S().inv={wood:40};Game.S().toolkit=[null,null,null];Game.markBatchTipSeen();UI.begin();`);await sleep(2200);
  await ev(`document.querySelector('#modal [data-choice]')?.click();`);await sleep(300);
  await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');
