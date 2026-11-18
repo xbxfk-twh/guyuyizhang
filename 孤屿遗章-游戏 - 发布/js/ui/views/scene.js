@@ -213,7 +213,10 @@ function renderHotspots() {
         }
       }
       const spotLabel = h.id === 'honey' ? `蜂箱 ${Math.max(0, Number(st.hiveHoney) || 0)}/12 · 收蜜` : h.label;
-      d.innerHTML = `<span class="hot-glyph">${h.glyph || '●'}</span><span class="hot-label">${ritualReady ? '祭坛 · 举行仪式' : (rewardMissing ? '祭坛 · 取回遗物' : spotLabel)}${(ritualReady || rewardMissing) ? '' : onceTag}</span>`;
+      const artwork = h.sprite
+        ? `<img class="hot-prop-art" src="${esc(h.sprite)}" alt="" draggable="false" decoding="async">`
+        : `<span class="hot-glyph">${h.glyph || '●'}</span>`;
+      d.innerHTML = `${artwork}<span class="hot-label">${ritualReady ? '祭坛 · 举行仪式' : (rewardMissing ? '祭坛 · 取回遗物' : spotLabel)}${(ritualReady || rewardMissing) ? '' : onceTag}</span>`;
       d.onclick = () => {
         if (h.id === 'room') { deps.roomView = true; deps.view = 'scene'; render(); }
         else if (h.id === 'honey') { const r = Game.collectHiveHoney(); if (!r.ok) centerToast(r.reason); }
@@ -256,6 +259,17 @@ function renderHotspots() {
           if (anim) withAnimation(anim.t, anim.l, () => Game.doPoint(p), imgHint); else Game.doPoint(p);
         }
       };
+      if (h.sprite) {
+        d.classList.add('hotspot-prop');
+        d.classList.toggle('art-colored', skinOn('seasons'));
+        d.setAttribute('role', 'button');
+        d.tabIndex = 0;
+        d.onkeydown = event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          if (!event.repeat) d.click();
+        };
+      }
       if(h.point){const p=pts.find(q=>q.id===h.point);if(p?.type==='gather'){
         d.dataset.pointId=p.id;d.setAttribute('role','button');d.tabIndex=0;
         d.setAttribute('aria-label',p.name+' · 长按查看采集详情');

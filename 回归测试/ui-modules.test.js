@@ -38,6 +38,53 @@ check('静态入口完全按清单顺序加载，包含全部新模块与一致�
  assert.deepEqual(refs,[...manifest.styles,...manifest.scripts].map(x=>x+'?v='+version));for(const file of [...manifest.styles,...manifest.scripts])assert.ok(fs.existsSync(path.join(root,file)),file);
  assert.ok(manifest.scripts.indexOf('js/ui/input/press.js')<manifest.scripts.indexOf('js/ui.js'));
 });
+check('沉没之城的售货机插图和标签共用一个可键盘操作的交易入口',()=>{
+ const {createEngine}=require('./helpers/engine');
+ const {G:game,ITEMS}=createEngine();
+ game.newGame('fisher','normal');
+ const state=game.S();
+ state.scene='atlantis';
+ state.zone='city';
+ state.atlantis={unlocked:1};
+ const tick=state.tick, opened=[];
+ game.bind({onOverlay:cfg=>opened.push(cfg.kind)});
+ const hotspotLayer={};
+ const document={createDocumentFragment:()=>({nodes:[],appendChild(node){this.nodes.push(node);}})};
+ function createElement(){
+   const classes=new Set();
+   return {
+     dataset:{},style:{},attrs:{},
+     classList:{
+       add:name=>classes.add(name),contains:name=>classes.has(name),
+       toggle(name,on){if(on)classes.add(name);else classes.delete(name);}
+     },
+     setAttribute(name,value){this.attrs[name]=value;},
+     click(){this.onclick?.();}
+   };
+ }
+ const src=fs.readFileSync(path.join(root,'js/ui/views/scene.js'),'utf8');
+ const View=new Function('Game','document','ITEMS',src+';return SceneView;')(game,document,ITEMS);
+ const view=View.create({
+   $:()=>hotspotLayer, el:createElement, S:()=>state, esc:value=>value, skinOn:()=>false,
+   bindPress(){}, addLog(){},centerToast(){},
+   dom:{reconcile(target,fragment){target.nodes=fragment.nodes;}}
+ });
+ view.renderHotspots();
+ const prop=hotspotLayer.nodes.find(node=>node.dataset.hotspot==='atl_vendor');
+ assert.ok(prop?.classList.contains('hotspot-prop'));
+ assert.equal(prop.attrs.role,'button');
+ assert.equal(prop.tabIndex,0);
+ assert.match(prop.innerHTML,/vendor-sprite\.webp/);
+ assert.match(prop.innerHTML,/遗失的交易机/);
+ prop.click();
+ prop.onkeydown({key:'Enter',preventDefault(){}});
+ prop.onkeydown({key:' ',repeat:true,preventDefault(){}});
+ assert.deepEqual(opened,['atlTrade','atlTrade']);
+ assert.equal(state.tick,tick);
+ state.zone='coral';
+ view.renderHotspots();
+ assert.ok(hotspotLayer.nodes.every(node=>node.dataset.hotspot!=='atl_vendor'));
+});
 (async()=>{
  const {waitForGame}=require('./helpers/browser');let reads=0,condition='';
  await waitForGame(async expression=>{condition=expression;return ++reads>=3;},{timeout:1000,interval:1,previousDocument:'old-document'});

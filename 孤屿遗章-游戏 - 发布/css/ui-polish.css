@@ -387,6 +387,20 @@ body.skin-accent {
 @media(max-height:520px),(max-width:820px){#modal .work-modal .recipe {grid-template-columns:32px minmax(0,1fr) 84px;column-gap:7px;} .recipe-artwork{width:32px;height:32px;} .recipe-artwork .item-icon{width:30px;height:30px;}}
 .modal-content.merchant-modal { width:min(1080px,96vw); max-width:1080px; padding:0; overflow:hidden; }
 .merchant-modal .modal-x { position:absolute; top:0; right:0; margin:0; float:none; }
+#hotspots .hotspot-prop {
+  height:clamp(44px,12%,104px);
+  min-width:44px;
+  transform:translate(-50%,-100%);
+}
+.hotspot-prop .hot-prop-art {
+  display:block;
+  height:100%;
+  width:auto;
+  pointer-events:none;
+  filter:grayscale(1) drop-shadow(0 2px 2px #111a);
+}
+.hotspot-prop.art-colored .hot-prop-art { filter:drop-shadow(0 2px 2px #111a); }
+.hotspot-prop .hot-label { position:absolute; top:calc(100% + 2px); left:50%; transform:translateX(-50%); }
 .merchant-goods .trader-row { display:none; }
 .merchant-layout { display:grid; grid-template-columns:clamp(135px,24vw,250px) minmax(0,1fr); grid-template-rows:minmax(0,1fr); height:min(660px,calc(88dvh - 6px),calc(100dvh - 70px)); }
 .merchant-person { display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:0; padding:12px 8px; border-right:1px solid var(--ink); background:linear-gradient(180deg,#a9a48c33,#8b785533); }

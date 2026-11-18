@@ -499,7 +499,7 @@ const SCENES = [
     },
     zones:{
       habitat:{ name:'礁石栖息地', img:'assets/img/atlantis/habitat.png', hotspots:[ { x:40, y:62, label:'礁石驻地' } ], points:[ { id:'atl_rest', name:'礁石驻地', type:'camp', time:0, energy:0, text:'' } ] },
-      city:{ name:'沉没之城', img:'assets/img/atlantis/city.png', hotspots:[ { x:44, y:58, label:'遗迹残柱', point:'atl_ruin' }, { x:62, y:70, label:'遗迹石台', point:'atl_altar' }, { x:52, y:42, label:'遗失的交易机', point:'atl_vendor' } , { x:74, y:30, label:'遗物箱', point:'atl_pistol' }], points:[
+      city:{ name:'沉没之城', img:'assets/img/atlantis/city.png', hotspots:[ { x:44, y:58, label:'遗迹残柱', point:'atl_ruin' }, { x:62, y:70, label:'遗迹石台', point:'atl_altar' }, { x:79, y:70, label:'遗失的交易机', point:'atl_vendor', sprite:'assets/img/atlantis/vendor-sprite.webp' } , { x:74, y:30, label:'遗物箱', point:'atl_pistol' }], points:[
         { id:'atl_ruin', name:'遗迹残柱', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'deepCoral', min:1, max:2 },{ id:'pearlGranule', min:1, max:2, chance:0.5 }], daily:3, text:'你在断柱间摸索，找到发光的珊瑚。' },
         { id:'atl_altar', name:'遗迹石台', type:'hunt', time:30, energy:20, need:{}, daily:2, enemies:['deepGuard'], text:'石台后的阴影里，深海卫兵睁开了眼。' },
         { id:'atl_vendor', name:'遗失的交易机', type:'atlTrade', time:20, energy:5, need:{}, text:'街角立着一台还在微光闪烁的远古交易机。' }, { id:'atl_pistol', name:'船长遗物箱', type:'gather', time:45, energy:22, need:{}, once:true, yields:[{ id:'bpPistol', min:1, max:1 }], text:'你撬开一只锈死的箱子，里面是一张手枪图纸。' } ] },
