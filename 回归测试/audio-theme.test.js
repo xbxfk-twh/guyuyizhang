@@ -112,4 +112,36 @@ assert.ok(rain&&surf&&rain.loop&&surf.loop,'海岸雨天使用实录循环');
 sampled.setScene('atlantis',true);assert.ok(rain.paused&&surf.paused,'潜入海底停止地表海浪与降雨');
 sampled.setScene('sea');sampled.toggle();assert.ok(media.filter(a=>a.loop).every(a=>a.paused),'关闭音乐停止所有实录环境层');
 for(const f of ['assets/audio/voices/fishman-0.mp3','assets/audio/voices/linghui-0.mp3','assets/audio/sfx/hit.mp3','assets/audio/ambient/rain.mp3'])assert.ok(fs.statSync(path.join(ROOT,f)).size>1000,'已打入本地资源 '+f);
-console.log('通过 49 项，失败 0 项\nRESULT:PASS');
+// 血线、海区和篝火可以在天气和地图不变时独立影响环境音。
+{
+ const viewSource=fs.readFileSync(path.join(ROOT,'js/ui/views/render.js'),'utf8');
+ const state={difficulty:'normal',flags:{},day:1,scene:'camp',weather:'clear',buildings:{fire:-1},stats:{hp:80}};
+ const document={body:{classList:{toggle(){}},style:{setProperty(){}}}};
+ const calls=[];
+ const fx={setFire:fire=>calls.push(['fire',fire]),setEnv(){},
+   setScene:(scene,deep)=>calls.push(['scene',scene,deep]),setTension:tension=>calls.push(['tension',tension])};
+ const View=new Function('document','Game','AudioFX',viewSource+'\nreturn GameRenderView;')(document,{isNight:()=>false,hpMax:()=>100},fx);
+ const noop=()=>{};
+ const render=View.create({$:sel=>sel==='#top-day'?{}:null,S:()=>state,skinOn:noop,
+   renderTut:noop,renderTopbar:noop,renderObjective:noop,renderScene:noop,renderExtras:noop,
+   bindLogGrip:noop,bindLogCollapseBtn:noop,fitStage:noop}).renderInner;
+ render();
+ calls.length=0;
+ state.stats.hp=20;
+ render();
+ render();
+ state.stats.hp=80;
+ state.buildings.fire=0;
+ render();
+ state.scene='atlantis';
+ state.zone='habitat';
+ render();
+ state.zone='trench';
+ render();
+ state.zone='abyss';
+ render();
+ assert.deepEqual(calls,[['tension',1],['fire',true],['scene','camp',false],['tension',0],
+   ['scene','atlantis',false],['scene','atlantis',true]]);
+}
+
+console.log('通过 50 项，失败 0 项\nRESULT:PASS');

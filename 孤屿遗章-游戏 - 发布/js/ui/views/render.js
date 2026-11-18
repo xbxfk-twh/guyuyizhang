@@ -67,13 +67,17 @@ function renderInner() {
     // 音效环境随场景/昼夜/天气/篝火切换
     const night = Game.isNight();
     const fireBuilt = st.buildings.fire >= 0;
-    if (!lastEnv || lastEnv.scene !== st.scene || lastEnv.night !== night || lastEnv.weather !== st.weather || lastEnv.fire !== fireBuilt) {
-      AudioFX.setFire(fireBuilt);
-      AudioFX.setEnv(night, st.weather);
-      AudioFX.setScene(st.scene, st.scene === 'atlantis' && ['trench', 'abyss', 'sanctum'].includes(st.zone));
-      AudioFX.setTension(st.stats.hp / Game.hpMax() < 0.35 ? 1 : 0);
+    const deepWater = st.scene === 'atlantis' && ['trench', 'abyss', 'sanctum'].includes(st.zone);
+    const tension = st.stats.hp / Game.hpMax() < 0.35 ? 1 : 0;
+    const fireChanged = lastEnv?.fire !== fireBuilt;
+    const weatherChanged = lastEnv?.night !== night || lastEnv?.weather !== st.weather;
+    if (fireChanged) AudioFX.setFire(fireBuilt);
+    if (weatherChanged) AudioFX.setEnv(night, st.weather);
+    if (lastEnv?.scene !== st.scene || lastEnv?.deepWater !== deepWater || (fireChanged && !weatherChanged)) {
+      AudioFX.setScene(st.scene, deepWater);
     }
-    lastEnv = { scene: st.scene, night, weather: st.weather, fire: fireBuilt };
+    if (lastEnv?.tension !== tension) AudioFX.setTension(tension);
+    lastEnv = {scene:st.scene, night, weather:st.weather, fire:fireBuilt, deepWater, tension};
   }
 
 let lastEnv = null;

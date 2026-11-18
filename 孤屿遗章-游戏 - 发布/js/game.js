@@ -912,6 +912,7 @@ function change() {
   function merchantSellCount(...args){return productionRules.merchantSellCount(...args);}
   function materialSupplySites(...args){return productionRules.materialSupplySites(...args);}
   function materialCount(...args){return productionRules.materialCount(...args);}
+  function materialCounts(){return productionRules.materialCounts();}
   function matsOk(...args){return productionRules.matsOk(...args);}
   function missingMats(...args){return productionRules.missingMats(...args);}
   function takeMats(...args){return productionRules.takeMats(...args);}
@@ -1290,7 +1291,7 @@ function change() {
     saveRev: saves.saveRev,
     savedAt: saves.savedAt,
     forceSave: saves.forceSave,
-    difficultyUnlocked, nightmareInfo, nightmareEncounter, challengeNightmareBoss, separateSouls, infuseNightmare, nightmareInfusionBonus, loadPenalty, healthValue, pendingLootInfo, collectPending, setFocus, awardExperience, satchelAvailable, satchelEligible, satchelSelections, setSatchelSelections, toggleSatchelSelection, satchelStatus, cellarBuilt, cellarTransferMax, cellarState, cellarAccess, transferCellar, stackSize, itemUseCount, merchantSellCount, warehouseSite, warehouseAccess, warehouseDepositAccess, warehouseDepositCount, warehouseTransferMax, discardItems, warehouseAccessCheck, learnBlueprint, knowsBlueprint, storeAllWarehouse, warehouseCapacity, warehouseState, transferWarehouse, materialCount, warehouseAutoEligible, warehouseAutoItems, setWarehouseAutoItems, autoStoreWarehouse, equipBackpack, replacePending,
+    difficultyUnlocked, nightmareInfo, nightmareEncounter, challengeNightmareBoss, separateSouls, infuseNightmare, nightmareInfusionBonus, loadPenalty, healthValue, pendingLootInfo, collectPending, setFocus, awardExperience, satchelAvailable, satchelEligible, satchelSelections, setSatchelSelections, toggleSatchelSelection, satchelStatus, cellarBuilt, cellarTransferMax, cellarState, cellarAccess, transferCellar, stackSize, itemUseCount, merchantSellCount, warehouseSite, warehouseAccess, warehouseDepositAccess, warehouseDepositCount, warehouseTransferMax, discardItems, warehouseAccessCheck, learnBlueprint, knowsBlueprint, storeAllWarehouse, warehouseCapacity, warehouseState, transferWarehouse, materialCount, materialCounts, warehouseAutoEligible, warehouseAutoItems, setWarehouseAutoItems, autoStoreWarehouse, equipBackpack, replacePending,
     newGame, load, hasSave, save,
     sceneOf, sceneUnlocked, canTravel, travel, atlantisTeleport, activatePortal, setZone, lightLevel, pointsOf, pointAvailable, pointStatus, doPoint, randomEventPool,
     onceRewardMissing,

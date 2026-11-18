@@ -3065,7 +3065,7 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
     ck('有 fitsInBag 预判（含"堆叠撑破那格"与"要扣掉的东西"）',
        /function fitsInBag\(outMap, removeMap\)/.test(_GAME_SRC) && /Math\.ceil\(after \/ per\) - Math\.ceil\(before \/ per\)/.test(_GAME_SRC));
     ck('制作/买卖都先预判背包放得下（不再白扣材料/钱）',
-       /if \(!fitsInBag\(r\.out, craftIn\(r\)\)\)/.test(_GAME_SRC) && /if \(!fitsInBag\(\{ \[id\]: n \}, \{ \[currency\]: cost \}\)\)/.test(_GAME_SRC) && /if \(!fitsInBag\(\{ beibi: gain \}\)\)/.test(_GAME_SRC));
+       /if \(!fitsInBag\(r\.out, plan\.bag\)\)/.test(_GAME_SRC) && /if \(!fitsInBag\(\{ \[id\]: n \}, \{ \[currency\]: cost \}\)\)/.test(_GAME_SRC) && /if \(!fitsInBag\(\{ beibi: gain \}\)\)/.test(_GAME_SRC));
     ck('关键道具 alwaysFit（石板/遗物/龙骨不受容量限制，不会卡主线）',
        ITEMS.slate.alwaysFit === 1 && ITEMS.relic.alwaysFit === 1 && ITEMS.dragonbone.alwaysFit === 1 &&
        /it\.alwaysFit \|\| it\.cat === 'currency'/.test(_GAME_SRC));
@@ -5984,7 +5984,7 @@ section('24. 种植砍半 / 美食家图纸 / 玄铁龙骨 / 制造栏可做性 
        .some(z => (z.points || []).some(p => (p.yields || []).some(y => y.id === 'fossil')))));
   // ---- ④ 制造栏只列"能做的" ----
   ck('★ 24.10 没有图纸的配方整条隐藏（不再显示成灰按钮）',
-     /if \(r\.needBp && !Game\.knowsBlueprint\(r\.needBp\)\) continue;/.test(U));
+     /if \(r\.needBp && !Game\.knowsBlueprint\(r\.needBp, count\)\) continue;/.test(U));
   ck('★ 24.11 未建造的工坊不在左侧分类里显示（不再有 🔒 死按钮）',
      /const tabAvail = \(sid\) => sid === 'none' \? true/.test(U) &&
      /const shownTabs = tabs\.filter\(\(\[sid\]\) => tabAvail\(sid\) \|\| deps\.craftTab === sid\);/.test(U) &&

@@ -22,7 +22,7 @@ function invCount(id) { return deps.state.run.inv[id] || 0; }
 
 function hasItem(id, n=1) { return invCount(id) >= n; }
 
-function knowsBlueprint(id) { return !!deps.state.run.learnedBlueprints?.[id] || materialCount(id)>0; }
+function knowsBlueprint(id, count=materialCount) { return !!deps.state.run.learnedBlueprints?.[id] || count(id)>0; }
 
 function learnBlueprint(id,fromWarehouse=false) {
     if(!ITEMS[id] || ITEMS[id].cat!=='bp' || deps.state.run.combat || deps.state.run.death || deps.state.run.ending)return {ok:false,reason:'现在无法学习。'};
@@ -44,8 +44,7 @@ function notifyBagFull() {
   }
 
 function foodLots(id, count=invCount(id)) {
-    deps.state.run.foodBatches = deps.state.run.foodBatches || {};
-    let lots = (deps.state.run.foodBatches[id] || []).filter(x => Number.isSafeInteger(x.qty) && x.qty > 0 && Number.isFinite(x.exp)).map(x=>({...x}));
+    let lots = (deps.state.run.foodBatches?.[id] || []).filter(x => Number.isSafeInteger(x.qty) && x.qty > 0 && Number.isFinite(x.exp)).map(x=>({...x}));
     lots.sort((a,b)=>a.exp-b.exp);
     const sum=lots.reduce((n,x)=>n+x.qty,0);
     if(sum < count) lots.push({qty:count-sum,exp:(deps.state.run.foodExp && deps.state.run.foodExp[id]) || (deps.state.run.tick||0)+(ITEMS[id].spoil||24)*120});

@@ -86,8 +86,10 @@ function renderCraft() {
       html += `<div class="hint">还没有${tabs.find(t => t[0] === deps.craftTab)[1]}，去营地建造吧。</div>`;
     } else {
       let any = false;
+      const stock = Game.materialCounts();
+      const count = id => stock[id] || 0;
       const list = [];
-      if (deps.craftTab === 'work1' && !Game.knowsBlueprint('bpBlack')) html += '<div class="hint">玄铁镐及玄铁装备：先到沉船湾黑市找独眼购买「玄铁武器图纸」，再建造三级「高级工具坊」。拿到图纸后配方才会显示。</div>';
+      if (deps.craftTab === 'work1' && !Game.knowsBlueprint('bpBlack', count)) html += '<div class="hint">玄铁镐及玄铁装备：先到沉船湾黑市找独眼购买「玄铁武器图纸」，再建造三级「高级工具坊」。拿到图纸后配方才会显示。</div>';
       for (const raw of RECIPES) {
         if (raw.legacyPlank) continue;
         const r = Game.craftRecipe(raw);
@@ -98,7 +100,7 @@ function renderCraft() {
         }
         // 作者 2026-09-24："需要图纸的制作改为直接不显示，拿到图纸之后才显示"
         // → 没有图纸的配方整条隐藏（以前是显示成灰色 locked + 一行"需要图纸"，看着像坏了）。
-        if (r.needBp && !Game.knowsBlueprint(r.needBp)) continue;
+        if (r.needBp && !Game.knowsBlueprint(r.needBp, count)) continue;
         list.push(r);
       }
       const TOOLFIRST = { r_axestone: 30, r_pickstone: 29, r_knife: 28, r_pole: 27, r_rope: 26, r_stone: 25 };
@@ -119,7 +121,7 @@ function renderCraft() {
         const d = Game.dryOf('rack');
         if (!d) {
           const r = Game.craftRecipe(RECIPES.find(x => x.id === 'r_rackmeat'));
-          const chk = Game.canCraft(r);
+          const chk = Game.canCraft(r, count);
           return `<div class="recipe-row"><b>晾肉架</b><span class="rcost">空着 · 放入兽肉×2、盐×2，晾满 20 小时得肉干×4</span><button class="mini-btn ${chk.ok ? '' : 'lockedb'}" data-recipe="r_rackmeat" ${chk.ok ? '' : `data-reason="${esc(chk.reason)}"`}>开始晾肉</button></div>`;
         }
         const left = Game.dryLeftMin('rack');
@@ -128,14 +130,14 @@ function renderCraft() {
       };
       for (const r of visibleList) {
         any = true;
-        const chk = Game.canCraft(r);
-        const hasIt = Game.materialCount(Object.keys(r.out)[0]) > 0;
+        const chk = Game.canCraft(r, count);
+        const owned = count(Object.keys(r.out)[0]);
         // 作者 2026-09-24："制造中每个物品的框也缩小一点点，比如把产物放到名称右侧"
         // → 原来「产出」单独占一行，现在并到名称右边，每张卡少一行（手机上尤其明显）。
         const outTxt = Object.entries(r.out).map(([k,v]) => `${ITEMS[k].name}×${v}`).join('、');
         html += `<div class="recipe ${chk.ok ? '' : 'locked'}">
-          <span class="recipe-artwork">${Object.keys(r.out).map(id=>itemIcon(id)).join('')}</span><div class="recipe-info"><div class="recipe-name">${r.name}<span class="recipe-out">产出：${outTxt}</span>${hasIt ? `<span class="owned">×${Game.materialCount(Object.keys(r.out)[0])}</span>` : ''}</div>
-          <div class="recipe-mats mats-line">材料：${Object.entries(Game.craftIn(r)).map(([k,v]) => `${ITEMS[k].name} ${Game.materialCount(k)}/${v}`).join(' · ')}</div>
+          <span class="recipe-artwork">${Object.keys(r.out).map(id=>itemIcon(id)).join('')}</span><div class="recipe-info"><div class="recipe-name">${r.name}<span class="recipe-out">产出：${outTxt}</span>${owned ? `<span class="owned">×${owned}</span>` : ''}</div>
+          <div class="recipe-mats mats-line">材料：${Object.entries(Game.craftIn(r)).map(([k,v]) => `${ITEMS[k].name} ${count(k)}/${v}`).join(' · ')}</div>
           ${r.id === 'r_plank' ? `<div class="recipe-mats">${r.processingTool ? ITEMS[r.processingTool].name : '基础加工'} · 4 → ${r.out.plank}</div>` : ''}
           ${r.out.lotusPill ? `<div class="recipe-mats mats-line">本局已炼 ${S().lotusMade || 0}/3</div>` : ''}
           ${r.permLimit ? `<div class="recipe-mats mats-line">本局已炼 ${(S().permMade && S().permMade[Object.keys(r.out)[0]]) || 0}/${r.permLimit}；服用不限次数</div>` : ''}

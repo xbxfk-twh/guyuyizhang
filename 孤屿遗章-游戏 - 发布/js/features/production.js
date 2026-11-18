@@ -77,27 +77,104 @@ function adjustRecipeMats() {
 
 function supplyContainer(site){return site==='cellar'?gameState.run.cellar:(site==='sea'?gameState.run.atlantis?.camp:gameState.run)?.warehouse;}
 
-function supplySites(site){return (Array.isArray(site)?site:site?[site]:[]).filter(x=>x==='cellar'?cellarBuilt():warehouseCapacity(x)>0);}
+function supplySites(site) {
+    const places = Array.isArray(site) ? site : site ? [site] : [];
+    return places.filter(place => {
+      if (place === 'cellar') return cellarBuilt();
+      if (place === 'sea') {
+        const furniture = gameState.run.atlantis?.camp?.furniture;
+        return !!(furniture?.seaStorage1 || furniture?.seaStorage2);
+      }
+      return warehouseCapacity(place) > 0;
+    });
+  }
 
-function supplyRecordsAll(site) {settleStoredFood();return supplySites(site).flatMap(x=>supplyContainer(x)?.items||[]).filter(x=>x.expiry===undefined||x.expiry>nowTick());}
+/* 取用时沿用原仓储记录。到期食品在查询中视为腐物，状态由正常时间推进或读档结算。 */
+function stockEntries(site) {
+    const tick = nowTick();
+    const entries = [];
+    for (const place of supplySites(site)) {
+      const items = supplyContainer(place)?.items || [];
+      for (const record of items) {
+        const {id, expiry} = record;
+        if (expiry === undefined || expiry > tick) {
+          entries.push({items, record, id, expiry:expiry ?? Infinity});
+        } else if (expiry <= tick && ITEMS[id]?.spoil) {
+          entries.push({items, record, id:'rot', expiry:Infinity});
+        }
+      }
+    }
+    return entries;
+  }
+
+function supplyRecordsAll(site) {
+    return stockEntries(site).map(({id, record}) => id === record.id ? record : {id, qty:record.qty});
+  }
 
 function supplyRecords(id,site) {return supplyRecordsAll(site).filter(x=>x.id===id);}
 
+function bagSupplyCount(id) {
+    if (!ITEMS[id]?.spoil) return invCount(id);
+    const tick = nowTick();
+    return foodLots(id).reduce((n, lot) => n + (lot.exp > tick ? lot.qty : 0), 0);
+  }
+
 function supplyCount(id,site=null) {
-    const bag=ITEMS[id]?.spoil?foodLots(id).filter(x=>x.exp>nowTick()).reduce((n,x)=>n+x.qty,0):invCount(id);
-    return bag+supplyRecords(id,site).reduce((n,x)=>n+x.qty,0);
+    return bagSupplyCount(id) + supplyRecords(id,site).reduce((n,record) => n + record.qty, 0);
+  }
+
+function stockById(site) {
+    const groups = new Map();
+    for (const entry of stockEntries(site)) {
+      if (!groups.has(entry.id)) groups.set(entry.id, []);
+      groups.get(entry.id).push(entry);
+    }
+    return groups;
+  }
+
+function planSupply(id, qty, stored) {
+    const tick = nowTick();
+    const lots = ITEMS[id]?.spoil ? foodLots(id) : null;
+    const bag = lots
+      ? lots.filter(lot => lot.exp > tick).map(lot => ({lot, qty:lot.qty, expiry:lot.exp}))
+      : [{qty:invCount(id), expiry:-Infinity}];
+    // 同一到期时间优先扣背包，其次沿用各仓的原先顺序。
+    const candidates = [...bag, ...stored.map(entry => ({...entry, qty:entry.record.qty}))]
+      .sort((a, b) => a.expiry - b.expiry);
+    const plan = {id, lots, bagQty:0, bagLots:[], stored:[]};
+    for (const entry of candidates) {
+      if (!qty) break;
+      const amount = Math.min(qty, entry.qty);
+      if (amount <= 0) continue;
+      qty -= amount;
+      if (entry.record) plan.stored.push({...entry, qty:amount});
+      else {
+        plan.bagQty += amount;
+        if (entry.lot) {
+          entry.lot.qty -= amount;
+          plan.bagLots.push({qty:amount, exp:entry.expiry});
+        }
+      }
+    }
+    return qty === 0 ? plan : null;
+  }
+
+function deductSupply({id, lots, bagQty, stored}) {
+    if (bagQty && lots) {
+      gameState.run.inv[id] -= bagQty;
+      if (!gameState.run.inv[id]) delete gameState.run.inv[id];
+      syncFood(id, lots.filter(lot => lot.qty > 0));
+    } else if (bagQty) removeItem(id, bagQty);
+    for (const {record, items, qty} of stored) {
+      record.qty -= qty;
+      if (!record.qty) items.splice(items.indexOf(record), 1);
+    }
   }
 
 function takeSupply(id,n,site=null) {
-    if(supplyCount(id,site)<n)return false;
-    for(let i=0;i<n;i++){
-      const lots=ITEMS[id]?.spoil?foodLots(id):null,bi=lots?lots.findIndex(x=>x.exp>nowTick()):-1;
-      const bagExp=lots?(bi>=0?lots[bi].exp:Infinity):(invCount(id)>0?-Infinity:Infinity);
-      const rows=supplyRecords(id,site),rec=rows.sort((a,b)=>(a.expiry??Infinity)-(b.expiry??Infinity))[0];
-      if(rec && (bagExp===Infinity || (rec.expiry??Infinity)<bagExp)) {rec.qty--;const items=supplySites(site).map(x=>supplyContainer(x)?.items).find(x=>x?.includes(rec));if(!rec.qty)items.splice(items.indexOf(rec),1);}
-      else if(lots){gameState.run.inv[id]--;if(!gameState.run.inv[id])delete gameState.run.inv[id];lots[bi].qty--;syncFood(id,lots.filter(x=>x.qty>0));}
-      else removeItem(id,1);
-    }
+    const plan = planSupply(id, n, stockById(site).get(id) || []);
+    if (!plan) return false;
+    deductSupply(plan);
     return true;
   }
 
@@ -109,6 +186,7 @@ function itemUseCount(id,source=false) {
   }
 
 function takeUseItem(id,source=false) {
+    if (source) settleStoredFood();
     if(itemUseCount(id,source)<1)return false;
     if(!source)return removeItem(id,1);
     const site=source==='cellar'?'cellar':warehouseSite(),rows=supplyContainer(site).items;
@@ -126,16 +204,66 @@ function materialCount(id) {
     return supplyCount(id,materialSupplySites());
   }
 
+function materialCounts() {
+    const counts = Object.create(null);
+    for (const id of Object.keys(gameState.run.inv)) counts[id] = bagSupplyCount(id);
+    for (const {id, record} of stockEntries(materialSupplySites())) {
+      counts[id] = (counts[id] || 0) + record.qty;
+    }
+    return counts;
+  }
+
 function matsOk(mats) {return Object.keys(mats).every(k=>materialCount(k)>=mats[k]);}
 
-function missingMats(mats) {return Object.keys(mats).filter(k=>materialCount(k)<mats[k]).map(k=>`${ITEMS[k].name} ${materialCount(k)}/${mats[k]}`);}
+function missingMats(mats) {
+    return Object.entries(mats).flatMap(([id, need]) => {
+      const have = materialCount(id);
+      return have < need ? [ITEMS[id].name + ' ' + have + '/' + need] : [];
+    });
+  }
+
+function planMaterials(mats, stored = stockById(materialSupplySites())) {
+    const supply = [];
+    const bag = {};
+    for (const [id, qty] of Object.entries(mats)) {
+      const plan = planSupply(id, qty, stored.get(id) || []);
+      if (!plan) return null;
+      supply.push(plan);
+      if (plan.bagQty) bag[id] = plan.bagQty;
+    }
+    return {supply, bag};
+  }
 
 function takeMats(mats) {
-    if(!matsOk(mats))return false;
-    for(const k in mats) {
-      takeSupply(k,mats[k],materialSupplySites());
-    }
+    const plan = planMaterials(mats);
+    if (!plan) return false;
+    plan.supply.forEach(deductSupply);
     return true;
+  }
+
+function returnMaterials({supply}) {
+    const tick = nowTick();
+    for (const {id, lots, bagQty, bagLots, stored} of supply) {
+      if (bagQty && lots) {
+        const current = foodLots(id);
+        let spoiled = 0;
+        for (const lot of bagLots) {
+          if (lot.exp <= tick) spoiled += lot.qty;
+          else current.push(lot);
+        }
+        const freshQty = bagQty - spoiled;
+        if (freshQty) {
+          gameState.run.inv[id] = invCount(id) + freshQty;
+          syncFood(id, current.sort((a,b) => a.exp - b.exp));
+        }
+        if (spoiled) gainItem('rot', spoiled);
+      } else if (bagQty) gainItem(id, bagQty);
+      for (const {items, record, qty} of stored) {
+        if (!items.includes(record)) items.push(record);
+        record.qty += qty;
+      }
+    }
+    settleStoredFood();
   }
 
 function buildChain(chainId) {
@@ -402,11 +530,11 @@ function commitCraftMaterials(r,n=1) {
     for(const k in paid) { const key=`${r.id}:${mul}:${k}`; gameState.run.craftRemainders[key]=((gameState.run.craftRemainders[key] || 0)+paid[k]*10-Math.round(r.in[k]*mul*10)*n); }
   }
 
-function canCraft(r) {
+function canCraft(r, count = materialCount) {
     r=craftRecipe(r);
     const cin0 = craftIn(r);
-    if (r.needBp && !knowsBlueprint(r.needBp)) return { ok:false, reason:`需要图纸：${ITEMS[r.needBp].name}` };
-    if (r.needItem && materialCount(r.needItem)<1) return { ok:false, reason:`需要${ITEMS[r.needItem].name}` };
+    if (r.needBp && !knowsBlueprint(r.needBp, count)) return { ok:false, reason:`需要图纸：${ITEMS[r.needBp].name}` };
+    if (r.needItem && count(r.needItem)<1) return { ok:false, reason:`需要${ITEMS[r.needItem].name}` };
     // 不死丹：单局最多炼 3 颗（防止堆药把死亡机制抹平）
     if (r.out && r.out.lotusPill && lotusLeft() <= 0) return { ok:false, reason:`不死丹一局最多炼制 ${LOTUS_LIMIT} 颗（已炼 ${LOTUS_LIMIT}/${LOTUS_LIMIT}）` };
     if (r.permLimit) {
@@ -444,13 +572,13 @@ function canCraft(r) {
         ? '架子上那批已经晾透了，先去把它取下来。'
         : `架子上正晾着东西，还要 ${fmtLeft(d.readyAt - nowTick())}——晾晒期间晾不了别的。` };
     }
-    for (const k in cin0) if (materialCount(k)<cin0[k]) return { ok:false, reason:`材料不足：${ITEMS[k].name} ${materialCount(k)}/${cin0[k]}` };
+    for (const k in cin0) if (count(k)<cin0[k]) return { ok:false, reason:`材料不足：${ITEMS[k].name} ${count(k)}/${cin0[k]}` };
     return { ok:true };
   }
 
 function nowTick() { return gameState.run.tick || (gameState.run.day || 1) * 1440 + (gameState.run.minute || 0); }
 
-function dryOf(station) { gameState.run.drying = gameState.run.drying || {}; return gameState.run.drying[station] || null; }
+function dryOf(station) { return gameState.run.drying?.[station] || null; }
 
 function dryLeftMin(station) {
     const d = dryOf(station);
@@ -518,7 +646,7 @@ function craft(r) {
     if (r.hang) {
       // 晾晒：材料先收走、挂上去只花 r.time 分钟，成品等 hang 分钟后来取
       const cinH = craftIn(r);
-      takeMats(cinH);
+      if (!takeMats(cinH)) return;
       const t = Math.round(r.time * (1 - metaBonus().craft));
       addMin(t);
       // 一批的量：按配方 r.out 的倍数（晾肉干一批晾出 hangQty 份）
@@ -534,10 +662,12 @@ function craft(r) {
     }
     // ⚠️ 背包装不下就别开工：否则材料白扣、时间白花，产物被 addItem 拒掉 → 东西凭空消失
     //    （要把即将扣掉的材料算进去：材料腾出来的格子当然能放产物）
-    if (!fitsInBag(r.out, craftIn(r))) { log('背包塞不下了——先腾出空位再做，免得材料白费。', 'warn'); notifyBagFull(); return; }
+    const cin = craftIn(r);
+    const plan = planMaterials(cin);
+    if (!plan) return;
+    if (!fitsInBag(r.out, plan.bag)) { log('背包塞不下了——先腾出空位再做，免得材料白费。', 'warn'); notifyBagFull(); return; }
     if (longActWarn(craftMinutes(r), `制作${r.name}`, () => craft(r))) return {pending:true};
-    const cin = craftIn(r);                       // 材料：技能树「流水线 / 精工细作」会改这个
-    takeMats(cin);
+    plan.supply.forEach(deductSupply);
     if (r.out && r.out.lotusPill) gameState.run.lotusMade = (gameState.run.lotusMade || 0) + 1;
     if (r.permLimit) { const key = Object.keys(r.out)[0]; gameState.run.permMade = gameState.run.permMade || {}; gameState.run.permMade[key] = (gameState.run.permMade[key] || 0) + 1; }
     const out = ITEMS[r.out ? Object.keys(r.out)[0] : ''];
@@ -548,10 +678,10 @@ function craft(r) {
     addMin(t);
     // 跨日的家具产出可能占满背包：重新校验全部产物，失败按实际扣料返还，不能部分发货。
     if (!fitsInBag(r.out)) {
-      for(const k in cin) gainItem(k,cin[k]);
+      returnMaterials(plan);
       if(r.out.lotusPill) gameState.run.lotusMade--;
       if(r.permLimit) { const key = Object.keys(r.out)[0]; gameState.run.permMade[key]--; }
-      log('制作期间背包装满了，材料已退回背包或待收；本次耗时已发生。','warn');change();return;
+      log('制作期间背包装满了，材料已原路退回；本次耗时已发生。','warn');change();return;
     }
     commitCraftMaterials(r);
     const made = {}; let bonus = false;
@@ -576,10 +706,10 @@ function craft(r) {
 
 function craftMax(r) {
     r=craftRecipe(r);
-    let m = 999;
-    let lo=0,hi=m;
-    while(lo<hi) { const n=Math.ceil((lo+hi)/2), costs=craftIn(r,n); if(Object.keys(costs).every(k=>materialCount(k)>=costs[k])) lo=n; else hi=n-1; }
-    m=lo;
+    const stock = materialCounts();
+    let lo=0,hi=999;
+    while(lo<hi) { const n=Math.ceil((lo+hi)/2), costs=craftIn(r,n); if(Object.keys(costs).every(k=>(stock[k] || 0)>=costs[k])) lo=n; else hi=n-1; }
+    let m=lo;
     if (r.out && r.out.lotusPill) m = Math.min(m, lotusLeft());
     if (r.permLimit) m = Math.min(m, r.permLimit - ((gameState.run.permMade && gameState.run.permMade[Object.keys(r.out)[0]]) || 0));
     return Math.max(0, m);
@@ -606,17 +736,22 @@ function craftBatch(r, n, onReady) {
     }
     if (n < 1) return { ok:false, reason:'至少要制作 1 个' };
     if (r.out && r.out.lotusPill && n > lotusLeft()) return { ok:false, reason:`不死丹一局最多炼制 ${LOTUS_LIMIT} 颗（还能炼 ${lotusLeft()} 颗）` };
-    let cinB = craftIn(r,n);
-    for (const k in cinB) if (materialCount(k)<cinB[k]) return { ok:false, reason:'材料不足' };
+    const stored = stockById(materialSupplySites());
+    if (!planMaterials(craftIn(r,n), stored)) return {ok:false, reason:'材料不足'};
+    let best;
     // 批量制作最容易撑爆背包：先按"能装下几个"自动降到 n，一个都装不下就干脆别开工
     {
       let fit = 0;
       for (let i = 1; i <= n; i++) {
-        const outMap = {}, inMap = {};
+        const outMap = {};
         for (const k in r.out) outMap[k] = r.out[k] * i;
-        Object.assign(inMap,craftIn(r,i));      // 材料会腾出格子，算进去
+        const cost = craftIn(r,i);
+        const plan = planMaterials(cost, stored);
         // 消耗整堆材料会释放格子；1件放不下不代表2件也放不下。
-        if (fitsInBag(outMap, inMap)) fit = i;
+        if (plan && fitsInBag(outMap, plan.bag)) {
+          fit = i;
+          best = {plan, cost};
+        }
       }
       if (fit === 0) { log('背包塞不下，先腾出空位再做。', 'warn'); notifyBagFull(); return { ok:false, reason:'背包塞不下' }; }
       if (fit < n) log(`背包只放得下 ${fit} 个，这次就先做 ${fit} 个。`, 'warn');
@@ -625,8 +760,8 @@ function craftBatch(r, n, onReady) {
     if (longActWarn(craftMinutes(r) * n, `连续制作 ${n} 件「${r.name}」`, () => craftBatch(r,n,onReady))) return {ok:false, pending:true, reason:''};
     // 界面先确认长耗时，再播放动画；执行时重新验料和容量。
     if(typeof onReady==='function'){onReady(()=>{const previous=deps.activity.craftBatchConfirmed;deps.activity.craftBatchConfirmed=true;try{return craftBatch(r,n);}finally{deps.activity.craftBatchConfirmed=previous;}},n);return {pending:true};}
-    cinB=craftIn(r,n);
-    takeMats(cinB);
+    const {plan, cost:cinB} = best;
+    plan.supply.forEach(deductSupply);
     if (r.out && r.out.lotusPill) gameState.run.lotusMade = (gameState.run.lotusMade || 0) + n;
     // ⚠️ 批量制作以前是"另一条腿"：① 还在用旧版"每级 -8% 耗时"（技能改版后那套已经没了）
     //    ② **完全没应用「精工细作 +30% 耐久 / 流水线 -20% 耐久」**，也没算巧手/精算 ——
@@ -644,10 +779,10 @@ function craftBatch(r, n, onReady) {
     const outKeys=Object.keys(r.out), baseOut={};
     for(const k of outKeys) baseOut[k]=r.out[k]*n;
     if(!fitsInBag(baseOut)) {
-      for(const k in cinB) gainItem(k,cinB[k]);
+      returnMaterials(plan);
       if(r.out.lotusPill) gameState.run.lotusMade-=n;
-      log('制作期间背包装满了，材料已退回背包或待收；本次耗时已发生。','warn');change();
-      return {ok:false,reason:'背包已满，材料已退回背包或待收'};
+      log('制作期间背包装满了，材料已原路退回；本次耗时已发生。','warn');change();
+      return {ok:false,reason:'背包已满，材料已原路退回'};
     }
     commitCraftMaterials(r,n);
     for(const k of outKeys) addItem(k,baseOut[k]);
@@ -863,7 +998,7 @@ function collectHiveHoney() {
     change();
     return { ok:true, taken, stored };
   }
-    return Object.freeze({adjustRecipeMats,supplyContainer,supplySites,supplyRecordsAll,supplyRecords,supplyCount,takeSupply,itemUseCount,takeUseItem,merchantSupplySites,merchantSellCount,materialSupplySites,materialCount,matsOk,missingMats,takeMats,buildChain,tailorGifted,furnitureUsed,furnTakesSlot,farmLiveSlots,farmLiveUsed,farmLiveFree,farmLiveInfo,houseSlots,furnSlotFull,furnSlotInfo,bedStamBonus,trainingCount,trainingHp,trainingAtk,train,canBuildFurniture,buildFurniture,houseExtMax,houseExtMats,coopExtMats,buildCoopExt,buildHouseExt,storeExtCap,storeExtMax,storeExtMats,buildStoreExt,lotusLeft,cxMatMulFor,craftRecipe,craftIn,commitCraftMaterials,canCraft,nowTick,dryOf,dryLeftMin,dryCollect,fmtLeft,fitsInBag,craftMinutes,craft,craftMax,craftBatch,atlantisCamp,atlantisFurnitureUsed,buildAtlantisFurniture,repairDiveCost,repairDive,farmExt,farmPlots,plant,harvest,canHoe,tillPlot,loosenPlot,fertilize,demolishFurniture,collectRainWater,collectHiveHoney});
+    return Object.freeze({adjustRecipeMats,supplyContainer,supplySites,supplyRecordsAll,supplyRecords,supplyCount,takeSupply,itemUseCount,takeUseItem,merchantSupplySites,merchantSellCount,materialSupplySites,materialCount,materialCounts,matsOk,missingMats,takeMats,buildChain,tailorGifted,furnitureUsed,furnTakesSlot,farmLiveSlots,farmLiveUsed,farmLiveFree,farmLiveInfo,houseSlots,furnSlotFull,furnSlotInfo,bedStamBonus,trainingCount,trainingHp,trainingAtk,train,canBuildFurniture,buildFurniture,houseExtMax,houseExtMats,coopExtMats,buildCoopExt,buildHouseExt,storeExtCap,storeExtMax,storeExtMats,buildStoreExt,lotusLeft,cxMatMulFor,craftRecipe,craftIn,commitCraftMaterials,canCraft,nowTick,dryOf,dryLeftMin,dryCollect,fmtLeft,fitsInBag,craftMinutes,craft,craftMax,craftBatch,atlantisCamp,atlantisFurnitureUsed,buildAtlantisFurniture,repairDiveCost,repairDive,farmExt,farmPlots,plant,harvest,canHoe,tillPlot,loosenPlot,fertilize,demolishFurniture,collectRainWater,collectHiveHoney});
   }
   return Object.freeze({create});
 })();

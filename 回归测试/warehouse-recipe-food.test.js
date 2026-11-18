@@ -20,4 +20,64 @@ check('牧场自动喂食只读岛仓饲料，海仓饲料完全保留',()=>{con
 check('岛仓海仓和地窖到期原地变质，边界正确、未知期限保留、重复查询不增发',()=>{const {G:g}=fresh();g.S().tick=100;g.S().warehouse={items:[{id:'fish',qty:2,expiry:100},{id:'fish',qty:3,expiry:101},{id:'honey',qty:4},{id:'rot',qty:5}]};g.S().cellar={items:[{id:'berry',qty:6,expiry:99}]};g.atlantisCamp().warehouse={items:[{id:'meat',qty:7,expiry:100}]};assert.deepEqual(g.warehouseState().inv,{rot:7,fish:3,honey:4});assert.equal(g.cellarState().inv.rot,6);assert.equal(g.S().atlantis.camp.warehouse.items[0].id,'rot');assert.equal(g.S().atlantis.camp.warehouse.items[0].qty,7);const before=JSON.stringify(g.S().warehouse);g.warehouseState();assert.equal(JSON.stringify(g.S().warehouse),before);assert.equal(g.itemUseCount('fish',true),3);});
 check('外出时间推进也结算远处存储，读老档原地迁移且多次重载不增发',()=>{const {G:g}=fresh();g.S().tick=100;g.S().scene='forest';g.S().warehouse={items:[{id:'fish',qty:2,expiry:90}]};g.S().cellar={items:[{id:'berry',qty:3,expiry:90}]};g.save();assert.ok(g.load());assert.equal(g.S().warehouse.items[0].id,'rot');assert.equal(g.S().cellar.items[0].id,'rot');g.save();g.load();assert.equal(g.S().warehouse.items[0].qty,2);g.S().warehouse.items.push({id:'meat',qty:4,expiry:101});g.S().tick=102;g.HOUR_EFFECTS(102);assert.equal(g.S().warehouse.items.at(-1).id,'rot');assert.equal(g.S().warehouse.items.at(-1).qty,4);});
 check('地窖腐物能取出，满包和写盘失败不丢数量，仍禁止存入腐物',()=>{const {G:g,control}=fresh();g.S().buildings.cellar=0;g.S().tick=100;g.S().cellar={items:[{id:'fish',qty:2,expiry:90}]};g.S().backpack=null;g.S().capacity=1;g.S().inv={wood:20};assert.equal(g.transferCellar('rot',1,false).ok,false);assert.equal(g.cellarState().inv.rot,2);g.S().inv={};control.fail=true;assert.equal(g.transferCellar('rot',1,false).ok,false);assert.equal(g.cellarState().inv.rot,2);assert.equal(g.invCount('rot'),0);assert.equal(g.transferCellar('rot',2,false).moved,2);assert.equal(g.invCount('rot'),2);assert.equal(g.transferCellar('rot',1,true).ok,false);});
+check('满包制作按实际供料位置预检，老蘑菇在仓库时拒绝且不耗时',()=>{
+ const {G:g,RECIPES}=fresh(), s=g.S(), recipe=RECIPES.find(r=>r.id==='r_mushroomsoup');
+ s.buildings.fire=0;
+ s.backpack=null;
+ s.capacity=2;
+ s.tick=1000;
+ s.inv={mushroom:1,stone:1};
+ s.foodBatches={mushroom:[{qty:1,exp:8000}]};
+ s.foodExp={mushroom:8000};
+ s.warehouse={items:[{id:'mushroom',qty:1,expiry:6000},{id:'wood',qty:1},{id:'water',qty:1},{id:'claypot',qty:1}]};
+ const before=JSON.stringify([s.inv,s.foodBatches,s.warehouse,s.tick]);
+ assert.ok(g.canCraft(recipe).ok);
+ g.craft(recipe);
+ assert.equal(g.craftBatch(recipe,1).ok,false);
+ assert.equal(JSON.stringify([s.inv,s.foodBatches,s.warehouse,s.tick]),before);
+ s.warehouse.items[0].expiry=9000;
+ g.craft(recipe);
+ assert.equal(g.invCount('mushroomSoup'),1);
+ assert.deepEqual(s.warehouse.items.filter(r=>r.id==='mushroom'),[{id:'mushroom',qty:1,expiry:9000}]);
+ assert.equal(g.capUsed(),2);
+});
+
+check('制造材料快照只读取库存，正确投影过期物且保留仓库原文',()=>{
+ const {G:g,RECIPES}=fresh(), s=g.S(), recipe=RECIPES.find(r=>r.id==='r_mushroomsoup');
+ s.buildings.fire=0;
+ s.buildings.cellar=0;
+ s.tick=100;
+ s.inv={wood:1};
+ delete s.foodBatches;
+ s.warehouse={items:[{id:'water',qty:2},{id:'claypot',qty:1}]};
+ s.cellar={items:[{id:'mushroom',qty:1,expiry:101},{id:'fish',qty:2,expiry:100}]};
+ s._dirty=false;
+ const before=JSON.stringify(s);
+ const stock=g.materialCounts();
+ assert.deepEqual({...stock},{wood:1,water:2,claypot:1,mushroom:1,rot:2});
+ assert.ok(g.canCraft(recipe,id=>stock[id]||0).ok);
+ assert.equal(g.materialCount('rot'),2);
+ assert.equal(JSON.stringify(s),before);
+});
+
+check('批量制作耗时内若背包装满，仓库材料原路回退，背包食品保留原有效期',()=>{
+ const {G:g,RECIPES}=fresh(), s=g.S(), recipe=RECIPES.find(r=>r.id==='r_mushroomsoup');
+ s.buildings.fire=0;
+ s.backpack=null;
+ s.capacity=2;
+ s.tick=1000;
+ s.inv={mushroom:1,stone:1};
+ s.foodBatches={mushroom:[{qty:1,exp:1800}]};
+ s.foodExp={mushroom:1800};
+ s.warehouse={items:[{id:'wood',qty:1},{id:'water',qty:1},{id:'claypot',qty:1}]};
+ let changed=false;
+ g.bind({onChange(){if (!changed && s.tick>1000) {changed=true;g.addItem('clay',1,true);}}});
+ assert.equal(g.craftBatch(recipe,1).ok,false);
+ assert.ok(changed);
+ assert.deepEqual(g.warehouseState().inv,{wood:1,water:1,claypot:1});
+ assert.deepEqual(s.foodBatches.mushroom,[{qty:1,exp:1800}]);
+ assert.equal(g.invCount('clay'),1);
+ assert.equal(g.invCount('mushroomSoup'),0);
+});
+
 console.log(`通过 ${passed} 项，失败 ${failed} 项\nRESULT:${failed?'FAIL':'PASS'}`);process.exitCode=failed?1:0;
