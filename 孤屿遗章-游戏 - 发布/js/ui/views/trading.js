@@ -29,14 +29,11 @@ function laochaoModal() {
     const st = S();
     let html = `<div class="modal-title">老潮的货摊 <span style="font-size:12px">（第${st.day}天，22 点离港）</span></div>
      ${walletBar()}
-     <div class="trader-row"><img class="trader-img" src="assets/img/laochao.png" onerror="this.style.display='none'" alt="老潮">
-      <div class="trader-talk">"带什么来啦？对岸最近什么都缺，好货不愁卖。"</div></div>
       <div class="tabs">
         <button class="tab ${deps.laoTab === 'buy' ? 'active' : ''}" data-ttab="buy">买他的货</button>
         <button class="tab ${deps.laoTab === 'sell' ? 'active' : ''}" data-ttab="sell">卖给他</button>
         <button class="tab ${deps.laoTab === 'comm' ? 'active' : ''}" data-ttab="comm">委托</button>
       </div><div id="trade-body">${laochaoTab(deps.laoTab || 'buy')}</div>
-      <div class="trader-row"></div>
       <div class="modal-actions"><button id="modal-close">离 开</button></div>`;
     return html;
   }

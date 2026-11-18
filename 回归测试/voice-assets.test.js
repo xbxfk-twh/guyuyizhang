@@ -17,4 +17,17 @@ check('声音缓存依据音频内容更新，换包不会沿用同名旧录音'
 check('来源记录完整，公开资源清单不带本机绝对路径或原始参考录音',()=>{
  assert.ok(manifest.review.includes('尚待人工试听'));for(const profile of Object.values(manifest.characters))assert.ok(manifest.references[profile.reference]);assert.equal(/"[A-Za-z]:[\\/]/.test(JSON.stringify(manifest)),false);assert.equal(fs.readdirSync(dir).some(f=>f.endsWith('.wav')),false);
 });
+check('八位商人均有独立方形 WebP，头像资源与语音使用同一个角色 ID',()=>{
+ const portraits=path.join(root,'assets/img/merchants');
+ const dialog=fs.readFileSync(path.join(root,'js/ui/views/dialogs.js'),'utf8');
+ assert.equal(Object.keys(MERCHANTS).length,8);
+ assert.ok(dialog.includes('assets/img/merchants/${merchantId}-portrait.webp'));
+ for (const role of Object.keys(MERCHANTS)) {
+   const image=fs.readFileSync(path.join(portraits,role+'-portrait.webp'));
+   assert.equal(image.toString('ascii',8,16),'WEBPVP8 ',role);
+   assert.equal(image.readUInt16LE(26)&0x3fff,512,role);
+   assert.equal(image.readUInt16LE(28)&0x3fff,512,role);
+   assert.ok(image.length<120*1024,role);
+ }
+});
 console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);

@@ -241,8 +241,8 @@ function showModal(kind, cfg) {
     if (merchantId && MERCHANTS[merchantId]) {
       const changed=deps.activeMerchant!==merchantId;
       if(changed) { deps.activeMerchant=merchantId; deps.merchantLine=0; deps.merchantTrades=0; AudioFX.playVoice(merchantId,0); }
-      const person=MERCHANTS[merchantId], col=person.cell%3, row=Math.floor(person.cell/3);
-      html=`<div class="merchant-layout"><aside class="merchant-person"><div class="merchant-portrait${skinOn('seasons')?' art-colored':''}" style="background-position:${col*50}% ${row*50}%" role="button" tabindex="0" data-voice="${merchantId}" aria-label="听${esc(person.name)}说话"></div><b>${esc(person.name)}</b><p id="merchant-line" aria-live="polite">${esc(person.lines[deps.merchantLine])}</p></aside><section class="merchant-goods">${html}</section></div>`;
+      const person=MERCHANTS[merchantId];
+      html=`<div class="merchant-layout"><aside class="merchant-person"><div class="merchant-portrait${skinOn('seasons')?' art-colored':''}" role="button" tabindex="0" data-voice="${merchantId}" aria-label="听${esc(person.name)}说话"><img src="assets/img/merchants/${merchantId}-portrait.webp" alt="" width="512" height="512" draggable="false"></div><b>${esc(person.name)}</b><p id="merchant-line" aria-live="polite">${esc(person.lines[deps.merchantLine])}</p></aside><section class="merchant-goods">${html}</section></div>`;
     } else if (kind!=='batchn' && kind!=='overlay') { deps.activeMerchant=null; AudioFX.stopVoice(); }
     const workPanel = !!deps.panels.get(kind).work;
     m.classList.toggle('work-open', workPanel);
