@@ -98,10 +98,10 @@ function buyFromMerchant(id, qty, list, isBlack) {
   }
 
 const FISHMAN_DEALS = [
-    { id:'spear', item:'bpSourceSpear', name:'源质长枪图纸', need:{ goldIngot:4, tideSteel:4 } },
-    { id:'armor', item:'bpSourceArmor', name:'源质重甲图纸', need:{ goldIngot:5, shipPlate:3 } },
+    { id:'spear', item:'bpSourceSpear', name:'源质长枪图纸', need:{ goldIngot:2, tideSteel:4 } },
+    { id:'armor', item:'bpSourceArmor', name:'源质重甲图纸', need:{ goldIngot:2, shipPlate:4, anctDevice:1 } },
     // relic:1 表示换的是**神物**（发到 S.relics，不是背包物品）—— 亚特兰蒂斯之种的游戏内交换来源（商城也可购买）
-    { id:'seed',  relic:'atlantisSeed', name:'神物 · 亚特兰蒂斯之种', need:{ goldIngot:8, anctDevice:3, deepCoral:6 } },
+    { id:'seed',  relic:'atlantisSeed', name:'神物 · 亚特兰蒂斯之种', need:{ goldIngot:4, anctDevice:3, deepCoral:8 } },
     { id:'storage', capacity:20, name:'海底储物箱扩容 · +20格', need:{ shipPlate:5, deepCoral:8, tideSteel:2 } },
   ];
 

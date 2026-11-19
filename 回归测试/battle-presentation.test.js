@@ -29,5 +29,5 @@ assert.deepEqual(stage.timeline(plan.map(p=>p.event),true).map(p=>p.at),[0,0,0,0
 assert.ok(stage.scale(0)>stage.scale(20)&&stage.scale(20)>stage.scale(80));passed++;
 assert.ok(stage.logHtml(['<script>暴击 10点伤害</script>']).includes('&lt;script&gt;')&&!stage.logHtml(['<script>']).includes('<script>'));passed++;
 for(const cls of ['log-danger','log-critical','log-good'])assert.ok(stage.logHtml(['暴击 10点伤害 掩护']).includes(cls));passed++;
-assert.equal(stage.cutout('assets/img/enemies/wolf.png'),'assets/img/battle-cutouts/wolf.png');assert.equal(stage.cutout('assets/img/enemies/nightmare7.png'),'assets/img/enemies/nightmare7.png');passed++;
+assert.equal(stage.cutout('assets/img/enemies/wolf.png'),'assets/img/battle-cutouts/wolf.webp');assert.equal(stage.cutout('assets/img/enemies/nightmare7.png'),'assets/img/enemies/nightmare7.png');passed++;
 console.log(`通过 ${passed} 项，失败 0 项`);console.log('RESULT:PASS');

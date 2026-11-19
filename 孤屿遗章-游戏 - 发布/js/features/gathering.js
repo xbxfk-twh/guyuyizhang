@@ -168,7 +168,7 @@ function pointReason(p) {
     return null;
   }
 
-function doPoint(p) {
+function doPoint(p, passedGuard = false) {
     if (p?.type !== 'story' && !autoToolsEnabled() && (!gameState.run.toolkit || !gameState.run.toolkit.some(Boolean))) autoToolkit();
     if (!pointAvailable(p)) { const why = pointStatus(p); log(why && why !== 'ok' ? why : '现在做不了这件事。', 'warn'); return; }
     if (p.type === 'story') { deps.story.interact(p.story); return; }
@@ -190,26 +190,24 @@ function doPoint(p) {
     // 采集守护（雪羽鹰守矿脉 / 深殿核心的守卫）：必须先打倒守卫，打完再重新走一遍本函数真正采集。
     // 关键：这一判定要在「计次、打一次性标记、扣体力」之前——否则守卫会把这次采集机会顶掉，
     // 一次性点位（如深殿核心）会永久失去奖励。
-    if (p.guard && gameState.run._guardPass !== p.id && chance(p.guardChance === undefined ? 0.8 : p.guardChance)) {
+    if (p.guard && !passedGuard && chance(p.guardChance === undefined ? 0.8 : p.guardChance)) {
       const gid = Array.isArray(p.guard) ? p.guard[Math.floor(deps.rng.random() * p.guard.length)] : p.guard;
       if (ENEMIES[gid]) {
         log(`你刚动手，${ENEMIES[gid].name}就扑了过来——先解决它！`, 'danger');
-        gameState.run._guardPass = p.id;
-        gameState.run._onFightWin = () => { doPoint(p); };
+        gameState.run._onFightWin = () => doPoint(p, true);
         startFight(ENEMIES[gid]);
         return;   // 不扣体力、不占次数、不消耗一次性点位
       }
     }
     // 山顶石像拦路（雪莲 / 秘银）：50% 概率触发，玩家可以跑，也可以殊死一搏。
     // 和守卫一样：先问、后算，选"打"就先开战，赢了再回来采（次数与体力都没被扣）。
-    if (p.guardChoice && gameState.run._guardPass !== p.id && chance(p.guardChoice.chance)) {
+    if (p.guardChoice && !passedGuard && chance(p.guardChoice.chance)) {
       const gid = p.guardChoice.enemy;
       if (ENEMIES[gid]) {
-        gameState.run._guardPass = p.id;
-        gameState.run._onFightWin = () => { doPoint(p); };
+        gameState.run._onFightWin = () => doPoint(p, true);
         showOverlay({ title:'石像动了', text:`你刚要动手，碑前的石像轰然转过身——${ENEMIES[gid].name}踩着碎石朝你冲了过来！`, choices:[
           { label:'不采了，直接跑', hint:'放弃这次采集，不扣当日次数，只花 10 分钟脱身', ok:()=>{
-            gameState.run._guardPass = null; gameState.run._onFightWin = null;
+            gameState.run._onFightWin = null;
             addMin(10);
             log(`你把工具一丢，连滚带爬退下雪线——${ENEMIES[gid].name}停在碑前，没有追。`, 'warn');
             change();
@@ -222,7 +220,6 @@ function doPoint(p) {
         return;
       }
     }
-    if (gameState.run._guardPass === p.id) gameState.run._guardPass = null;   // 打完了：清掉放行标记，继续这次采集
 
     // ⚠️ 弹窗类点位（耕地 / 交易 / 告示板 / 酒馆…）本身不"干活"，也不该动体力或当日次数：
     //    它们只是打开一个界面，真正的动作（开垦/播种/收获/买卖）由弹窗里的按钮各自结算。
@@ -291,6 +288,8 @@ function doPoint(p) {
       }
       if (!pool.length) { log('现在这里没有猎物。', 'warn'); return; }
       huntTarget = pick(pool);
+      const bonusDrops = p.huntDrops?.[huntTarget.id];
+      if (bonusDrops) huntTarget = {...huntTarget, drops:[...huntTarget.drops, ...bonusDrops]};
       if (huntTarget.id === 'boneguard' && !isNight()) huntTarget = ENEMIES['scorpion'];
       if (huntTarget.boss) {
         const tgt = huntTarget;
@@ -332,7 +331,7 @@ function doPoint(p) {
         else if (pool.length && chance(amb)) ambush = ENEMIES[pool[Math.floor(deps.rng.random() * pool.length)]];
         if (!ambush && p.risk && ENEMIES[p.risk] && chance(0.25 * protection)) ambush = ENEMIES[p.risk];
         // 海底远程精英只在海沟、深渊和圣殿出没，作者 2026-09-19
-        if (!ambush && gameState.run.scene === 'atlantis' && ['trench','abyss','sanctum'].includes(gameState.run.zone) && ENEMIES.atlSentry && chance(0.12)) ambush = ENEMIES.atlSentry;
+        if (!passedGuard && !ambush && gameState.run.scene === 'atlantis' && ['trench','abyss','sanctum'].includes(gameState.run.zone) && ENEMIES.atlSentry && chance(0.12)) ambush = ENEMIES.atlSentry;
       }
       const doHarvest = () => {
       let got = [];

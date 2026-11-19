@@ -74,7 +74,7 @@ if (args.includes('--browser')) checks.push('开发工具/检查/_verify_activit
 // 所以旧的 _verify_shell_confirm.js 改名成 _verify_exchange_flow.js，断言的契约跟着换。
 '开发工具/检查/_verify_exchange_flow.js', '开发工具/检查/_verify_skins.js', '开发工具/检查/_verify_furn_slot.js', '开发工具/检查/_verify_guide.js', '开发工具/检查/_verify_craft_panel.js', '开发工具/检查/_verify_share.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_plank_processing.js');
-if (args.includes('--browser')) checks.push('开发工具/检查/_verify_progression_ui.js');
+if (args.includes('--browser')) checks.push('开发工具/检查/_verify_progression_ui.js', '开发工具/检查/_verify_coop_ui.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_season_backgrounds.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_extra_slot_ui.js');
 if (args.includes('--browser')) checks.push('开发工具/检查/_verify_equipment_art.js');

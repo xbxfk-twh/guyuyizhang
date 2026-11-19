@@ -8,6 +8,7 @@ const LotteryRules = (() => {
     const change=(...args)=>deps.change(...args);
     const invCount=(...args)=>deps.invCount(...args);
     const hasItem=(...args)=>deps.hasItem(...args);
+    const materialCount=(...args)=>deps.materialCount(...args);
     const addItem=(...args)=>deps.addItem(...args);
     const removeItem=(...args)=>deps.removeItem(...args);
     const syncToolkit=(...args)=>deps.syncToolkit(...args);
@@ -100,12 +101,17 @@ const LOTTERY_COST = 100, LOTTERY_PITY_DRAWS = 10;
 const LOTTERY_DAILY_LIMIT = 200, LOTTERY_BATCH_LIMIT = 50;
 
 const LOTTERY_POOLS = [
-    {id:'common',name:'普通',weight:70,items:['wood','honey','adCoins']},
+    {id:'common',name:'普通',weight:70,items:['water','honey','adCoins']},
     {id:'rare',name:'稀有',weight:25,items:['lotusPill','tideVitalPill','abyssBreathPill','bpBlack','bpLotus','bpDive','bpCoralBlade','bpPistol']},
     {id:'epic',name:'史诗',weight:5,items:['vampire','dodge','satchel','bloodvest','divineBow']}
   ];
 
-function lotteryPools() { return LOTTERY_POOLS.map(p=>({...p,items:p.items.slice()})); }
+function availablePrizes(pool) {
+    if (!gameState.run) return pool.items.slice();
+    return pool.items.filter(id => ITEMS[id]?.cat !== 'bp' || !gameState.run.learnedBlueprints?.[id] && !materialCount(id));
+  }
+
+function lotteryPools() { return LOTTERY_POOLS.map(p=>({...p,items:availablePrizes(p)})); }
 
 function lotteryRandom(run, nonce, label) {
     let h=lotteryHash(`${run}:${nonce}:v2:${label}`);
@@ -195,7 +201,8 @@ function lotteryTransact(id,qty,value,times) {
         if (!won) {track.misses++;continue;}
         track.misses=0;
         const roll=lotteryRandom(oldS._runId,nonce,'pool'),pool=LOTTERY_POOLS[roll<0.70?0:roll<0.95?1:2];
-        const key=pool.items[Math.floor(lotteryRandom(oldS._runId,nonce,'item')*pool.items.length)];
+        const prizes=availablePrizes(pool);
+        const key=prizes[Math.floor(lotteryRandom(oldS._runId,nonce,'item')*prizes.length)];
         const reward={tier:pool.id,pity:guaranteed};
         if (key==='adCoins') {
           reward.adCoins=2+Math.floor(lotteryRandom(oldS._runId,nonce,'quantity')*2);
@@ -208,7 +215,7 @@ function lotteryTransact(id,qty,value,times) {
           } else { next.relics.push(key);updateMailCheckpoint(next,null,0,key); }
         } else {
           reward.item=key;
-          reward.qty=key==='wood'?5+Math.floor(lotteryRandom(oldS._runId,nonce,'quantity')*6):key==='honey'?1+Math.floor(lotteryRandom(oldS._runId,nonce,'quantity')*2):1;
+          reward.qty=key==='water'?2+Math.floor(lotteryRandom(oldS._runId,nonce,'quantity')*3):key==='honey'?1+Math.floor(lotteryRandom(oldS._runId,nonce,'quantity')*2):1;
           if(!addItem(key,reward.qty,true))throw new Error('背包放不下奖品，本次操作已取消。');
         }
         rewards.push(reward);

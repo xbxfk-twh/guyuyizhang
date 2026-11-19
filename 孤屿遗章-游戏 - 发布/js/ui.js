@@ -785,12 +785,12 @@ let modalOpenedAt = 0;     // 弹窗打开的毫秒时间戳（防"点击穿透"
   const PAPER_FALLBACK = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><rect width="1280" height="720" fill="#d9d4c4"/><text x="640" y="340" font-size="38" text-anchor="middle" fill="#343126">场景图片暂时无法载入</text><text x="640" y="400" font-size="23" text-anchor="middle" fill="#555044">仍可使用地图与场景按钮，重新进入此场景可重试</text></svg>');
   function renderScene(...args){return sceneView.renderScene(...args);}
   function renderAtlantisBuildings(...args){return sceneView.renderAtlantisBuildings(...args);}
-  const ATL_SHOP = [ { id:'deepCoral', base:10 }, { id:'pearlGranule', base:6 }, { id:'sourceOre', base:40 }, { id:'sourceBar', base:260 }, { id:'anctDevice', base:120 }, { id:'atlantisCore', base:300 } ];
+  const ATL_SHOP = [ { id:'deepCoral', base:10 }, { id:'pearlGranule', base:8 }, { id:'sourceOre', base:40 }, { id:'sourceBar', base:260 }, { id:'anctDevice', base:120 }, { id:'atlantisCore', base:300 } ];
   // 遗失的交易机 · 售卖的亚特兰蒂斯装备图纸（按阶递增）
   const ATL_BUY = [
     { id:'bpCoralBlade', base:260, kind:'bp' },
     { id:'bpCoralArmor', base:320, kind:'bp' },
-    { id:'bpThruster', base:480, kind:'bp' },
+    { id:'bpThruster', base:360, kind:'bp' },
   ];
   function repairModal(...args){return atlantisView.repairModal(...args);}
   function atlTradeModal(...args){return atlantisView.atlTradeModal(...args);}

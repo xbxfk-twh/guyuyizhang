@@ -5,7 +5,7 @@ async function check(name,expr){assert.ok(await b.ev(expr),name);count++;console
 async function menu(){await b.ev(`for(let i=0;i<12&&document.querySelector('#modal.open');i++)UI.handleBack()`);assert.equal(await b.ev(`!!document.querySelector('#modal.open')`),false,'测试准备须逐级退出旧菜单');await b.tap('[data-nav="save"]');}
 (async()=>{try{
  b=await openBrowser({init:`window.GUYU_CHANNEL='taptap';localStorage.setItem('guyuyizhang_language','zh-CN');`});await b.sleep(600);
- await check('标题右侧改为大菜单且有汇总红点',`document.querySelector('#btn-set').textContent.includes('大菜单')&&!document.querySelector('#btn-set [data-notice]').hidden`);
+ await check('标题大菜单有汇总红点',`document.querySelector('#btn-set').textContent.includes('大菜单')&&!document.querySelector('#btn-set [data-notice]').hidden`);
  await b.tap('#btn-set');await check('不开局可打开大菜单，日记与保存不能误操作',`!!document.querySelector('[data-savemenu="sign"]')&&document.querySelector('[data-savemenu="diary"]').disabled&&document.querySelector('[data-savemenu="save"]').disabled`);
  await b.ev(`document.querySelector('#modal .modal-x').click();Game.newGame('fisher','normal');Game.S().tut=null;Game.metaState().batchTipSeen=1;Game.metaState().soul=300;Game.metaState().adWallet={test:{coins:100,soul:0}};Game.markNoticeRead('diary');UI.begin();`);await b.sleep(2800);
  await b.ev(`for(let i=0;i<10;i++)Game.diaryAdd('新日记');UI.render();`);await menu();

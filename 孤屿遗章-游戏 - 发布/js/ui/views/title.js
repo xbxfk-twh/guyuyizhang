@@ -57,7 +57,7 @@ function showTitle() {
           <nav class="title-utility" aria-label="其他选项">
             <button id="btn-meta">历代遗章</button>
             <button id="btn-bak">备份·读档</button>
-            <button id="btn-set">菜单${NoticeBadges.dot('menu')}</button>
+            <button id="btn-set">大菜单${NoticeBadges.dot('menu')}</button>
             <button id="btn-coop">双人联机</button>
           </nav>
         </div>

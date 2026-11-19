@@ -71,7 +71,7 @@ check('季度委托当季稳定、换季刷新、旧季度不可再交', () => {
 });
 check('鱼人价格提升，金锭能出售给盐镇铁匠', () => {
   const deals=G.fishmanDeals();
-  assert.deepEqual(deals.filter(x=>x.id!=='storage').map(x=>x.need.goldIngot),[4,5,8]);
+  assert.deepEqual(deals.filter(x=>x.id!=='storage').map(x=>x.need.goldIngot),[2,2,4]);
   assert.ok(TOWN.smith.buy.some(x=>x.id==='goldIngot'));
   assert.ok(TOWN.informant.buy.some(x=>x.id==='sourceOre'));
   assert.ok(TOWN.informant.buy.some(x=>x.id==='sourceBar'));

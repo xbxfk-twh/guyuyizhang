@@ -76,6 +76,14 @@ test('16种奖品第一抽均可获得，已有神物重复抽到入邮箱',()=>
   if(r.relic){assert.equal(r.mailed,true);assert.equal(G.mailboxList().length,mails+1);}
  }
 });
+test('稀有池排除背包或已学习的图纸，其他稀有奖品仍可抽取',()=>{
+ const s=fresh();s.inv.bpBlack=1;s.learnedBlueprints={bpLotus:1};
+ const rare=G.lotteryPools().find(p=>p.id==='rare').items;
+ assert.ok(!rare.includes('bpBlack')&&!rare.includes('bpLotus'));
+ assert.ok(rare.includes('bpDive')&&rare.includes('lotusPill'));
+ const common=G.lotteryPools().find(p=>p.id==='common').items;
+ assert.deepEqual(common,['water','honey','adCoins']);
+});
 test('抽取每日200、每批50；跨日保留余额与连续未中次数',()=>{
  const s=fresh();track(s,{credit:22000});for(let i=0;i<4;i++)assert.equal(G.lotteryDraw(50).times,50);
  assert.equal(G.lotteryState().uses,200);assert.equal(G.lotteryState().credit,2000);assert.equal(G.lotteryDraw().ok,false);

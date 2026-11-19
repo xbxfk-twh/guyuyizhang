@@ -117,27 +117,77 @@ check('必要守卫先战斗，战斗后才登记核心到账', () => {
   assert.equal(G.pointAvailable(point),false);
 });
 
-check('打完核心守卫后撤出第二场伏击，核心点保持可采', () => {
-  let reproduced = false;
-  for (let seed=1; seed<=64 && !reproduced; seed++) {
-    const {G} = fresh(seed);
-    const s = G.S();
-    s.zone = 'trench';
-    s.minute = 8*60;
-    G.addItem('lightStrong',1,true,true);
-    G.addItem('diveMask',1,true,true);
-    G.addItem('diveSuit',1,true,true);
-    s.equipment.cloth = 'diveSuit';
-    const point = G.pointsOf().find(p => p.id === CORE[2]);
+function deepRun(zone, seed) {
+  const {G, ENEMIES} = fresh(seed);
+  const s = G.S();
+  s.zone = zone;
+  s.minute = 8 * 60;
+  s.stats.stamina = 140;
+  for (const id of ['lightStrong', 'diveMask', 'diveSuit']) G.addItem(id, 1, true, true);
+  s.equipment.cloth = 'diveSuit';
+  return {G, s, ENEMIES};
+}
+
+check('深水守卫落败可重试，胜利后直接完成采集，不再追加哨兵', () => {
+  const {G,s}=deepRun('trench',1);
+  const point=G.pointsOf().find(p=>p.id===CORE[2]);
+  G.doPoint(point);
+  const guardian=s.combat.enemy.id;
+  G.endFight(false);
+  assert.equal(G.invCount('deepCore'),0);
+  assert.equal(G.pointAvailable(point),true);
+  G.doPoint(point);
+  assert.notEqual(s.combat.enemy.id,'atlSentry');
+  assert.ok(['deepGuard','tentacle','mechGuard'].includes(guardian));
+  G.endFight(true);
+  assert.equal(s.combat,null);
+  assert.equal(G.invCount('deepCore'),1);
+  assert.equal(G.pointAvailable(point),false);
+});
+
+check('无采前守卫的采集仍可遇哨兵，失利保留未入账的一次性奖励', () => {
+  const {G,s}=deepRun('trench',3);
+  const point={...G.pointsOf().find(p=>p.id===CORE[2]),guard:null};
+  let sawSentry=false;
+  for (let i=0;i<100;i++) {
+    s.stats.stamina=140;
     G.doPoint(point);
-    for (let turn=0; turn<4 && s.combat && s.combat.enemy.id!=='atlSentry'; turn++) G.endFight(true);
-    if (s.combat?.enemy.id !== 'atlSentry') continue;
-    G.endFight(false);
-    assert.equal(G.invCount('deepCore'),0);
-    assert.equal(G.pointAvailable(point),true);
-    reproduced = true;
+    if (s.combat?.enemy.id==='atlSentry') {
+      G.endFight(false);
+      assert.equal(G.invCount('deepCore'),0);
+      assert.equal(G.pointAvailable(point),true);
+      sawSentry=true;
+      break;
+    }
+    delete s.flags['pt_'+point.id];
+    G.removeItem('deepCore',1);
   }
-  assert.equal(reproduced,true,'固定种子必须覆盖二次伏击');
+  assert.equal(sawSentry,true);
+});
+
+check('安全区之间无海底伏击，浅层和深层怪池隔离', () => {
+  const {G,s}=deepRun('trench',21);
+  const outcomes = {city:new Set(),shipwreck:new Set(),abyss:new Set()};
+  for (let i=0;i<140;i++) for (const zone of Object.keys(outcomes)) {
+    s.zone=zone==='city'?'habitat':'trench';
+    s.stats.hp=100;s.stats.stamina=140;s.stats.thirst=100;s.stats.hunger=100;
+    G.setZone(zone);
+    assert.equal(s.zone,zone);
+    outcomes[zone].add(s.combat?.enemy.id || 'none');
+    if(s.combat)G.endFight(false);
+  }
+  assert.deepEqual([...outcomes.city],['none']);
+  assert.deepEqual([...outcomes.shipwreck].sort(),['deepGuard','none','tentacle']);
+  assert.deepEqual([...outcomes.abyss].sort(),['mechGuard','none','tentacle']);
+});
+
+check('深渊怪影追加的晶石只属于该点机械守卫', () => {
+  const {G,s,ENEMIES}=deepRun('trench',12);
+  const point=G.pointsOf().find(p=>p.id==='atl_deep');
+  G.doPoint({...point,enemies:['mechGuard']});
+  assert.equal(s.combat.enemy.id,'mechGuard');
+  assert.deepEqual(s.combat.enemy.drops.at(-1),{id:'energyCrystal',qty:1,ch:0.25});
+  assert.equal(ENEMIES.mechGuard.drops.some(d=>d.id==='energyCrystal'),false);
 });
 
 console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);

@@ -273,16 +273,15 @@ function setZone(z) {
     log(`你来到${sc.zones[z].name}。`);
     if (sc.zones[z].desc) log(sc.zones[z].desc);
     change();
-    // 深海区移动：40% 被随机海底怪物拦截。
-    // 关键：移动（时间/体力/区域）已经结算完毕，战斗不会取消或重来这次移动。
     if (fromZone !== z && nightmareEncounter('move')) return;
-    if (swam && !gameState.run.combat && typeof ATLANTIS_DEEP_ZONES !== 'undefined' && (ATLANTIS_DEEP_ZONES.includes(z) || ATLANTIS_DEEP_ZONES.includes(fromZone))) {
-      if (chance(0.4)) {
-        const pool = ['deepGuard','tentacle','mechGuard'].filter(k => ENEMIES[k]);
-        const en = ENEMIES[pool[Math.floor(deps.rng.random() * pool.length)]];
-        log(`深水里一道影子直冲你而来——${en.name}拦住了去路！`, 'danger');
-        startFight(en);
-      }
+    const encounter = swam && (ATLANTIS_SWIM_ENCOUNTERS[z] || ATLANTIS_SWIM_ENCOUNTERS[fromZone]);
+    if (encounter && !gameState.run.combat && chance(encounter.chance)) {
+      let roll = deps.rng.random();
+      const id = encounter.enemies.find(([, weight]) => (roll -= weight) < 0)?.[0]
+        || encounter.enemies.at(-1)[0];
+      const enemy = ENEMIES[id];
+      log(`深水里一道影子直冲你而来——${enemy.name}拦住了去路！`, 'danger');
+      startFight(enemy);
     }
     // ⚠️ 分区随机事件必须在这里掷（数值平衡 P1-4 的通用修法）。
     //    抵达场景那一步（arriveAt）会把 S.zone 重置成 null，所以带 `cond:{zone:...}` 的事件

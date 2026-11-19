@@ -52,7 +52,8 @@ try{
   check('掉落表精确：沟壁矿脉 / 无光深渊 / 珊瑚丛 / 沉船残骸',()=>{
     const y=id=>atlPoint(id).yields;
     const src=y('atl_source');
-    if(JSON.stringify(src.find(x=>x.id==='sourceOre'))!==JSON.stringify({id:'sourceOre',min:1,max:2})) throw new Error('沟壁源矿错');
+    if(JSON.stringify(src.find(x=>x.id==='sourceOre'))!==JSON.stringify({id:'sourceOre',min:1,max:2,chance:0.8})) throw new Error('沟壁源矿错');
+    if(!src.some(x=>x.id==='taintedSourceOre'&&x.min===1&&x.max===2&&x.chance===0.6)) throw new Error('沟壁污染矿错');
     if(src.some(x=>x.id==='tideSteel')) throw new Error('沟壁不应分散高压锻层产出的潮鸣钢');
     const dark=y('atl_dark');
     if(dark.some(x=>x.id==='sourceOre') || !dark.some(x=>x.id==='taintedSourceOre'&&x.min===1&&x.max===2)) throw new Error('无光深渊应产污染源矿');

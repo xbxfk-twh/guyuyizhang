@@ -70,7 +70,7 @@ const Game = (() => {
     metaState
   });
   const lotteryRules=LotteryRules.create({
-    gameState, adCurrencyName, persistPair, log, change, invCount, hasItem, addItem, removeItem, syncToolkit,
+    materialCount, gameState, adCurrencyName, persistPair, log, change, invCount, hasItem, addItem, removeItem, syncToolkit,
     metaSave, updateMailCheckpoint, metaState, todayKey,
     walletEntry
   });

@@ -51,7 +51,7 @@ check('普通池三奖等概率，广告币奖2至3枚并跨局保留',()=>{
   for(let d=1;d<30;d++){s.day=d;if(G.lotteryState().active)break;}s.zone=G.lotteryState().zone;
   G.metaState().lotteryRuns=G.metaState().lotteryRuns || {};G.metaState().lotteryRuns[s._runId]={credit:0,misses:9,nonce:0,lastDay:s.day,uses:0};
   const before=G.adCoinBalance(),r=G.lotteryOffer('beibi',100);assert.equal(r.ok,true);
-  if(type<2){assert.equal(r.reward.item,type===0?'wood':'honey');assert.equal(G.adCoinBalance(),before);}
+  if(type<2){assert.equal(r.reward.item,type===0?'water':'honey');if(type===0)assert.ok(r.reward.qty>=2&&r.reward.qty<=4);assert.equal(G.adCoinBalance(),before);}
   else {assert.ok(r.reward.adCoins===2 || r.reward.adCoins===3);assert.equal(G.adCoinBalance(),before+r.reward.adCoins);const total=G.adCoinBalance();G.newGame('fisher','normal');assert.equal(G.adCoinBalance(),total);}
  }
 });

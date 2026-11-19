@@ -5,9 +5,11 @@ const CombatStage = (() => {
   const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const sleep = ms => new Promise(resolve=>setTimeout(resolve,ms));
   function cutout(src, colored=false) {
-    if(src && colored)return 'assets/img/battle-colored/' + (src.split('/').pop()==='boar.png'?'boar-v2.png':src.split('/').pop());
-    if (!src || /nightmare\d/.test(src)) return src;
-    return 'assets/img/battle-cutouts/' + src.split('/').pop();
+    if (!src) return src;
+    const file = src.split('/').pop();
+    if (colored) return 'assets/img/battle-colored/' + (file === 'boar.png' ? 'boar-v2.webp' : file);
+    if (/nightmare\d/.test(src)) return src;
+    return 'assets/img/battle-cutouts/' + file.replace(/\.png$/, '.webp');
   }
   function scale(dist) { return .46 + .54 / (1 + Math.max(0,dist || 0)/24); }
   function snapshot(C) {
