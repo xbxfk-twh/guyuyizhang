@@ -103,10 +103,12 @@ const StateMigrations = (() => {
       // 旧守卫可能提前消耗一次性核心点标记，退回尚未取得核心的点。
       const corePoints = ['atl_dcore_coral','atl_dcore_trench','atl_dcore_wreck','atl_dcore_abyss'];
       const flagged = corePoints.filter(id => S.flags['pt_' + id]);
-      let extra = flagged.length - Math.min(4, S.inv.deepCore || 0);
-      for (const id of flagged) {
-        if (extra <= 0) break;
-        delete S.flags['pt_' + id]; extra--;
+      if (flagged.length && !S.flags.corePointRecords) {
+        const stored = [S.warehouse, S.atlantis?.camp?.warehouse].flatMap(w => w?.items || [])
+          .filter(record => record.id === 'deepCore').reduce((total, record) => total + record.qty, 0);
+        const excess = flagged.length - Math.min(4, (S.inv.deepCore || 0) + stored);
+        for (const id of flagged.slice(0, Math.max(0, excess))) delete S.flags['pt_' + id];
+        S.flags.corePointRecords = 1;
       }
     }
     // 当前格式的缺省值与数据校验，不与历史奖励/改名混写。

@@ -86,7 +86,7 @@ const transferIdentity=ServerSaveStore.create({storage:localStorage,getHost:()=>
 let comTab = 'p1';
 const modalHistory=[];
 let restoringParent=false;
-const scrollSnapshot=()=>[...$('#modal').querySelectorAll('.modal-content,.col-body,.work-scroll,.recipe-list,.help-list')].map(e=>e.scrollTop);
+const scrollSnapshot=()=>[...$('#modal').querySelectorAll('.modal-content,.col-body,.work-scroll,.recipe-list,.help-list,.merchant-goods')].map(e=>e.scrollTop);
 function backModal() {
     if(deps.modal?.cfg?.requiredChoice)return;
     if(restoreCombatView()){modalHistory.length=0;return;}
@@ -94,7 +94,7 @@ function backModal() {
     if(!previous){closeModal();return;}
     restoringParent=true;
     try{showModal(previous.kind,previous.cfg);}finally{restoringParent=false;}
-    $('#modal').querySelectorAll('.modal-content,.col-body,.work-scroll,.recipe-list,.help-list').forEach((e,i)=>{e.scrollTop=previous.scroll[i] || 0;});
+    $('#modal').querySelectorAll('.modal-content,.col-body,.work-scroll,.recipe-list,.help-list,.merchant-goods').forEach((e,i)=>{e.scrollTop=previous.scroll[i] || 0;});
   }
 
 
@@ -333,6 +333,21 @@ function bindModal(kind, cfg) {
     m.querySelectorAll('[data-rfix]').forEach(b => b.onclick = () => { const k = b.dataset.rfix; if (k.startsWith('dive:')) { const r = Game.repairDive(k.slice(5)); if (!r.ok) addLog(r.reason, 'warn'); } else if (k === 'pistol') { Game.repairPistol(); } else { Game.fixBrokenPistol(); } showModal('repair'); });
     m.querySelectorAll('[data-story]').forEach(b => b.onclick = () => Game.storyInteract(b.dataset.story));
     m.querySelectorAll('[data-fishman]').forEach(b => b.onclick = () => { const r = Game.fishmanBarter(b.dataset.fishman); if (!r.ok) { addLog(r.reason, 'warn'); centerToast(r.reason); } else { deps.merchantLine=1+Math.floor(Math.random()*2); AudioFX.play('trade'); AudioFX.playVoice('fishman',deps.merchantLine); } showModal('fishman'); });
+    m.querySelectorAll('[data-adevice]').forEach(b => b.onclick = () => {
+      const result = Game.buyVendorDevice();
+      if (!result.ok) centerToast(result.reason);
+      showModal('atlTrade');
+    });
+    m.querySelectorAll('[data-sort-inv]').forEach(b => b.onclick = () => {
+      try { localStorage.setItem('guyuyizhang_inventory_sort', b.getAttribute('aria-pressed') === 'true' ? '0' : '1'); }
+      catch (_) { centerToast('暂时无法保存排序设置。'); }
+      showModal(kind);
+    });
+    m.querySelectorAll('[data-warehouse-all]').forEach(b => b.onclick = () => {
+      const result = Game.storeAllWarehouse();
+      centerToast(result.reason);
+      showModal('warehouse');
+    });
     m.querySelectorAll('[data-arelic]').forEach(b => b.onclick = () => { const r = Game.buyRelicFromVendor(); if (!r.ok) addLog(r.reason, 'warn'); showModal('atlTrade'); });
     m.querySelectorAll('[data-abuy]').forEach(b => { const entry = deps.ATL_BUY.find(e => e.id === b.dataset.abuy); const list = entry ? [entry] : []; const doTap = () => { Game.buyFromMerchant(b.dataset.abuy, 1, list, false); showModal('atlTrade'); }; const doLong = () => { const unit = Game.priceOf(entry ? entry.base : 0, false, b.dataset.abuy); const isBp = ITEMS[b.dataset.abuy].cat === 'bp'; const mx = isBp ? 1 : Math.max(1, Math.min(99, Math.floor(Game.invCount('beibi') / Math.max(1, unit)))); showModal('batchn', { kind:'buy', item:b.dataset.abuy, shop:'ATL', max:mx }); }; b.onclick = null; bindPress(b, doTap, doLong); });
     m.querySelectorAll('[data-help]').forEach(b => b.onclick = () => { showModal('camphelp', { mode: b.dataset.help }); });
@@ -832,18 +847,17 @@ function bindModal(kind, cfg) {
         if (cfg2.kind === 'exchange') {
           const r = cfg2.dir === 'coin' ? Game.exchangeGold(n) : Game.exchangeShells(n);
           if (!r || !r.ok) { const why = (r && r.reason) || '兑换失败。'; addLog(why, 'warn'); centerToast(why); }
-          closeModal(); showModal('laochao'); return;
+          backModal(); return;
         }
         if (cfg2.kind === 'buy') {
           const key = String(cfg2.shop || '').split(':')[0];
           Game.buyFromMerchant(cfg2.item, n, shopBuyList(cfg2.shop), key === 'BLACK');
-          closeModal();
-          showModal(key === 'BLACK' ? 'black' : key === 'LAOCHAO' ? 'laochao' : key === 'ATL' ? 'atlTrade' : (cfg2.back || 'town'));
+          backModal();
           return;
         }
         const lk = cfg2.list || 'LAOCHAO';
         Game.sellToMerchant(cfg2.item, n, shopSellList(lk), lk === 'BLACK');
-        closeModal(); showModal(lk === 'TOWN' ? 'town' : lk === 'BLACK' ? 'black' : lk === 'ATL' ? 'atlTrade' : 'laochao');
+        backModal();
       };
     }
     m.querySelectorAll('[data-ctab]').forEach(b => b.onclick = () => {

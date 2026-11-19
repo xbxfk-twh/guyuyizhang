@@ -208,7 +208,7 @@ function infoModal() {
     const story = Game.informantStory();
     const required = TOWN.informant.needFame;
     let html = `<div class="modal-title">酒馆</div>
-      <div class="trader-talk">${story.speech}</div>
+      <div class="informant-speech">${story.speech}</div>
       ${story.label ? `<button class="mini-btn" data-story="informant">${story.label}</button>` : ''}
       ${story.hint ? `<div class="hint">${story.hint}</div>` : ''}
       ${story.sailing ? `<div class="hint">${story.sailing}</div>` : ''}`;

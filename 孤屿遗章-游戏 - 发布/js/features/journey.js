@@ -119,7 +119,7 @@ function travelCost(id) {
 function zoneSwimCost(from, to) {
     const A = ATLANTIS_MAP_ARROWS[from], B = ATLANTIS_MAP_ARROWS[to];
     let t = (A && B) ? Math.max(15, Math.round(Math.hypot(A.x - B.x, A.y - B.y) * 2.4)) : 30;
-    let ec = Math.max(5, Math.round(t / 15) * 5);
+    let ec = Math.max(5, Math.ceil(t / 6));
     const thruster = gameState.run.equipment.accessory === 'thruster';
     if (thruster) { t = Math.max(8, Math.round(t / 2)); ec = Math.max(3, Math.round(ec / 2)); }
     return { time: t, energy: Math.ceil(staminaCost(ec)*loadPenalty().multiplier), thruster };

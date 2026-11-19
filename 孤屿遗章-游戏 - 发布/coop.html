@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>双人试验 · 孤屿遗章</title>
+  <link rel="stylesheet" href="css/coop.css">
+  <script defer src="js/data.js"></script>
+  <script defer src="js/ui/views/coop.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <a href="index.html">‹ 返回标题</a>
+      <h1>双人试验</h1>
+      <output id="clock"></output>
+    </header>
+    <section id="lobby">
+      <button type="button" id="create">创建房间</button>
+      <form id="join">
+        <label>队友房间码 <input name="code" maxlength="8" autocomplete="off" autocapitalize="characters" pattern="[a-fA-F0-9]{8}" required></label>
+        <button>加入</button>
+      </form>
+    </section>
+    <p id="notice" role="status" aria-live="polite"></p>
+    <div id="room" hidden>
+      <div class="room-bar"><output id="room-code"></output><button id="copy">复制房间码</button><button id="leave">返回大厅</button></div>
+      <div class="room-grid">
+        <section class="map" aria-label="孤岛大地图">
+          <img src="assets/img/map.png" alt="孤岛与沿岸地貌">
+          <div id="places"></div><div id="markers" aria-live="off"></div>
+        </section>
+        <section id="activities" aria-label="队伍行动">
+          <div id="party"></div>
+          <section id="combat" hidden aria-label="并肩作战"></section>
+          <div id="actions" class="actions"></div>
+          <div id="inventory"></div>
+        </section>
+      </div>
+    </div>
+    <dialog id="invitation" aria-labelledby="invite-text">
+      <p id="invite-text"></p>
+      <div class="actions"><button id="accept">并肩作战</button><button id="decline">暂不加入</button></div>
+    </dialog>
+  </main>
+</body>
+</html>

@@ -150,7 +150,12 @@ function renderAtlantisBuildings(st) {
 
 function pointWorkSummary(p) {
     const tool=p.need?.tool ? Game.selectedTool(p.need.tool) : null;
-    const output=(p.yields||[]).map(y=>`${ITEMS[y.id].name}×${y.min??1}${y.max!==undefined&&y.max!==y.min?'–'+y.max:''}${y.chance?'（'+Math.round(y.chance*100)+'%）':''}`).join('、');
+    const pending = p.firstYield && !S().flags['harvestFirst_'+p.id] ? p.firstYield : null;
+    const daily = p.dailyFirstYield && !(S().pointUses[p.id] > 0) ? p.dailyFirstYield : null;
+    const bonus = pending || daily;
+    const yields = (p.once && S().flags['pt_'+p.id] ? [] : (p.yields || [])).filter(y => y.id !== bonus?.id);
+    if (bonus) yields.push({id:bonus.id, min:bonus.qty, max:bonus.qty});
+    const output=yields.map(y=>`${ITEMS[y.id].name}×${y.min??1}${y.max!==undefined&&y.max!==y.min?'–'+y.max:''}${y.chance?'（'+Math.round(y.chance*100)+'%）':''}`).join('、');
     return [`使用工具：${tool?ITEMS[tool.id].name+(tool.source==='bag'?'':'（仓库）'):'徒手'}`,
       `预计耗时：${Game.pointMinutes(p)} 分钟 · 消耗体力：${Game.pointEnergy(p)}`,
       output?`基础产出：${output}`:'',p.daily?`今日剩余：${Math.max(0,p.daily-(S().pointUses?.[p.id]||0))} 次`:'',

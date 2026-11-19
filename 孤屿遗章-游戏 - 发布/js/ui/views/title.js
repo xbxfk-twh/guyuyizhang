@@ -43,6 +43,7 @@ function showTitle() {
             <button id="btn-meta">历代遗章</button>
             <button id="btn-bak">备份·读档</button>
             <button id="btn-set">菜单${NoticeBadges.dot('menu')}</button>
+            <a class="title-coop" href="coop.html">双人试验</a>
           </nav>
         </div>
         <div id="modal"></div>

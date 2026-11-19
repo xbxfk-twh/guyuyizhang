@@ -106,7 +106,7 @@ const Game = (() => {
   const tradingRules=TradingRules.create({
     gameState, log, change, invCount, hasItem, notifyBagFull, addItem, removeItem, gainItem, seasonInfo,
     isNight, diaryAdd, supplyCount, takeSupply, merchantSupplySites, merchantSellCount, materialSupplySites,
-    matsOk, takeMats, fitsInBag, SHELL_PER_COIN,
+    matsOk, takeMats, fitsInBag, persistPair, metaState, SHELL_PER_COIN,
     SHELL_FOR_COIN
   });
   const productionRules=ProductionRules.create({
@@ -1307,7 +1307,7 @@ function change() {
     rollTravelAmbush, roadAmbushChance, roadAmbushPool, ROAD_AMBUSH_MIN_DANGER,
     startFight, fightAction, useItemInFight, pointReason, furnSlotFull, furnSlotInfo, furnTakesSlot, houseSlots, bedStamBonus, furnitureUsed, tailorGifted, farmLiveSlots, farmLiveUsed, farmLiveFree, farmLiveInfo, FARM_LIVESTOCK_IDS,
     laochaoAvailable, signalFlag, doFirstTrade, completeCommission, commissions, commissionDone, commissionAccepted,
-    sellToMerchant, buyFromMerchant, priceOf, fishmanDeals, fishmanBarter, fishmanTraded,
+    sellToMerchant, buyFromMerchant, priceOf, fishmanDeals, fishmanBarter, fishmanTraded, vendorDevice: tradingRules.vendorDevice, buyVendorDevice: tradingRules.buyVendorDevice,
     checkEndingActions, doEnding, doPeakRitual, settleEnding, collection, currentObjective, metaState, identityUnlocked, unlockIdentity, metaBuy, metaBonus, metaSettle, metaNum, metaLast, reviveInfo, reviveToday, redeemCode, mailboxList, claimMailbox, mailboxCount, batchTipSeen, markBatchTipSeen, devEnabled, unlockDev, hasRelic, hpMax, gainRandomRelic, durOf, durMaxOf, sleepQuality, sleepForecast, unlockRelicSlot, equipRelic, unequipRelic, relicSlotCost, atlVendorInfo, buyRelicFromVendor, lotusLeft, backupPoints, slotList, extraSlotUnlocked, buyExtraSlot, buyBackupPoint, backupSlot, loadSlot, delSlot, exportCode, transferOwner, inspectCode, importCode, metaReload, raidDay, acceptCommission, sharpen, repairWeapon, nameWeapon, repairMatOf, wNameOf, selectedTool, autoToolsEnabled, setAutoTools, pointMinutes, craftRecipe, craftMax, craftMinutes, craftBatch, repairPistol, fixBrokenPistol, travelCost, zoneSwimCost, equipTool, unequipTool, capUsed, unequip, newGame, achCheck, achClaim, achUnlocked, achState,
     // 技能树（B1）
     skillTreeInfo, skillUpTrunk, skillNodeLearn, skillNodeForget, nodeLv, trunkPicks, trunkLv, nodeCheck, nodeIsLeaf, nodeForgetGain, craftIn,

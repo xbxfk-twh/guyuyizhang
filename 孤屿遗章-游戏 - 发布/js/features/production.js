@@ -852,7 +852,7 @@ function buildAtlantisFurniture(fid) {
   }
 
 const DIVE_REPAIR_MATS = {
-    diveSuit:{deepCoral:4,resin:3},
+    diveSuit:{deepCoral:3,cloth:1},
     diveSuit2:{deepCoral:4,sourceBar:1,tideSteel:1},
     diveMask:{deepCoral:2,sourceOre:2},
   };

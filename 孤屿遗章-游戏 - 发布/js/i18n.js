@@ -157,7 +157,7 @@ Object.assign(DICTIONARY, {
   '去沉船墓地找神秘人鱼，给她看疏散名单。':'Show the evacuation list to the merfolk in the Ship Graveyard.',
   '回山顶解开传送石的符文。':'Return to the summit to decipher the portal runes.',
   '去交易机查一查城市的旧账。':'Check the vending machine for the old city accounts.',
-  '看看古匠工坊旁的铜板。':'Read the copper plate beside the artisan’s workshop.',
+  '看看旧军械工坊旁的铜板。':'Read the copper plate beside the old armory workshop.',
   '探索深水圣殿前，备好防水强光潜水手电。':'Get a strong diving light before exploring the Sanctum.',
   '找齐四块深殿核心。珊瑚生长带、沉船墓地、海沟和深渊裂谷各有一块。':'Find four Sanctum cores, one each in the Coral Belt, Ship Graveyard, Trench, and Abyssal Rift.',
   '带四块深殿核心去深水圣殿的守护者祭坛。':'Bring the four Sanctum cores to the guardian altar in the Sanctum.',
@@ -185,6 +185,29 @@ Object.assign(DICTIONARY, {
   '他把两张图分开，指出旧拓印上圈住的南岸。':'He separates the two charts and points to the south shore circled on the old rubbing.',
   '「这张管接人。船靠到这儿，就算交班。我姐许遥那晚带着它出海。你要去对岸，看一眼遗迹的石板。」':'“This one is for rescue. When a boat reaches this point, you hand people over. My sister Xu Yao took it out that night. If you go across, look at the tablet in the ruins.”',
   '王座上的人睁开眼。「传令，封门。一个人也不准出去。」':'The man on the throne opens his eyes. “Give the order. Seal the gates. No one leaves.”'
+});
+Object.assign(DICTIONARY, {
+  '古代源能机芯':'Ancient Source Regulator',
+  '从古代机械中拆下的能量调节机芯，用于精炼源质锭和制造源能器材。':'An energy regulator salvaged from ancient machinery, used to refine source ingots and build source-powered equipment.',
+  '轻微污染的源矿':'Tainted Source Ore',
+  '裂谷矿脉表面沾着黑色沉积。可在源质熔炉用淡水洗矿，2 份污染矿换 1 份源矿。':'Black deposits coat the ore. Wash two pieces with fresh water at the Source Forge to recover one clean ore.',
+  '清洗污染源矿':'Wash tainted ore',
+  '废弃泵房':'Abandoned Pump Room',
+  '泵房配电柜里还留着维修用的机芯与燃料。':'The switch cabinet still holds spare regulators and fuel.',
+  '去废弃泵房，找维修用的古代源能机芯和源矿。':'Look for spare regulators and source ore in the abandoned pump room.',
+  '旧军械工坊':'Old Armory Workshop',
+  '城防器材箱':'City Defense Supply Crate',
+  '旧淡化罐':'Old Desalination Tank',
+  '闸门检修柜':'Sluice Service Cabinet',
+  '检修柜里放着一件可用的机芯。':'A working regulator is tucked away in the service cabinet.',
+  '密室的控制台还嵌着待换的机芯与晶石。':'The chamber console still holds spare regulators and crystals.',
+  '每日限购 1 件':'Limit one per day',
+  '今日的机芯已经售出。':'Today’s regulator has sold out.',
+  '请到沉没之城的交易机购买。':'Visit the vending machine in the Sunken City.',
+  '双人试验':'Co-op trial',
+  '一键归仓':'Store surplus',
+  '按类别排序':'Sort by type',
+  '已按类别排序':'Sorted by type'
 });
 const Locale = (()=>{
   const KEY='guyuyizhang_language', supported=['en','zh'];

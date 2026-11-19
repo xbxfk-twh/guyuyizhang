@@ -39,6 +39,7 @@ function iconImage(src, classes='') {
     return `<img class="item-icon${classes}" width="32" height="32" src="${src}" alt="" onerror="this.style.display='none'">`;
   }
 function itemIcon(id) {
+    if(id==='taintedSourceOre') return `<span class="item-icon tainted-ore" aria-hidden="true">${itemIcon('sourceOre')}<small>染</small></span>`;
     if(id==='lantern')return iconImage('assets/img/items/lantern-woodcut.png');
     if(['bread','flour'].includes(id))return iconImage(`assets/img/items/${id}-cut-v2.webp`);
     if(id==='blackGreatSword')return iconImage('assets/img/items/blackGreatSword.png');

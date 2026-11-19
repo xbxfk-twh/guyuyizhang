@@ -90,7 +90,7 @@ console.log('\n【重要修复】');
 ck('死亡后继续游戏会清掉结算状态（结局按钮不再消失）', /function continueRun\(\)/.test(GAME) && /if \(gameState\.run\.ending\) gameState\.run\.ending = undefined;/.test(GAME) && /Game\.continueRun\(\)/.test(UI));
 ck('山顶祭坛热点会重新亮起 + 可直接举行仪式', /function altarReady\(p\)/.test(GAME) && /ritualReady/.test(UI) && /祭坛 · 举行仪式/.test(UI));
 ck('山顶祭坛：领奖才标记已搜刮（不会一点开就永久作废）',
-   /if \(p\.once && p\.type !== 'adventure'\) gameState\.run\.flags\['pt_'\+p\.id\] = 1;/.test(GAME) && /function onceRewardMissing\(p\)/.test(GAME) && /祭坛 · 取回遗物/.test(UI));
+   /if \(p\.once && p\.type !== 'adventure' && p\.type !== 'gather'\) gameState\.run\.flags\['pt_'\+p\.id\] = 1;/.test(GAME) && /function onceRewardMissing\(p\)/.test(GAME) && /祭坛 · 取回遗物/.test(UI));
 ck('存档日志截到 200 条（存档瘦身）', /const LOG_KEEP = 200;/.test(GAME) && /copy\.log\.length = LOG_KEEP/.test(GAME));
 ck('随机事件条件改成"全部满足"（雾天漏雨 bug 已修）',
    /function randomEventPool\(sceneId\)/.test(GAME) && /if \(c\.rain && !\(gameState\.run\.weather === 'rain' \|\| gameState\.run\.weather === 'storm'\)\) return false;/.test(GAME) && /if \(c\.houseBelow && !\(gameState\.run\.buildings\.house < c\.houseBelow\)\) return false;/.test(GAME));

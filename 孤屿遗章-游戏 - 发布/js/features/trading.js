@@ -102,7 +102,7 @@ const FISHMAN_DEALS = [
     { id:'armor', item:'bpSourceArmor', name:'源质重甲图纸', need:{ goldIngot:5, shipPlate:3 } },
     // relic:1 表示换的是**神物**（发到 S.relics，不是背包物品）—— 亚特兰蒂斯之种的游戏内交换来源（商城也可购买）
     { id:'seed',  relic:'atlantisSeed', name:'神物 · 亚特兰蒂斯之种', need:{ goldIngot:8, anctDevice:3, deepCoral:6 } },
-    { id:'storage', capacity:20, name:'海底储物箱扩容 · +20格', need:{ goldIngot:12, sourceBar:8, tideSteel:6 } },
+    { id:'storage', capacity:20, name:'海底储物箱扩容 · +20格', need:{ shipPlate:5, deepCoral:8, tideSteel:2 } },
   ];
 
 function fishmanTraded() { return (gameState.run.atlantis && gameState.run.atlantis.fishmanTraded) || {}; }
@@ -153,6 +153,40 @@ function fishmanBarter(dealId) {
     log('她轻声低语，鳞片在暗处闪了闪。', 'sys');
     change();
     return { ok:true };
+  }
+
+function vendorDevice() {
+    const run = gameState.run;
+    const price = 360;
+    return { price, sold: run.atlantis?.deviceSoldDay === run.day };
+  }
+
+function buyVendorDevice() {
+    const run = gameState.run;
+    const id = 'anctDevice';
+    const item = ITEMS[id].name;
+    if (run.scene !== 'atlantis' || run.zone !== 'city' || run.combat || run.death || run.ending) {
+      return {ok:false, reason:'请到沉没之城的交易机购买。'};
+    }
+    const {price, sold} = vendorDevice();
+    if (sold) return {ok:false, reason:'今日的机芯已经售出。'};
+    if (invCount('beibi') < price) return {ok:false, reason:`需要 ${price} 贝壳币。`};
+    if (!fitsInBag({[id]:1})) return {ok:false, reason:'背包装不下，请先腾出一格。'};
+    const next = JSON.parse(JSON.stringify(run));
+    const meta = JSON.parse(JSON.stringify(deps.metaState()));
+    next.atlantis = next.atlantis || {};
+    next.atlantis.deviceSoldDay = next.day;
+    next.inv.beibi -= price;
+    if (!next.inv.beibi) delete next.inv.beibi;
+    next.inv[id] = (next.inv[id] || 0) + 1;
+    next.seen[id] = 1;
+    meta.seenItems[id] = 1;
+    const result = deps.persistPair(next, meta, false);
+    if (result.ok) {
+      log(`购入 ${item}×1，花费 ${price} 贝壳币。`, 'good');
+      change();
+    }
+    return result;
   }
 
 function laochaoAvailable() { return gameState.run.scene === 'camp' && gameState.run.laochao.arrived && !isNight(); }
@@ -257,7 +291,7 @@ function exchangeGold(n) {
     change();
     return { ok:true, amount };
   }
-    return Object.freeze({seasonPriceMul,fameDisc,priceOf,priceJitter,sellToMerchant,buyFromMerchant,fishmanTraded,fishmanDeals,fishmanBarter,laochaoAvailable,signalFlag,doFirstTrade,acceptCommission,commissions,commissionKey,commissionDone,commissionAccepted,completeCommission,grantReward,exchangeShells,exchangeGold});
+    return Object.freeze({seasonPriceMul,fameDisc,priceOf,priceJitter,sellToMerchant,buyFromMerchant,vendorDevice,buyVendorDevice,fishmanTraded,fishmanDeals,fishmanBarter,laochaoAvailable,signalFlag,doFirstTrade,acceptCommission,commissions,commissionKey,commissionDone,commissionAccepted,completeCommission,grantReward,exchangeShells,exchangeGold});
   }
   return Object.freeze({create});
 })();

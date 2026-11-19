@@ -174,6 +174,7 @@ section('2. 一次性点位 + 守卫怪（玩家反馈：核心被怪顶掉）')
   for (const id of DC) S2.flags['pt_' + id] = 1;
   G.save(); G.load();
   ck('旧存档：被顶掉的 4 个核心点会自动退回', DC.filter(id => G.S().flags['pt_' + id]).length === 0);
+  G.newGame('fisher', 'normal');
   const S3 = G.S(); S3.inv.deepCore = 2;
   for (const id of DC) S3.flags['pt_' + id] = 1;
   G.save(); G.load();
@@ -456,7 +457,9 @@ section('6. 亚克兰蒂斯出入与潜水消耗');
   ck('抵达礁石栖息地', S.scene === 'atlantis' && S.zone === 'habitat');
   const d0 = G.durOf('diveSuit'), o0 = G.durOf('diveMask');
   G.addMin(120);
-  ck('潜水装备随时间掉耐久', G.durOf('diveSuit') < d0 && G.durOf('diveMask') < o0);
+  ck('礁石栖息地保护潜水装备', G.durOf('diveSuit') === d0 && G.durOf('diveMask') === o0);
+  S.zone = 'city'; G.addMin(60);
+  ck('水下探索随时间消耗潜水装备', G.durOf('diveSuit') < d0 && G.durOf('diveMask') < o0);
   const boss = atlPoint('atl_boss');
   ck('Boss 需要 4 块深殿核心', boss && boss.needCore === 4);
 }
@@ -561,9 +564,9 @@ section('6d. 手枪 / 扩建仓库 / 重开身份');
     G.startFight({ id:'d', name:'木桩', hp:999999, atk:0, def:0, spd:1, traits:[], drops:[] }, true);
     ck('弓开局也不自动射箭（箭 9 → 9）', G.invCount('eagleArrow') === 9, '剩 ' + G.invCount('eagleArrow'));
   }
-  // 源能子弹：2 发一份，材料不变；手枪伤害保持 50
+  // 源能子弹以常见源矿生产，手枪伤害保持 50
   const rbul = RECIPES.find(r => r.id === 'r_bullet');
-  ck('源能子弹改为 2 发一份', rbul.out.bullet === 2 && rbul.in.energyCrystal === 1 && rbul.in.gunpowder === 1 && rbul.in.ironingot === 1, JSON.stringify(rbul.out) + ' ← ' + JSON.stringify(rbul.in));
+  ck('每份源矿可加工 3 发源能子弹', rbul.out.bullet === 3 && rbul.in.sourceOre === 1 && rbul.in.gunpowder === 1 && rbul.in.ironingot === 1, JSON.stringify(rbul.out) + ' ← ' + JSON.stringify(rbul.in));
   ck('手枪伤害保持 50', ITEMS.pistol.atk === 50);
   // 批量购买"点了没反应"：价格必须当天固定，且买不起要自动降级而不是拒绝
   G.newGame('fisher', 'normal');
@@ -734,7 +737,7 @@ section('6e. 数据安全（魂点/成就/存档）与难度调整');
       if (!block.includes('bindPress')) bad.push(name);
     }
     ck('八条交易方向都支持长按批量', bad.length === 0, bad.join('、'));
-    ck('批量售卖会回到正确的商店界面', /lk === 'TOWN' \? 'town'/.test(UI) && /ATL_SHOP/.test(UI));
+    ck('批量售卖会回到正确的商店界面', /Game\.sellToMerchant\(cfg2\.item,[^;]+;\s*backModal\(\)/.test(UI) && /ATL_SHOP/.test(UI));
   }
   // 晴天概率提高
   {
@@ -2489,7 +2492,7 @@ section('7k. 批量购买全量检查（每店每件货）');
   ck('买/卖按钮都接了长按批量（八条通道齐全）', (UI.match(/bindPress\(b, doTap, doLong\)/g) || []).length >= 8);
   ck('图纸长按也会弹批量条（max 1），不再"长按没反应"', (UI.match(/kind:'buy', item:[^,]+, shop:[^,]+, [^}]*max:1 \}/g) || []).length >= 3, (UI.match(/max:1 \}/g) || []).length + ' 处');
   ck('批量条显示单价与实时合计', /id="batchn-total"/.test(UI) && /cfg\._unit/.test(UI));
-  ck('买完回到正确商店界面（交易机不再跳去盐镇）', /shopBuyList\(cfg2\.shop\)/.test(UI) && /key === 'ATL' \? 'atlTrade'/.test(UI));
+  ck('买完回到正确商店界面（交易机不再跳去盐镇）', /shopBuyList\(cfg2\.shop\)/.test(UI) && /Game\.buyFromMerchant\(cfg2\.item,[^;]+;\s*backModal\(\)/.test(UI));
 }
 
 section('7l. 牧场（鸡舍/羊圈）与草地陷阱');
@@ -2777,7 +2780,7 @@ section('7n. 图鉴口径（总数 = 列表）与死条目体检');
   // 93 → 96：2026-09-24 新增三张食谱图纸（bpStew / bpOmelette / bpCake，对岸美食家卖）。
   // 96 → 97：2026-09-25 新增「积雪」；97 → 98：同一天新增「面粉」（小麦的中间产物）（cat:mat，冬天河畔采雪点产出，可烧成淡水）。
   // 这个数是故意写死的：以后再加资源类物品，会在这里提醒你"图鉴总数变了，确认一下是不是有意的"。
-  ck('资源总数与列表同源（退役高炉图纸后 105 项）', c.resTotal === G.resIds().length && c.resTotal === 105, `总数=${c.resTotal}`);
+  ck('资源总数与列表同源（新增污染源矿后 106 项）', c.resTotal === G.resIds().length && c.resTotal === 106, `总数=${c.resTotal}`);
   // 玩家要求把那行说明删掉（标签上"已收录/总数"本身就够直观）。
   // ⚠️ 只看代码、剥掉注释：文件里留了句注释说明这事，别被它自己绊倒。
   {
@@ -3433,7 +3436,7 @@ section('7o. 大地图：铺满 + 可上下拖动 + 热点不重叠');
   // 于是 adventure() 一进去就读到自己刚打的标记，直接跳到"这里已被搜刮"，遗物永远拿不到。
   {
     ck('一次性 adventure 点位不再提前打标记（否则奖励永远拿不到）',
-       /if \(p\.once && p\.type !== 'adventure'\) gameState\.run\.flags\['pt_'\+p\.id\] = 1;/.test(_GAME_SRC) &&
+       /if \(p\.once && p\.type !== 'adventure' && p\.type !== 'gather'\) gameState\.run\.flags\['pt_'\+p\.id\] = 1;/.test(_GAME_SRC) &&
        /const markDone = \(\) => \{ if \(p\.once\) gameState\.run\.flags\['pt_' \+ p\.id\] = 1; \};/.test(_GAME_SRC));
     ck('三个一次性冒险点的领奖回调都调了 markDone',
        (_GAME_SRC.match(/markDone\(\);/g) || []).length >= 3, '调用 ' + (_GAME_SRC.match(/markDone\(\);/g) || []).length + ' 处');
@@ -3730,9 +3733,9 @@ section('11. 玩家反馈（蛛巢白扣体力 / 救了四个小满 / 双持不�
     }
     // ⑤ 珍珠之心：源能水晶爆率 0.3 → 0.5
     {
-      const pc = SCENES.find(s => s.id === 'atlantis').zones.pearlCave.points.find(p => p.id === 'atl_pearlheart');
+      const pc = SCENES.find(s => s.id === 'atlantis').zones.abyss.points.find(p => p.id === 'atl_sourcecore');
       const ec = pc && pc.yields.find(y => y.id === 'energyCrystal');
-      ck('珍珠之心的源能水晶爆率 = 50%', !!ec && ec.chance === 0.5, ec ? ('chance=' + ec.chance) : '没找到');
+      ck('深渊源晶簇每次必出一枚源能晶石', !!ec && !ec.chance && ec.min === 1 && pc.daily === 1);
     }
   // ③ 一次性点位必须真的只做一次
   ck('救小满成功会打一次性标记（不再"救了四个小满"）', /gameState\.run\.flags\.xiaoman = 1; markDone\(\)/.test(_GAME_SRC));
@@ -4535,8 +4538,8 @@ section('9g. 玩家反馈四条（材料显示/精算退款/弓的先手吃掉�
         Math.random = rr;
         ck('★ 打赢深海哨兵给 5 点战斗经验', Math.round(G.S().exp.combat - e0) === 5, '获得 ' + Math.round(G.S().exp.combat - e0));
       }
-      ck('★ 深海哨兵只在照明 ≥2 的海底区域出现（代码里有 lightLevel() >= 2 的门槛）',
-         /lightLevel\(\) >= 2 && ENEMIES\.atlSentry/.test(_GAME_SRC));
+      ck('★ 深海哨兵以海沟、深渊和圣殿为采集伏击区',
+         /\['trench','abyss','sanctum'\]\.includes\(gameState\.run\.zone\) && ENEMIES\.atlSentry/.test(_GAME_SRC));
     }
   }
   {

@@ -894,9 +894,12 @@ function storeAllWarehouse() {
     )
       return { ok: false, moved: 0, reason: '现在无法存入仓库。' };
     let moved = 0;
-    for (const id of Object.keys(deps.state.run.inv)) {
+    const stored = warehouseState().inv;
+    const ids = Object.keys(deps.state.run.inv).sort((a, b) => Number(!!stored[b]) - Number(!!stored[a]));
+    for (const id of ids) {
       const it = ITEMS[id];
       if (
+        ['deepCore', 'diveMask', 'goggles', 'lightWeak', 'lightStrong'].includes(id) ||
         ['currency', 'bp', 'food', 'drink', 'med'].includes(it.cat) ||
         it.alwaysFit
       )

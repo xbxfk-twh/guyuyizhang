@@ -27,8 +27,10 @@ function repairModal() {
   }
 
 function atlTradeModal() {
+    const device = Game.vendorDevice();
     let html = `<div class="modal-title">遗失的交易机</div>${walletBar()}
       <div class="story-links"><button class="mini-btn" data-story="ledger">查看城市账目</button><button class="mini-btn" data-story="receipt">检查取货口</button></div>`;
+    html += `<div class="help-list"><div class="help-item"><b>${ITEMS.anctDevice.name} ×1</b><span>${device.price} 贝壳币 · 每日限购 1 件</span><button class="mini-btn" data-adevice ${device.sold || Game.invCount('beibi') < device.price ? 'disabled' : ''}>${device.sold ? '今日售罄' : '购买'}</button></div></div>`;
     html += '<div class="modal-title" style="margin-top:8px">卖出（换贝壳币）</div><div class="help-list">';
     let any = false;
     for (const e of deps.ATL_SHOP) { const q = Game.invCount(e.id); if (q > 0) { any = true; html += `<div class="help-item"><b>${ITEMS[e.id].name}×${q}</b><span>${Game.priceOf(e.base, true, e.id)} 贝壳币 / 个</span><button class="mini-btn" data-asell="${e.id}">卖 1</button></div>`; } }

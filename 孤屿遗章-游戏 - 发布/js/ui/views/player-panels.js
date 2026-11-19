@@ -207,10 +207,17 @@ function renderInventory(isWarehouse=false, paneOnly=false) {
     const w=isCellar?Game.cellarState():isWarehouse?Game.warehouseState():null,inventory=w?w.inv:st.inv,category=isCellar?'all':isWarehouse?deps.warehouseCat:deps.invCat;
     const records=id=>w?(isCellar?S().cellar:Game.atlantisCamp&&w.site==='sea'?Game.atlantisCamp().warehouse:S().warehouse)?.items.filter(x=>x.id===id)||[]:[];
     const durAt=(id,i=0)=>w?(records(id)[i]?.dur??null):Game.durOf(id,i),maxAt=(id,i=0)=>w?(records(id)[i]?.maxDur||DURA[id]):Game.durMaxOf(id,i);
+    let sorted = false;
+    try { sorted = localStorage.getItem('guyuyizhang_inventory_sort') === '1'; } catch (_) {}
     let ids=Object.keys(inventory);
+    if (sorted) {
+      const order = cat => CATS.findIndex(([id]) => id === catOf(cat));
+      ids.sort((a,b) => order(ITEMS[a].cat) - order(ITEMS[b].cat) || ITEMS[a].name.localeCompare(ITEMS[b].name, 'zh-CN'));
+    }
+    const sort = `<button class="tab" data-sort-inv aria-pressed="${sorted}">${sorted ? '已按类别排序' : '按类别排序'}</button>`;
     if (category === 'tool') ids = ids.filter(id => catOf(ITEMS[id].cat) === 'tool' || !!(ITEMS[id] && ITEMS[id].tool));   // 匕首这类"能当工具使"的也归到工具页
     else if (category !== 'all') ids = ids.filter(id => catOf(ITEMS[id].cat) === category);
-    let html = `<div class="work-side inventory-side"><div class="inventory-categories">` + (isCellar?[['all','食物储藏']]:CATS).map(([k,n])=>`<button class="tab ${category===k?'active':''}" data-invcat="${k}" data-invsource="${isWarehouse?'warehouse':'bag'}">${n}</button>`).join('') + `</div>${isCellar?'<div class="inventory-actions"><button class="tab" data-cellar-deposit>存入食物</button><button class="tab" data-bag-open>背包</button></div>':isWarehouse?'<div class="inventory-actions"><button class="tab" data-warehouse-auto><span>自动</span><span>存入</span></button></div>':''}</div><div class="work-content"><div class="work-scroll"><div class="inv-grid">`;
+    let html = `<div class="work-side inventory-side"><div class="inventory-categories">` + (isCellar?[['all','食物储藏']]:CATS).map(([k,n])=>`<button class="tab ${category===k?'active':''}" data-invcat="${k}" data-invsource="${isWarehouse?'warehouse':'bag'}">${n}</button>`).join('') + `</div>${isCellar?'<div class="inventory-actions"><button class="tab" data-cellar-deposit>存入食物</button><button class="tab" data-bag-open>背包</button></div>':isWarehouse?`<div class="inventory-actions"><button class="tab" data-warehouse-auto>自动存入</button>${w.capacity > 0 ? '<button class="tab" data-warehouse-all>一键归仓</button>' : ''}</div>`:`<div class="inventory-actions">${sort}</div>`}</div><div class="work-content"><div class="work-scroll"><div class="inv-grid">`;
     if (!isWarehouse && Game.loadPenalty().excess>0) html += `<div class="inventory-overload" style="grid-column:1/-1">带了过多的物品，移动体力消耗增加${Game.loadPenalty().percent}%。</div>`;
     if (!ids.length) html += '<div class="hint">这个分类下没有物品。</div>';
     for (const id of ids) {

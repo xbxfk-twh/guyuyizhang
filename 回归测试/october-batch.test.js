@@ -71,7 +71,7 @@ check('季度委托当季稳定、换季刷新、旧季度不可再交', () => {
 });
 check('鱼人价格提升，金锭能出售给盐镇铁匠', () => {
   const deals=G.fishmanDeals();
-  assert.deepEqual(deals.map(x=>x.need.goldIngot),[4,5,8,12]);
+  assert.deepEqual(deals.filter(x=>x.id!=='storage').map(x=>x.need.goldIngot),[4,5,8]);
   assert.ok(TOWN.smith.buy.some(x=>x.id==='goldIngot'));
   assert.ok(TOWN.informant.buy.some(x=>x.id==='sourceOre'));
   assert.ok(TOWN.informant.buy.some(x=>x.id==='sourceBar'));
@@ -106,8 +106,9 @@ check('全彩包图集覆盖全部物品且资源文件齐全', () => {
   const parse=name=>new Function('return '+ui.match(new RegExp('const '+name+' = ([\\s\\S]*?);'))[1])();
   const sheets=parse('COLOR_INVENTORY_SHEETS');
   assert.ok(fs.existsSync(path.join(root,'assets/img/items/blackGreatSword.png')),'玄铁大剑独立版画素材存在');
-  const covered=new Set([...Object.values(sheets).flat(),...parse('EQUIPMENT_ATLAS'),...parse('COLOR_ITEM_ATLAS'),...Object.keys(parse('ALWAYS_COLOR')),'divineArmor','nightmareSoul','nightmareSoul2','nightmareSoul3','reedPack','leatherPack','expeditionPack','blackGreatSword','lantern']); // 三级魂魄共用独立版画素材，名称区分阶数。
+  const covered=new Set([...Object.values(sheets).flat(),...parse('EQUIPMENT_ATLAS'),...parse('COLOR_ITEM_ATLAS'),...Object.keys(parse('ALWAYS_COLOR')),'divineArmor','nightmareSoul','nightmareSoul2','nightmareSoul3','reedPack','leatherPack','expeditionPack','blackGreatSword','lantern','taintedSourceOre']); // 三级魂魄共用独立版画素材，名称区分阶数。
   assert.ok(fs.statSync(path.join(root,'assets/img/items/lantern-woodcut.png')).size>1000);
+  assert.match(ui, /if\(id==='taintedSourceOre'\)[^\n]+itemIcon\('sourceOre'\)/);
   assert.deepEqual(Object.keys(ITEMS).filter(id=>!covered.has(id)),[]);
   for(const id of ['reedPack','leatherPack','expeditionPack'])assert.ok(fs.statSync(path.join(root,'assets/img/items',id+'.png')).size>100, id+'独立背包图标存在');
   for(const id of ['divinePack','divineSuperPack'])assert.ok(fs.statSync(path.join(root,'assets/img/items-accent',id+'.png')).size>1000,id+'独立彩图存在');
@@ -169,10 +170,10 @@ check('第十抽保证出奖，中奖后余额仍保留', () => {
   assert.equal(r.ok,true);assert.ok(r.reward);assert.equal(r.reward.pity,true);
   assert.equal(G.lotteryState().credit,4900);assert.equal(G.lotteryState().misses,0);assert.equal(G.invCount('beibi'),0);
 });
-check('鱼人昂贵仓库交易只扩容一次并随存档保留', () => {
+check('鱼人打捞材料仓库交易只扩容一次并随存档保留', () => {
   const s=fresh(); s.capacity=999;
   const deal=G.fishmanDeals().find(d=>d.id==='storage');
-  assert.deepEqual(deal.need,{goldIngot:12,sourceBar:8,tideSteel:6});
+  assert.deepEqual(deal.need,{shipPlate:5,deepCoral:8,tideSteel:2});
   s.scene='atlantis';s.zone='habitat';G.atlantisCamp().furniture.seaStorage1=true;const islandBefore=G.warehouseCapacity('island');
   const before=G.warehouseCapacity();
   for(const [id,n] of Object.entries(deal.need)) s.inv[id]=n;

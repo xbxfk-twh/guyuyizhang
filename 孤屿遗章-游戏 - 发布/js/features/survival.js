@@ -86,9 +86,9 @@ function addMin(m) {
     const endHour = Math.floor(gameState.run.minute / 60);
     const hoursPassed = crossed * 24 + (endHour - startHour);
     for (let i = 0; i < hoursPassed; i++) HOUR_EFFECTS(startTick + firstHourAfter + i * 60);
-    // 亚特兰蒂斯：潜水服/氧气罩耐久消耗（礁石栖息地减半）
-    if (gameState.run.scene === 'atlantis' && hoursPassed > 0) {
-      const step = (gameState.run.zone === 'habitat') ? 2 : 1;
+    // 亚特兰蒂斯：潜水具只在礁石栖息地之外磨损
+    if (gameState.run.scene === 'atlantis' && gameState.run.zone !== 'habitat' && hoursPassed > 0) {
+      const step = 1;
       gameState.run._diveAcc = (gameState.run._diveAcc || 0) + hoursPassed;
       while (gameState.run._diveAcc >= step) {
         gameState.run._diveAcc -= step;

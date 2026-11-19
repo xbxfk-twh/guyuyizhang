@@ -53,17 +53,17 @@ try{
     const y=id=>atlPoint(id).yields;
     const src=y('atl_source');
     if(JSON.stringify(src.find(x=>x.id==='sourceOre'))!==JSON.stringify({id:'sourceOre',min:1,max:2})) throw new Error('沟壁源矿错');
-    if(JSON.stringify(src.find(x=>x.id==='tideSteel'))!==JSON.stringify({id:'tideSteel',min:1,max:1,chance:0.35})) throw new Error('沟壁潮鸣钢错');
+    if(src.some(x=>x.id==='tideSteel')) throw new Error('沟壁不应分散高压锻层产出的潮鸣钢');
     const dark=y('atl_dark');
-    if(JSON.stringify(dark.find(x=>x.id==='sourceOre'))!==JSON.stringify({id:'sourceOre',min:1,max:2})) throw new Error('无光源矿错');
-    if(JSON.stringify(dark.find(x=>x.id==='tideSteel'))!==JSON.stringify({id:'tideSteel',min:1,max:2,chance:0.6})) throw new Error('无光潮鸣钢错');
+    if(dark.some(x=>x.id==='sourceOre') || !dark.some(x=>x.id==='taintedSourceOre'&&x.min===1&&x.max===2)) throw new Error('无光深渊应产污染源矿');
+    if(!dark.some(x=>x.id==='tideSteel'&&x.min===1&&x.max===2&&!x.chance)) throw new Error('无光潮鸣钢错');
     const coral=y('atl_coral');
     if(JSON.stringify(coral.find(x=>x.id==='deepCoral'))!==JSON.stringify({id:'deepCoral',min:1,max:2})) throw new Error('珊瑚丛深珊瑚错');
-    if(JSON.stringify(coral.find(x=>x.id==='shipPlate'))!==JSON.stringify({id:'shipPlate',min:1,max:1,chance:0.3})) throw new Error('珊瑚丛古船甲片错');
+    if(coral.some(x=>x.id==='shipPlate')) throw new Error('珊瑚丛不应掉甲片');
     const wreck=y('atl_wreck');
-    if(JSON.stringify(wreck.find(x=>x.id==='shipPlate'))!==JSON.stringify({id:'shipPlate',min:1,max:1,chance:0.5})) throw new Error('沉船古船甲片错');
+    if(!wreck.some(x=>x.id==='shipPlate'&&x.min===1&&x.fixed&&!x.chance)) throw new Error('沉船古船甲片错');
     // 其他掉落不变
-    if(!dark.some(x=>x.id==='atlantisCore'&&x.chance===0.2) || !dark.some(x=>x.id==='energyCrystal'&&x.chance===0.5)) throw new Error('无光深渊其他掉落被改');
+    if(!dark.some(x=>x.id==='energyCrystal'&&x.chance===0.5)) throw new Error('无光晶石副产被改');
     if(!wreck.some(x=>x.id==='shipwood') || !wreck.some(x=>x.id==='ironpart'&&x.chance===0.4)) throw new Error('沉船其他掉落被改');
   });
   check('神秘鱼人点位存在且为新加 type（trade）',()=>{

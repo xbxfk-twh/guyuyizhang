@@ -61,6 +61,7 @@ function altarReady(p) {
 
 function onceRewardMissing(p) {
     if (!p || !p.once || !gameState.run.flags['pt_' + p.id]) return false;
+    if (p.firstYield && !gameState.run.flags['harvestFirst_'+p.id]) return true;
     if (p.id === 'peak_altar') return !hasItem('relic') && !gameState.run.flags.ended_C;   // 没遗物 = 当时没拿走
     return false;
   }
@@ -242,12 +243,13 @@ function doPoint(p) {
 
     // ⚠️ 扣体力/扣当日次数统一走这里 —— "确认这次真能干成"之后才调。
     //    玩家反馈"不满足条件点进不去、体力却照扣"，根子就是有些分支在下面扣完钱才 return。
+    const firstUseOfDay = !(gameState.run.pointUses[p.id] > 0);
     const pointCharge = () => {
       gameState.run.pointUses[p.id] = (gameState.run.pointUses[p.id] || 0) + 1;
       // ⚠️ 一次性点位**不能在这里**打标记：adventure 类点位是先弹窗、等玩家选完才给奖励，
       // 提前打标记会让 adventure() 读到"自己刚打上的 pt_ 标记"而直接跳到"这里已被搜刮"分支
       // （山顶祭坛就是这样永远拿不到遗物的）。adventure 类由 reward 回调里的 markDone() 负责打标记。
-      if (p.once && p.type !== 'adventure') gameState.run.flags['pt_'+p.id] = 1;
+      if (p.once && p.type !== 'adventure' && p.type !== 'gather') gameState.run.flags['pt_'+p.id] = 1;
       st.stamina -= en;
       const dm2 = (DIFFICULTIES[gameState.run.difficulty] && DIFFICULTIES[gameState.run.difficulty].drainMul) || 1;
       st.hunger = Math.max(0, st.hunger - Math.round(4 * dm2));
@@ -329,8 +331,8 @@ function doPoint(p) {
         if (rabbit && chance(rabbit) && ENEMIES.rabbit) ambush = ENEMIES.rabbit;
         else if (pool.length && chance(amb)) ambush = ENEMIES[pool[Math.floor(deps.rng.random() * pool.length)]];
         if (!ambush && p.risk && ENEMIES[p.risk] && chance(0.25 * protection)) ambush = ENEMIES[p.risk];
-        // 海底远程精英（深海哨兵）：只在中层黑暗及以上（照明 ≥2）出没，作者 2026-09-19
-        if (!ambush && gameState.run.scene === 'atlantis' && lightLevel() >= 2 && ENEMIES.atlSentry && chance(0.12)) ambush = ENEMIES.atlSentry;
+        // 海底远程精英只在海沟、深渊和圣殿出没，作者 2026-09-19
+        if (!ambush && gameState.run.scene === 'atlantis' && ['trench','abyss','sanctum'].includes(gameState.run.zone) && ENEMIES.atlSentry && chance(0.12)) ambush = ENEMIES.atlSentry;
       }
       const doHarvest = () => {
       let got = [];
@@ -339,7 +341,15 @@ function doPoint(p) {
       if (p.cond && p.cond.rain && (gameState.run.weather === 'rain' || gameState.run.weather === 'storm')) weff = 1.0;   // 雨天专属资源(蘑菇等)雨天不扣收益
       if (weff < 1 && gameState.run.weatherWarned !== gameState.run.weather) { gameState.run.weatherWarned = gameState.run.weather; log(`【${WEATHER[gameState.run.weather].name}】干活收益会打折扣（-${Math.round((1 - weff) * 100)}%，雨天专属资源除外）。`, 'warn'); }
       let bagFull = 0;
-      for (const y of p.yields) {
+      const flags = gameState.run.flags;
+      const onceKey = 'pt_'+p.id;
+      const firstKey = 'harvestFirst_'+p.id;
+      const first = p.firstYield && !flags[firstKey] ? p.firstYield : null;
+      const daily = p.dailyFirstYield && firstUseOfDay ? p.dailyFirstYield : null;
+      const bonus = first || daily;
+      const yields = (p.once && flags[onceKey] ? [] : p.yields).filter(y => !bonus || y.id !== bonus.id);
+      if (bonus) yields.push({id:bonus.id,min:bonus.qty,max:bonus.qty,fixed:true});
+      for (const y of yields) {
         if (y.chance && !chance(y.chance)) continue;
         let q = qtyParse(y.min === undefined ? 1 : y.min);
         if (y.max !== undefined) q = rnd(y.min, y.max);
@@ -357,7 +367,9 @@ function doPoint(p) {
         if (y.id === 'wood' && gameState.run.identity === 'woodcutter') q = Math.round(q * 1.5);
         if ((y.id === 'herb') && gameState.run.identity === 'herbalist') q = q * 2;
         // ⚠️ 装不下就不能算"获得"：以前无条件 push 到 got，背包满时日志喊"获得×N"其实没进包
+        if (y.fixed) q = y.min;
         if (gainItem(y.id, q)) {
+          if (first && y.id === first.id) flags[firstKey] = 1;
           const prefix = `${ITEMS[y.id].name}×`, existing = got.findIndex(v => v.startsWith(prefix));
           if (existing >= 0) got[existing] = prefix + (Number(got[existing].slice(prefix.length)) + q);
           else got.push(prefix + q);
@@ -396,6 +408,8 @@ function doPoint(p) {
         if (gainItem(rid, 1)) got.push(`${ITEMS[rid].name}×1`);
         log(`网里还兜着一条罕见的鱼：${ITEMS[rid].name}！`, 'good');
       }
+      if (p.once && !bagFull && got.length) flags[onceKey] = 1;
+      if (p.once && !bagFull && yields.some(y => y.id === 'deepCore')) flags.corePointRecords = 1;
       if (got.length) log(`获得：${got.join('、')}。`, 'good');
       else log('一无所获。', 'warn');
       // 河畔撒网 = 竭泽而渔：这一网之后河湾要空几天

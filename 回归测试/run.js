@@ -36,7 +36,7 @@ const checks = [
   '回归测试/warehouse-loadout-feedback.test.js',
   '回归测试/travel-continuation.test.js',
   '回归测试/battle-presentation.test.js',
-  '回归测试/story-flow.test.js',
+  '回归测试/story-flow.test.js', '回归测试/atlantis-resources.test.js',
   '回归测试/nightmare.test.js',
   '回归测试/mobile-overhaul.test.js',
   '回归测试/loadout-storage.test.js',

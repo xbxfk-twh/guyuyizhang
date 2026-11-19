@@ -212,11 +212,12 @@ const ITEMS = {
   lightWeak:{ id:'lightWeak', name:'弱光防水手电', cat:'tool', glyph:'灯', stack:1, price:0, light:2, desc:'照明道具：照亮海沟，可探索中层黑暗区域。' },
   lightStrong:{ id:'lightStrong', name:'防水强光潜水手电', cat:'tool', glyph:'灯', stack:1, price:0, light:3, desc:'照明道具：照亮深水圣殿，可探索深海区域。' },
   sourceOre:{ id:'sourceOre', name:'源矿', cat:'mat', glyph:'源', stack:20, price:40, desc:'亚特兰蒂斯地层的能量矿石。' },
+  taintedSourceOre:{ id:'taintedSourceOre', name:'轻微污染的源矿', cat:'mat', glyph:'染', stack:20, price:0, desc:'裂谷矿脉表面沾着黑色沉积。可在源质熔炉用淡水洗矿，2 份污染矿换 1 份源矿。' },
   sourceBar:{ id:'sourceBar', name:'源质锭', cat:'mat', glyph:'质', stack:20, price:260, desc:'源矿经源质熔炉精炼而成。' },
   tideSteel:{ id:'tideSteel', name:'潮鸣钢', cat:'mat', glyph:'潮', stack:20, price:80, desc:'深海高压把源矿反复挤压成的层纹钢。' },
   shipPlate:{ id:'shipPlate', name:'古船甲片', cat:'mat', glyph:'甲', stack:20, price:65, desc:'从沉船残骸上撬下的源质装甲片。' },
   deepCoral:{ id:'deepCoral', name:'深珊瑚', cat:'mat', glyph:'珊', stack:20, price:15, desc:'深海发光的珊瑚，可建可炼。' },
-  anctDevice:{ id:'anctDevice', name:'发光远古装置', cat:'special', glyph:'机', stack:5, price:120, desc:'远古文明的能量装置，可精炼为源质。' },
+  anctDevice:{ id:'anctDevice', name:'古代源能机芯', cat:'special', glyph:'机', stack:5, price:120, desc:'从古代机械中拆下的能量调节机芯，用于精炼源质锭和制造源能器材。' },
   pearlGranule:{ id:'pearlGranule', name:'珍珠粒', cat:'mat', glyph:'珠', stack:20, price:10, desc:'深海底的细碎珍珠。' },
   coralArmor:{ id:'coralArmor', name:'珊瑚甲', cat:'armor', glyph:'甲', def:6, dodge:0.15, stack:1, price:0, desc:'略低于玄铁，却提高 15% 闪避率。' },
   sourceArmor:{ id:'sourceArmor', name:'源质重甲', cat:'armor', glyph:'甲', def:10, stack:1, price:0, desc:'源质锻造的重甲，深海的守护。' },
@@ -494,47 +495,48 @@ const SCENES = [
   { id:'atlantis', name:'亚特兰蒂斯', img:'assets/img/atlantis_map.png', distMin:150, danger:5, unlockWatch:0, atlantis:1,
     desc:{
       intro:'沉在海底的失落之城，珊瑚在幽微的光里缓缓摇曳。',
-      night:'海渊沉沉，只有远古装置睁着幽蓝的眼。',
+      night:'海渊沉沉，残破机芯透出幽蓝的光。',
       rain:'雨点落不进海里，世界安静得能听见自己的心跳。',
     },
     zones:{
       habitat:{ name:'礁石栖息地', img:'assets/img/atlantis/habitat.png', hotspots:[ { x:40, y:62, label:'礁石驻地' } ], points:[ { id:'atl_rest', name:'礁石驻地', type:'camp', time:0, energy:0, text:'' } ] },
-      city:{ name:'沉没之城', img:'assets/img/atlantis/city.png', hotspots:[ { x:44, y:58, label:'遗迹残柱', point:'atl_ruin' }, { x:62, y:70, label:'遗迹石台', point:'atl_altar' }, { x:79, y:70, label:'遗失的交易机', point:'atl_vendor', sprite:'assets/img/atlantis/vendor-sprite.webp' } , { x:74, y:30, label:'遗物箱', point:'atl_pistol' }], points:[
+      city:{ name:'沉没之城', img:'assets/img/atlantis/city.png', hotspots:[ { x:44, y:58, label:'遗迹残柱', point:'atl_ruin' }, { x:62, y:70, label:'遗迹石台', point:'atl_altar' }, { x:79, y:70, label:'遗失的交易机', point:'atl_vendor', sprite:'assets/img/atlantis/vendor-sprite.webp' } , { x:74, y:30, label:'城防器材箱', point:'atl_pistol' }, { x:26, y:37, label:'废弃泵房', point:'atl_pumphouse' }], points:[
+        { id:'atl_pumphouse', name:'废弃泵房', type:'gather', time:30, energy:12, need:{}, once:true, yields:[{ id:'anctDevice', min:2, max:2, fixed:true },{ id:'sourceOre', min:4, max:4, fixed:true }], text:'泵房配电柜里还留着维修用的机芯与燃料。' },
         { id:'atl_ruin', name:'遗迹残柱', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'deepCoral', min:1, max:2 },{ id:'pearlGranule', min:1, max:2, chance:0.5 }], daily:3, text:'你在断柱间摸索，找到发光的珊瑚。' },
         { id:'atl_altar', name:'遗迹石台', type:'hunt', time:30, energy:20, need:{}, daily:2, enemies:['deepGuard'], text:'石台后的阴影里，深海卫兵睁开了眼。' },
-        { id:'atl_vendor', name:'遗失的交易机', type:'atlTrade', time:20, energy:5, need:{}, text:'街角立着一台还在微光闪烁的远古交易机。' }, { id:'atl_pistol', name:'船长遗物箱', type:'gather', time:45, energy:22, need:{}, once:true, yields:[{ id:'bpPistol', min:1, max:1 }], text:'你撬开一只锈死的箱子，里面是一张手枪图纸。' } ] },
-      coral:{ name:'珊瑚生长带', img:'assets/img/atlantis/coral.png', hotspots:[ { x:36, y:60, label:'珊瑚丛', point:'atl_coral' }, { x:62, y:44, label:'淡化残罐', point:'atl_pearl' }, { x:46, y:76, label:'海葵丛', point:'atl_anemone' } , { x:58, y:84, label:'深殿核心', point:'atl_dcore_coral' }, { x:70, y:70, label:'深海鱼群', point:'atl_fishschool' }], points:[
-        { id:'atl_coral', name:'珊瑚丛', type:'gather', time:25, energy:12, need:{}, yields:[{ id:'deepCoral', min:1, max:2 },{ id:'shipPlate', min:1, max:1, chance:0.3 }], daily:3, text:'你采下一丛发光的珊瑚。' },
-        { id:'atl_pearl', name:'淡化残罐', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'water', min:2, max:3, chance:0.7 }], daily:3, text:'检查浅水区古老的密封淡化罐，寻找仍可饮用的淡水。' },
-        { id:'atl_anemone', name:'海葵丛', type:'gather', time:30, energy:15, need:{}, guard:['tentacle'], guardChance:0.6, yields:[{ id:'pearlGranule', min:1, max:2 },{ id:'glowCrystal', min:1, max:1, chance:0.5 },{ id:'atlantisCore', min:1, max:1, chance:0.15 }], daily:2, text:'海葵丛里结着发光的硬粒，但触手也会缠上来。' }, { id:'atl_dcore_coral', name:'深殿核心·珊瑚', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1 }], text:'珊瑚深处嵌着一块温热的核心。' }, { id:'atl_fishschool', name:'深海鱼群', type:'gather', time:40, energy:18, need:{ item:'net' }, daily:2, yields:[{ id:'fish', min:1, max:3 },{ id:'rareFishA', min:1, max:1, chance:0.18 },{ id:'rareFishB', min:1, max:1, chance:0.12 }], text:'鱼群里有几条从没见过的鱼。' } ] },
+        { id:'atl_vendor', name:'遗失的交易机', type:'atlTrade', time:20, energy:5, need:{}, text:'街角立着一台还在微光闪烁的远古交易机。' }, { id:'atl_pistol', name:'城防器材箱', type:'gather', time:45, energy:22, need:{}, once:true, yields:[{ id:'bpPistol', min:1, max:1 }], text:'你撬开一只锈死的箱子，里面是一张手枪图纸。' } ] },
+      coral:{ name:'珊瑚生长带', img:'assets/img/atlantis/coral.png', hotspots:[ { x:36, y:60, label:'珊瑚丛', point:'atl_coral' }, { x:62, y:44, label:'旧淡化罐', point:'atl_pearl' }, { x:46, y:76, label:'海葵丛', point:'atl_anemone' } , { x:58, y:84, label:'深殿核心', point:'atl_dcore_coral' }, { x:70, y:70, label:'深海鱼群', point:'atl_fishschool' }], points:[
+        { id:'atl_coral', name:'珊瑚丛', type:'gather', time:25, energy:12, need:{}, yields:[{ id:'deepCoral', min:1, max:2 }], daily:3, text:'你采下一丛发光的珊瑚。' },
+        { id:'atl_pearl', name:'旧淡化罐', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'water', min:2, max:3, chance:0.7 }], daily:3, dailyFirstYield:{ id:'water', qty:2 }, text:'检查浅水区古老的密封淡化罐，寻找仍可饮用的淡水。' },
+        { id:'atl_anemone', name:'海葵丛', type:'gather', time:30, energy:15, need:{}, guard:['tentacle'], guardChance:0.6, yields:[{ id:'pearlGranule', min:1, max:2 },{ id:'glowCrystal', min:1, max:1, chance:0.5 }], daily:2, text:'海葵丛里结着发光的硬粒，但触手也会缠上来。' }, { id:'atl_dcore_coral', name:'深殿核心·珊瑚', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1, fixed:true }], text:'珊瑚深处嵌着一块温热的核心。' }, { id:'atl_fishschool', name:'深海鱼群', type:'gather', time:40, energy:18, need:{ item:'net' }, daily:2, yields:[{ id:'fish', min:1, max:3 },{ id:'rareFishA', min:1, max:1, chance:0.18 },{ id:'rareFishB', min:1, max:1, chance:0.12 }], text:'鱼群里有几条从没见过的鱼。' } ] },
       trench:{ name:'海沟', img:'assets/img/atlantis/trench.png', needLight:2, hotspots:[ { x:60, y:62, label:'沟壁矿脉', point:'atl_source' }, { x:40, y:50, label:'深渊怪影', point:'atl_deep' }, { x:78, y:34, label:'无光深渊', point:'atl_dark' } , { x:25, y:68, label:'深殿核心', point:'atl_dcore_trench' }, { x:82, y:62, label:'暗流鱼群', point:'atl_deepfish' }], points:[
-        { id:'atl_source', name:'沟壁矿脉', type:'gather', time:40, energy:22, need:{ tool:'pick', tier:3 }, needLight:2, guard:['tentacle','mechGuard'], guardChance:1, yields:[{ id:'sourceOre', min:1, max:2 },{ id:'tideSteel', min:1, max:1, chance:0.35 }], daily:2, text:'你凿下几块发光的源矿。' },
+        { id:'atl_source', name:'沟壁矿脉', type:'gather', time:40, energy:22, need:{ tool:'pick', tier:3 }, needLight:2, guard:['tentacle','mechGuard'], guardChance:0.5, yields:[{ id:'sourceOre', min:1, max:2 }], daily:2, text:'你凿下几块发光的源矿。' },
         { id:'atl_deep', name:'深渊怪影', type:'hunt', time:35, energy:25, need:{}, needLight:2, daily:1, enemies:['tentacle','mechGuard'], text:'黑暗中，触手与机械在你周围游弋。' },
-        { id:'atl_dark', name:'无光深渊', type:'gather', time:45, energy:25, need:{ tool:'pick', tier:3 }, needLight:3, guard:['mechGuard'], guardChance:0.8, yields:[{ id:'sourceOre', min:1, max:2 },{ id:'tideSteel', min:1, max:2, chance:0.6 },{ id:'atlantisCore', min:1, max:1, chance:0.2 },{ id:'energyCrystal', min:1, max:1, chance:0.5 }], daily:1, text:'更深的沟底漆黑一片，海底矿晶反射出一点微光——机械守卫守在那里。' }, { id:'atl_dcore_trench', name:'深殿核心·海沟', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1 }], text:'沟底的石匣里封着一块核心。' }, { id:'atl_deepfish', name:'暗流鱼群', type:'gather', time:45, energy:20, need:{ item:'net' }, needLight:2, daily:2, guard:['tentacle'], guardChance:0.3, yields:[{ id:'fish', min:1, max:3 },{ id:'rareFishC', min:1, max:1, chance:0.15 },{ id:'rareFishD', min:1, max:1, chance:0.1 },{ id:'rareFishE', min:1, max:1, chance:0.08 }], text:'暗流里藏着发光的鱼影。' } ] },
-      sanctum:{ name:'深水圣殿', img:'assets/img/atlantis/sanctum.png', needLight:3, hotspots:[ { x:42, y:60, label:'圣殿之门', point:'atl_device' }, { x:62, y:72, label:'守护者祭坛', point:'atl_boss' }, { x:29, y:42, label:'符文密室', point:'atl_runelab' },
+        { id:'atl_dark', name:'无光深渊', type:'gather', time:45, energy:25, need:{ tool:'pick', tier:3 }, needLight:3, guard:['mechGuard'], guardChance:0.8, yields:[{ id:'tideSteel', min:1, max:2 },{ id:'taintedSourceOre', min:1, max:2 },{ id:'energyCrystal', min:1, max:1, chance:0.5 }], daily:1, text:'更深的沟底漆黑一片，海底矿晶反射出一点微光——机械守卫守在那里。' }, { id:'atl_dcore_trench', name:'深殿核心·海沟', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1, fixed:true }], text:'沟底的石匣里封着一块核心。' }, { id:'atl_deepfish', name:'暗流鱼群', type:'gather', time:45, energy:20, need:{ item:'net' }, needLight:2, daily:2, guard:['tentacle'], guardChance:0.3, yields:[{ id:'fish', min:1, max:3 },{ id:'rareFishC', min:1, max:1, chance:0.15 },{ id:'rareFishD', min:1, max:1, chance:0.1 },{ id:'rareFishE', min:1, max:1, chance:0.08 }], text:'暗流里藏着发光的鱼影。' } ] },
+      sanctum:{ name:'深水圣殿', img:'assets/img/atlantis/sanctum.png', needLight:3, hotspots:[ { x:42, y:60, label:'闸门检修柜', point:'atl_device' }, { x:62, y:72, label:'守护者祭坛', point:'atl_boss' }, { x:29, y:42, label:'符文密室', point:'atl_runelab' },
         { x:79, y:62, label:'石门旁的人鱼', point:'atl_escort' }, { x:63, y:35, label:'灯塔值守席', point:'atl_watch' } ], points:[
         { id:'atl_escort', name:'石门旁的人鱼', type:'story', story:'escort', afterStory:'king', time:0, energy:0, need:{} },
         { id:'atl_watch', name:'灯塔值守席', type:'story', story:'watch', afterStory:'king', time:0, energy:0, need:{} },
-        { id:'atl_device', name:'圣殿之门', type:'gather', time:40, energy:22, need:{}, needLight:3, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'anctDevice', min:1, max:1 }], daily:1, text:'圣殿之门旁，躺着一件发光远古装置。' },
+        { id:'atl_device', name:'闸门检修柜', type:'gather', time:40, energy:22, need:{}, needLight:3, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'anctDevice', min:1, max:1 }], daily:1, text:'检修柜里放着一件可用的机芯。' },
         { id:'atl_boss', name:'守护者祭坛', type:'hunt', time:45, energy:30, need:{}, needLight:3, needCore:4, daily:1, enemies:['sunkenKing'], text:'王座上的人睁开眼。「传令，封门。一个人也不准出去。」' },
-        { id:'atl_runelab', name:'符文密室', type:'gather', time:45, energy:25, need:{}, needLight:3, guard:['tentacle','mechGuard'], guardChance:1, yields:[{ id:'anctDevice', min:1, max:2 },{ id:'atlantisCore', min:1, max:1, chance:0.35 },{ id:'energyCrystal', min:1, max:1, chance:0.4 }], daily:1, text:'密室的门要懂符文才开；门后是远古装置与一块源晶。' } ] },
+        { id:'atl_runelab', name:'符文密室', type:'gather', time:45, energy:25, need:{}, needLight:3, guard:['tentacle','mechGuard'], guardChance:1, yields:[{ id:'anctDevice', min:1, max:2 },{ id:'atlantisCore', min:1, max:1, chance:0.35 },{ id:'energyCrystal', min:1, max:1, chance:0.6 }], daily:1, text:'密室的控制台还嵌着待换的机芯与晶石。' } ] },
       shipwreck:{ name:'沉船墓地', img:'assets/img/atlantis/shipwreck.png', hotspots:[ { x:38, y:62, label:'沉船残骸', point:'atl_wreck' }, { x:64, y:70, label:'船舱深处', point:'atl_wreckhunt' }, { x:25, y:38, label:'船长室', point:'atl_cabin' } , { x:78, y:52, label:'深殿核心', point:'atl_dcore_wreck' }, { x:70, y:84, label:'神秘人鱼', point:'atl_fishman' }], points:[
-        { id:'atl_wreck', name:'沉船残骸', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'shipwood', min:1, max:2 },{ id:'ironpart', min:1, max:1, chance:0.4 },{ id:'shipPlate', min:1, max:1, chance:0.5 }], daily:3, text:'你从沉船里拆下可用的船木与铁件。' },
+        { id:'atl_wreck', name:'沉船残骸', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'shipwood', min:1, max:2 },{ id:'ironpart', min:1, max:1, chance:0.4 },{ id:'shipPlate', min:1, max:1, fixed:true }], daily:3, text:'你从沉船里拆下可用的船木与铁件。' },
         { id:'atl_wreckhunt', name:'船舱深处', type:'hunt', time:30, energy:20, need:{}, daily:2, enemies:['deepGuard','tentacle'], text:'船舱深处，有东西在动。' },
-        { id:'atl_cabin', name:'船长室', type:'gather', time:35, energy:18, need:{}, needLight:2, guard:'deepGuard', guardChance:0.7, yields:[{ id:'coin', min:2, max:4 },{ id:'anctDevice', min:1, max:1, chance:0.25 }], daily:1, text:'船长室里还锁着东西——也有不欢迎你的东西。' }, { id:'atl_dcore_wreck', name:'深殿核心·沉船', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1 }], text:'船骸的龙骨下压着一块核心。' }, { id:'atl_fishman', name:'神秘人鱼', type:'trade', time:0, energy:0, need:{}, text:'蒙面的人鱼女子坐在沉船龙骨旁，银发与鳞片泛着微光。她收金锭与深海材料，不收贝壳。' } ] },
+        { id:'atl_cabin', name:'船长室', type:'gather', time:35, energy:18, need:{}, needLight:2, guard:'deepGuard', guardChance:0.7, firstYield:{ id:'anctDevice', qty:1 }, yields:[{ id:'coin', min:2, max:4 },{ id:'anctDevice', min:1, max:1, chance:0.25 }], daily:1, text:'船长室里还锁着东西——也有不欢迎你的东西。' }, { id:'atl_dcore_wreck', name:'深殿核心·沉船', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1, fixed:true }], text:'船骸的龙骨下压着一块核心。' }, { id:'atl_fishman', name:'神秘人鱼', type:'trade', time:0, energy:0, need:{}, text:'蒙面的人鱼女子坐在沉船龙骨旁，银发与鳞片泛着微光。她收金锭与深海材料，不收贝壳。' } ] },
       coralForest:{ name:'珊瑚森林', img:'assets/img/atlantis/coralForest.png', hotspots:[ { x:40, y:62, label:'珊瑚林', point:'atl_cforest' }, { x:66, y:56, label:'发光丛', point:'atl_glow' }, { x:27, y:72, label:'幽光花', point:'atl_deepbloom' } ], points:[
         { id:'atl_cforest', name:'珊瑚林', type:'gather', time:25, energy:12, need:{}, yields:[{ id:'deepCoral', min:2, max:4 }], daily:3, text:'珊瑚林里资源丰饶。' },
-        { id:'atl_glow', name:'发光丛', type:'gather', time:30, energy:15, need:{}, guard:'tentacle', guardChance:0.7, yields:[{ id:'anctDevice', min:1, max:1, chance:0.3 },{ id:'glowCrystal', min:1, max:2 },{ id:'pearlGranule', min:1, max:3 }], daily:2, text:'你在发光丛里翻找。' },
-        { id:'atl_deepbloom', name:'幽光花', type:'gather', time:35, energy:18, need:{}, needLight:1, guard:'tentacle', guardChance:0.7, yields:[{ id:'anctDevice', min:1, max:1, chance:0.4 },{ id:'atlantisCore', min:1, max:1, chance:0.1 }], daily:2, text:'幽光花会发光，也会招来触手。' } ] },
-      pearlCave:{ name:'珍珠洞窟', img:'assets/img/atlantis/pearlCave.png', needLight:1, hotspots:[ { x:42, y:64, label:'珍珠壁', point:'atl_pearlcave' }, { x:64, y:52, label:'晶簇', point:'atl_crystal' }, { x:52, y:30, label:'珍珠之心', point:'atl_pearlheart' } , { x:34, y:44, label:'古匠工坊', point:'atl_bullet' }, { x:24, y:60, label:'工匠的铜板', point:'atl_decree' }], points:[
+        { id:'atl_glow', name:'发光丛', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'glowCrystal', min:1, max:2 },{ id:'pearlGranule', min:1, max:3 }], daily:2, text:'你在发光丛里翻找。' },
+        { id:'atl_deepbloom', name:'幽光花', type:'gather', time:35, energy:18, need:{}, needLight:1, guard:'tentacle', guardChance:0.7, yields:[{ id:'glowCrystal', min:2, max:3 }], daily:1, text:'幽光花会发光，也会招来触手。' } ] },
+      pearlCave:{ name:'珍珠洞窟', img:'assets/img/atlantis/pearlCave.png', needLight:1, hotspots:[ { x:42, y:64, label:'珍珠壁', point:'atl_pearlcave' }, { x:64, y:52, label:'晶簇', point:'atl_crystal' }, { x:52, y:30, label:'珍珠之心', point:'atl_pearlheart' } , { x:34, y:44, label:'旧军械工坊', point:'atl_bullet' }, { x:24, y:60, label:'工匠的铜板', point:'atl_decree' }], points:[
         { id:'atl_decree', name:'工匠的铜板', type:'story', story:'decree', time:0, energy:0, need:{} },
         { id:'atl_pearlcave', name:'珍珠壁', type:'gather', time:30, energy:15, need:{}, needLight:1, yields:[{ id:'pearlGranule', min:3, max:5 }], daily:3, text:'洞壁上嵌满珍珠。' },
-        { id:'atl_crystal', name:'晶簇', type:'gather', time:35, energy:18, need:{ tool:'pick', tier:2 }, needLight:1, yields:[{ id:'crystal', min:1, max:2 },{ id:'sourceOre', min:1, max:2, chance:0.5 }], daily:2, text:'你凿下发光晶簇。' },
-        { id:'atl_pearlheart', name:'珍珠之心', type:'gather', time:40, energy:20, need:{}, needLight:1, guard:['deepGuard'], guardChance:0.7, yields:[{ id:'pearlGranule', min:4, max:6 },{ id:'atlantisCore', min:1, max:1, chance:0.2 },{ id:'energyCrystal', min:1, max:1, chance:0.5 }], daily:1, text:'洞窟最深处嵌着一颗"珍珠之心"，卫兵守在那里。' }, { id:'atl_bullet', name:'古匠工坊', type:'gather', time:45, energy:22, need:{}, once:true, yields:[{ id:'bpBullet', min:1, max:1 }], text:'工坊的台面上压着一张画满弹丸的图纸。' } ] },
+        { id:'atl_crystal', name:'晶簇', type:'gather', time:35, energy:18, need:{ tool:'pick', tier:2 }, needLight:1, yields:[{ id:'crystal', min:1, max:2 },{ id:'sourceOre', min:1, max:1, fixed:true }], daily:2, text:'你凿下发光晶簇。' },
+        { id:'atl_pearlheart', name:'珍珠之心', type:'gather', time:40, energy:20, need:{}, needLight:1, guard:['deepGuard'], guardChance:0.7, yields:[{ id:'pearlGranule', min:4, max:6 }], daily:1, text:'洞窟最深处嵌着一颗"珍珠之心"，卫兵守在那里。' }, { id:'atl_bullet', name:'旧军械工坊', type:'gather', time:45, energy:22, need:{}, once:true, firstYield:{ id:'anctDevice', qty:1 }, yields:[{ id:'bpBullet', min:1, max:1 }], text:'工坊的台面上压着一张画满弹丸的图纸。' } ] },
       abyss:{ name:'深渊裂谷', img:'assets/img/atlantis/abyss.png', needLight:3, hotspots:[ { x:44, y:64, label:'裂谷深处', point:'atl_abyssore' }, { x:64, y:52, label:'机械残骸', point:'atl_mech' }, { x:56, y:78, label:'源晶簇', point:'atl_sourcecore' } , { x:32, y:34, label:'深殿核心', point:'atl_dcore_abyss' }], points:[
-        { id:'atl_abyssore', name:'裂谷深处', type:'gather', time:40, energy:22, need:{ tool:'pick', tier:3 }, needLight:3, yields:[{ id:'sourceOre', min:2, max:3 }], daily:2, text:'裂谷深处，源矿遍布。' },
+        { id:'atl_abyssore', name:'裂谷深处', type:'gather', time:40, energy:22, need:{ tool:'pick', tier:3 }, needLight:3, yields:[{ id:'sourceOre', min:1, max:2 },{ id:'taintedSourceOre', min:1, max:2, chance:0.6 }], daily:2, text:'裂谷深处，源矿遍布。' },
         { id:'atl_mech', name:'机械残骸', type:'hunt', time:40, energy:25, need:{}, needLight:3, daily:1, enemies:['mechGuard'], text:'残骸中，机械守卫缓缓站起。' },
-        { id:'atl_sourcecore', name:'源晶簇', type:'gather', time:50, energy:28, need:{ tool:'pick', tier:3 }, needLight:3, guard:['mechGuard'], guardChance:1, yields:[{ id:'sourceOre', min:2, max:4 },{ id:'atlantisCore', min:1, max:1, chance:0.5 },{ id:'energyCrystal', min:1, max:1, chance:0.6 }], daily:1, text:'裂谷最底的源晶簇，机械守卫寸步不离。' }, { id:'atl_dcore_abyss', name:'深殿核心·深渊', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1 }], text:'裂谷最暗处，核心静静发光。' } ] },
+        { id:'atl_sourcecore', name:'源晶簇', type:'gather', time:50, energy:28, need:{ tool:'pick', tier:3 }, needLight:3, guard:['mechGuard'], guardChance:1, yields:[{ id:'taintedSourceOre', min:1, max:2 },{ id:'atlantisCore', min:1, max:1 },{ id:'energyCrystal', min:1, max:1 }], daily:1, text:'裂谷最底的源晶簇，机械守卫寸步不离。' }, { id:'atl_dcore_abyss', name:'深殿核心·深渊', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1, fixed:true }], text:'裂谷最暗处，核心静静发光。' } ] },
     },
     events:[], travelFrom:'你潜入水下，向失落的亚特兰蒂斯游去。', travelTo:'你浮出水面，回到了孤岛。' },
 ];
@@ -544,22 +546,23 @@ const SCENES = [
 // 解锁: needCraft(制造经验等级) / needBp(图纸id)
 const RECIPES = [
   // ----- 亚特兰蒂斯（第二章）配方：源质熔炉精炼 / 珠光工作台制造 -----
+  { id:'r_filter_source', name:'清洗污染源矿', out:{ sourceOre:1 }, in:{ taintedSourceOre:2, water:1 }, station:'sourceForge', time:20, fixedMats:true },
   { id:'r_sourcebar', name:'源质锭', out:{ sourceBar:1 }, in:{ sourceOre:2, anctDevice:1 }, station:'sourceForge', time:30 },
   { id:'r_divesuit', name:'潜水服', out:{ diveSuit:1 }, in:{ leather:4, resin:4, canvas:2, ironpart:2 }, station:'work2', time:240, needBp:'bpDive' },
   { id:'r_divesuit2', name:'高级潜水服', out:{ diveSuit2:1 }, in:{ deepCoral:6, sourceBar:2, tideSteel:2, canvas:2, glowCrystal:3 }, station:'pearlWork', time:300, needBp:'bpDive' },
   { id:'r_diveMask', name:'氧气罩', out:{ diveMask:1 }, in:{ leather:2, cloth:3, ironpart:2, flint:2 }, station:'work2', time:180, needBp:'bpDive' },
   { id:'r_goggles', name:'潜水护目镜', out:{ goggles:1 }, in:{ deepCoral:4, pearlGranule:4 }, station:'pearlWork', time:90 },
   { id:'r_lightweak', name:'弱光防水手电', out:{ lightWeak:1 }, in:{ sourceBar:1, glowCrystal:2, crystal:1 }, station:'pearlWork', time:120 },
-  // 强光手电：源能晶石 1→**0**（改由荧光晶簇承担），并下调远古装置 2→1。
+  // 强光手电：源能晶石 1→**0**（改由荧光晶簇承担），并下调古代源能机芯 2→1。
   // 这样"没强光就刷不到做强光的材料"的死锁被打断：浅层点位就能凑齐。
   { id:'r_lightstrong', name:'防水强光潜水手电', out:{ lightStrong:1 }, in:{ sourceBar:3, glowCrystal:4, anctDevice:1, pearlGranule:6 }, station:'pearlWork', time:180 },
   { id:'r_coralarmor', name:'珊瑚甲', out:{ coralArmor:1 }, in:{ deepCoral:12, pearlGranule:6, cloth:2 }, station:'pearlWork', time:180, needBp:'bpCoralArmor' },
   { id:'r_coralblade', name:'珊瑚刺刃', out:{ coralBlade:1 }, in:{ deepCoral:8, sourceBar:1 }, station:'pearlWork', time:150, needBp:'bpCoralBlade' },
   { id:'r_sourcearmor', name:'源质重甲', out:{ sourceArmor:1 }, in:{ sourceBar:6, shipPlate:4, deepCoral:6, energyCrystal:2, atlantisCore:2 }, station:'pearlWork', time:300, needBp:'bpSourceArmor' },
   { id:'r_sourcespear', name:'源质长枪', out:{ sourceSpear:1 }, in:{ sourceBar:4, tideSteel:4, anctDevice:2, energyCrystal:2, atlantisCore:1 }, station:'pearlWork', time:240, needBp:'bpSourceSpear' },
-  { id:'r_thruster', name:'推进器', out:{ thruster:1 }, in:{ sourceBar:3, anctDevice:2, deepCoral:6, energyCrystal:2 }, station:'pearlWork', time:180, needBp:'bpThruster' },
+  { id:'r_thruster', name:'推进器', out:{ thruster:1 }, in:{ sourceBar:2, anctDevice:1, deepCoral:6, shipPlate:2 }, station:'pearlWork', time:180, needBp:'bpThruster' },
   { id:'r_pistol', name:'源能手枪', out:{ pistol:1 }, in:{ sourceBar:6, energyCrystal:3, anctDevice:3, ironpart:4 }, station:'pearlWork', time:300, needBp:'bpPistol' },
-  { id:'r_bullet', name:'源能子弹×2', out:{ bullet:2 }, in:{ energyCrystal:1, gunpowder:1, ironingot:1 }, station:'pearlWork', time:30, needBp:'bpBullet' },
+  { id:'r_bullet', name:'源能子弹×3', out:{ bullet:3 }, in:{ sourceOre:1, gunpowder:1, ironingot:1 }, station:'pearlWork', time:30, needBp:'bpBullet' },
   // 加工
   { id:'r_plank', name:'削木板', out:{ plank:2 }, in:{ wood:4 }, station:'none', time:30, text:'你用斧子把原木削成木板。' },
   { id:'r_pole', name:'削木杆', out:{ pole:1 }, in:{ branch:2 }, station:'none', time:15 },
@@ -816,7 +819,7 @@ const ATLANTIS_FURNITURE = [
   {id:'seaStorage2',name:'加固海底储物箱',station:'seaStorage',mats:{deepCoral:6,sourceBar:2,pearlGranule:4},time:90,capacity:40,upgradeFrom:'seaStorage1',desc:'将海底储物箱升级为40格，原库存保留，替换原家具位。'},
   { id:'pearlWork', name:'珠光工作台', station:'pearlWork', mats:{ deepCoral:8, pearlGranule:10 }, time:120, desc:'制造潜水与源质装备。' },
   { id:'sourceForge', name:'源质熔炉', station:'sourceForge', mats:{ sourceOre:10, stonebrick:8 }, time:180, desc:'把源矿精炼成源质锭。' },
-  { id:'repairBench', name:'修补台', station:'repair', mats:{ deepCoral:4, sourceBar:1 }, time:60, desc:'用亚特兰蒂斯材料修补潜水服/氧气罩。', repairDive:1 },
+  { id:'repairBench', name:'修补台', station:'repair', mats:{ deepCoral:4, stonebrick:2 }, time:60, desc:'用亚特兰蒂斯材料修补潜水服/氧气罩。', repairDive:1 },
 ];
 
 // 礁石栖息地可点击热点
@@ -905,7 +908,7 @@ const ENEMIES = {
   // 海底远程精英（作者 2026-09-19）：攻击距离 20，玩家近战要贴到它身边才打得着；它只在中层黑暗（照明 ≥2）出没。
   // 经验固定 +5（比普通怪高、比首领低）。
   atlSentry:{ id:'atlSentry', name:'深海哨兵', img:'assets/img/enemies/mechGuard.png', elite:1, exp:5, range:20,
-    hp:110, atk:21, def:8, spd:9, traits:['pierce'], drops:[{ id:'sourceOre', qty:'1-2', ch:0.6 },{ id:'energyCrystal', qty:1, ch:0.35 }],
+    hp:110, atk:21, def:8, spd:9, traits:['pierce'], drops:[{ id:'anctDevice', qty:1, ch:0.30 },{ id:'energyCrystal', qty:1, ch:0.35 }],
     desc:'悬在暗水里的机械哨兵，枪口始终对着你——它会在你靠近之前先开火。' },
   deepGuard:{ id:'deepGuard', name:'深海卫兵', img:'assets/img/enemies/deepGuard.png', hp:70, atk:16, def:6, spd:9, traits:[], drops:[{ id:'sourceOre', qty:1, ch:0.6 },{ id:'deepCoral', qty:1, ch:0.4 }], desc:'手持远古长矛的深海卫兵，眼灯幽蓝。' },
   tentacle:{ id:'tentacle', name:'触手哨兵', img:'assets/img/enemies/tentacle.png', hp:55, atk:14, def:4, spd:12, traits:['pack'], packAlways:1, drops:[{ id:'pearlGranule', qty:'1-2', ch:0.7 }], desc:'从深暗中伸出的触手哨兵，一下一下地收缩——而且从来不单独出现。' },
