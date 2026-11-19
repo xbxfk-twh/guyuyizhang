@@ -8,7 +8,7 @@ let passed=0,fail=0,ws,ch;const errors=[];
  ch=spawn(process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',['--headless=new','--disable-gpu','--no-first-run','--allow-file-access-from-files','--remote-debugging-port='+port,'--user-data-dir='+profile,'about:blank'],{stdio:'ignore',windowsHide:true});
  let tab;for(let i=0;i<80&&!tab;i++){await sleep(200);try{tab=(await json('http://127.0.0.1:'+port+'/json/list')).find(t=>t.type==='page');}catch{}}
  assert.ok(tab);ws=new WebSocket(tab.webSocketDebuggerUrl);await new Promise((r,j)=>{ws.onopen=r;ws.onerror=j;});
- let seq=0;const pending=new Map();ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&pending.has(m.id)){pending.get(m.id)(m);pending.delete(m.id);}if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.exception?.description||m.params.exceptionDetails.text);};
+ let seq=0;const pending=new Map(),downloadEvents=[];let announcedDownload;ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&pending.has(m.id)){pending.get(m.id)(m);pending.delete(m.id);}if(m.method==='Browser.downloadWillBegin')announcedDownload=m.params;if(m.method==='Browser.downloadProgress')downloadEvents.push(m.params.state);if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.exception?.description||m.params.exceptionDetails.text);};
  const send=(method,params={})=>new Promise((r,j)=>{const id=++seq;pending.set(id,m=>m.error?j(Error(JSON.stringify(m.error))):r(m.result));ws.send(JSON.stringify({id,method,params}));});
  const ev=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(JSON.stringify(r.exceptionDetails));return r.result?.value;};
  const waitRoomLayout=async()=>{let last='',stable=0;for(let i=0;i<40;i++){const state=await ev(`(()=>{const imgs=[...document.querySelectorAll('.room-stage img')],sprites=[...document.querySelectorAll('.room-sprite')];if(!imgs.length||sprites.length<=10||imgs.some(e=>!e.complete||!e.naturalWidth))return '';return JSON.stringify(sprites.map(e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height];}));})()`);stable=state&&state===last?stable+1:0;last=state;if(stable>=2)return;await sleep(100);}throw Error('房间图片或布局未稳定');};
@@ -18,7 +18,7 @@ let passed=0,fail=0,ws,ch;const errors=[];
 
 
  const downloads=fs.mkdtempSync(path.join(out,'progression-files-'));
- await send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:downloads});
+ await send('Browser.setDownloadBehavior',{behavior:'allowAndName',downloadPath:downloads,eventsEnabled:true});
  const tap=async selector=>{if(!await ev(`!!document.querySelector(${JSON.stringify(selector)})`)){await shot('progression-missing.png');console.error(await ev(`document.querySelector('#modal')?.textContent`));throw Error('Missing '+selector);}await sleep(400);await ev(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'center'});`);const r=await ev(`document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect().toJSON()`);await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:r.x+r.width/2,y:r.y+r.height/2}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await sleep(450);};
  // 冷启动耗时因机器和资源缓存而异；等待真实就绪，不把 1400ms 当作加载完成。
  const waitForStartup=async()=>{for(let i=0;i<150;i++){if(await ev(`document.readyState==='complete'&&typeof Game!=='undefined'&&typeof UI!=='undefined'&&!document.documentElement.classList.contains('boot-pending')`))return;await sleep(200);}await shot('progression-startup-failure.png');throw Error('游戏未在 30 秒内完成启动');};
@@ -41,9 +41,16 @@ let passed=0,fail=0,ws,ch;const errors=[];
  await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');await tap('[data-codex="import"]');
  // 先以手机条件实际验证，再切桌面条件覆盖永久文件备份。
  await dismissPanels();await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');await tap('[data-codex="export"]');
+ const beforeFiles=new Set(fs.readdirSync(downloads));downloadEvents.length=0;announcedDownload=null;
  const code=await ev(`Game.exportCode()`);await check('实际导出内容通过完整性校验 '+w,`Game.inspectCode(${JSON.stringify(code)}).ok&&Game.inspectCode(${JSON.stringify(code)}).checked`);await tap('#codex-download');
- let saved;for(let i=0;i<30&&!saved;i++){await sleep(100);saved=fs.readdirSync(downloads).filter(x=>x.endsWith('.txt')).find(x=>fs.readFileSync(path.join(downloads,x),'utf8')===code);}
- assert.ok(saved,'下载文件内容与完整导出码一致');passed++;console.log('OK 实际下载完整备份 '+w);
+ let saved;const deadline=Date.now()+15000;
+ while(!saved&&Date.now()<deadline&&!downloadEvents.includes('canceled')){
+   await sleep(100);
+   const file=announcedDownload?.guid;
+   if(file&&!beforeFiles.has(file)&&downloadEvents.includes('completed')&&fs.existsSync(path.join(downloads,file)))saved=file;
+ }
+ assert.ok(saved,'本次下载必须完成，状态='+JSON.stringify(downloadEvents)+'，新文件='+JSON.stringify(fs.readdirSync(downloads).filter(x=>!beforeFiles.has(x))));assert.match(announcedDownload.suggestedFilename,/^Isle-of-Lost-Chapters-save-.+\.txt$/);
+ assert.equal(fs.readFileSync(path.join(downloads,saved),'utf8'),code,'下载内容必须与完整导出码一致');passed++;console.log('OK 实际下载完整备份 '+w);
  await shot('progression-export-'+w+'.png');
  await dismissPanels();await tap('[data-nav="save"]');await tap('[data-savemenu="settings"]');await tap('[data-codex="import"]');
  await ev(`document.querySelector('#codex-text').value='https://example.com';document.querySelector('#codex-text').dispatchEvent(new Event('input'));`);

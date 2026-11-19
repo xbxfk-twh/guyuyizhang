@@ -51,6 +51,7 @@ function frame(browser) {
       return {x:outer.x+x,y:outer.y+y};
     })()`);
     await browser.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[p]});
+    await sleep(70);
     await browser.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   };
   return {ev,tap};
@@ -63,7 +64,7 @@ async function open(browser,url) {
   await waitFor('标题页尚未就绪',()=>browser.ev('!!document.querySelector("#btn-coop")'));
   await browser.tap('#btn-coop');
   const f = frame(browser);
-  await waitFor('双人页面尚未就绪',()=>f.ev('!!document.querySelector("#create")'));
+  await waitFor('双人页面尚未就绪',()=>f.ev('document.readyState==="complete"&&typeof document.querySelector("#create")?.onclick==="function"'));
   return f;
 }
 const selectorFor = (f,label) => f.ev(`(()=>{
@@ -162,8 +163,12 @@ with sqlite3.connect(sys.argv[1]) as db:
   check('离开再从本机联机存档回到同一座位和战斗',await fb.ev(text('#room-code')+' .endsWith('+JSON.stringify(second)+')'));
   assert.deepEqual([...a.errors,...b.errors],[]);
   console.log('通过 '+passed+' 项，失败 0 项\nRESULT:PASS');
-})().catch(e=>{
+})().catch(async e=>{
   console.error(e,logs);
+  for(const [name,browser] of [['a',a],['b',b]]) {
+    if(!browser)continue;
+    try { await browser.shot('coop-failure-'+name+'.png');console.error(await frame(browser).ev('document.querySelector("#notice")?.textContent')); } catch (_) {}
+  }
   console.log('RESULT:FAIL');
   process.exitCode=1;
 }).finally(async()=>{
