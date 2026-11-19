@@ -17,9 +17,9 @@ function fresh(seed) {
 let passed = 0;
 function check(name, run) { run(); console.log('OK ' + name); passed++; }
 
-check('旧机芯 ID、每日库存、扣费和读档一致', () => {
+check('远古装置旧 ID、每日库存、扣费和读档一致', () => {
   const {G,ITEMS} = fresh();
-  assert.equal(ITEMS.anctDevice.name,'古代源能机芯');
+  assert.equal(ITEMS.anctDevice.name,'远古装置');
   assert.equal(G.vendorDevice().price,360);
   assert.equal(G.buyVendorDevice().ok,true);
   assert.equal(G.invCount('beibi'),640);
@@ -48,7 +48,7 @@ check('背包满、余额低或写盘失败时保留货款和库存', () => {
   assert.equal(G.invCount('anctDevice'),0);
 });
 
-check('泵房固定奖励，当天和读档后不会重复，旧工坊可只补领机芯', () => {
+check('泵房固定奖励，当天和读档后不会重复，旧工坊可只补领远古装置', () => {
   const {G} = fresh();
   const pump = () => G.pointsOf().find(p => p.id === 'atl_pumphouse');
   G.doPoint(pump());

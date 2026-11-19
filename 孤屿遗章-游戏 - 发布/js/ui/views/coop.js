@@ -23,6 +23,8 @@
   let lastReceived = 0;
   let lastEffect = 0;
   let battleKey = '';
+  let playingAd = false;
+  let pendingReward = null;
   try { session = JSON.parse(sessionStorage.getItem('guyuyizhang_coop') || 'null'); } catch (_) {}
 
   function nonce() {
@@ -32,11 +34,14 @@
 
   async function request(action, params = {}) {
     if (submitting || (action === 'state' && pending)) return;
-    submitting = action !== 'state';
-    if (submitting) await requestDone;
+    const mutation = action !== 'state';
+    if (mutation) {
+      submitting = true;
+      await requestDone;
+    }
     requestDone = send(action, params);
-    try { await requestDone; }
-    finally { submitting = false; }
+    try { return await requestDone; }
+    finally { if (mutation) submitting = false; }
   }
 
   async function send(action, params) {
@@ -63,6 +68,7 @@
       current = data;
       lastReceived = Date.now();
       render(data);
+      return data;
     } catch (error) {
       if (action !== 'state' || !current || Date.now() - lastReceived > 3000) {
         $('notice').textContent = ['TypeError','SyntaxError','AbortError'].includes(error.name)
@@ -210,15 +216,85 @@
 
   function renderClock() {
     if (!current) return;
-    const elapsed = Math.min(3, (Date.now() - lastReceived) / 1000);
+    const elapsed = Math.max(0, Math.min(3, (Date.now() - lastReceived) / 1000));
     const now = current.now + elapsed;
-    const minute = current.minute + Math.floor(elapsed * 3);
+    const edge = current.nextClockChange ?? Infinity;
+    const gameMinute = current.clockMinute + (Math.min(now, edge) - current.now) * current.clockRate;
+    const minute = Math.floor(gameMinute);
     $('clock').textContent = '第 ' + (Math.floor(minute / 1440) + 1) + ' 日 · ' +
       String(Math.floor(minute / 60) % 24).padStart(2,'0') + ':' + String(minute % 60).padStart(2,'0');
     document.querySelectorAll('[data-due]').forEach(node => {
       node.textContent = node.dataset.name + ' · ' + Math.max(0,Math.ceil(node.dataset.due - now)) + ' 秒';
     });
     document.querySelectorAll('[data-ready]').forEach(node => { node.disabled = now < Number(node.dataset.ready); });
+    renderWaiting(now, gameMinute);
+  }
+
+  function availableAd() {
+    if (TapAds.supported()) return TapAds;
+    if (NativeAds.supported()) return NativeAds;
+    return null;
+  }
+
+  function renderWaiting(now, gameMinute) {
+    const job = current.players[current.seat].job;
+    if (pendingReward && pendingReward.until < now && !playingAd) {
+      pendingReward = null;
+      $('notice').textContent = '广告奖励领取已超时。';
+    }
+    const offer = job && job.due - now > 25 ? current.adOffer : null;
+    const reward = pendingReward || offer;
+    const row = $('job-progress');
+    row.hidden = !job && !pendingReward && !playingAd;
+    if (row.hidden) return;
+    $('job-bar').hidden = !job;
+    if (job) $('job-bar').value = Math.min(1, Math.max(0,
+      (gameMinute - job.startMinute) / (job.endMinute - job.startMinute)));
+    $('wait-ad').hidden = !reward && !playingAd;
+    $('ad-label').textContent = playingAd ? '正在处理' : pendingReward ? '领取广告奖励' : '看个广告吧';
+    $('ad-button').disabled = playingAd || (!pendingReward && !availableAd());
+    $('ad-button').setAttribute('aria-label', pendingReward ? '重试领取广告奖励' : '观看广告并领取房间物资');
+    $('ad-reward').textContent = !reward ? '' : !pendingReward && !availableAd()
+      ? '当前环境暂不可播放广告' : current.items[reward.item] + ' ×' + reward.quantity;
+  }
+
+  async function claimReward() {
+    const result = await request('claimAd', {ticket:pendingReward.token});
+    if (!result?.adReceipt?.claimed) return;
+    const {item, quantity} = result.adReceipt;
+    pendingReward = null;
+    $('notice').textContent = '领取了' + result.items[item] + ' ×' + quantity + '，已放入房间背包。';
+  }
+
+  async function watchAd() {
+    if (playingAd || submitting) return;
+    playingAd = true;
+    renderClock();
+    try {
+      if (pendingReward) {
+        await claimReward();
+        return;
+      }
+      const sdk = availableAd();
+      const job = current?.adOffer?.job;
+      if (!sdk || !job) return;
+      const reservation = await request('reserveAd', {job});
+      const receipt = reservation?.adReceipt;
+      if (!receipt) return;
+      const watched = await new Promise(resolve => {
+        if (!sdk.showRewardedVideo(resolve)) resolve({ok:false, reason:'当前无法播放广告。'});
+      });
+      if (watched.ok) {
+        pendingReward = receipt;
+        await claimReward();
+      } else {
+        await request('cancelAd', {ticket:receipt.token});
+        $('notice').textContent = watched.reason;
+      }
+    } finally {
+      playingAd = false;
+      renderClock();
+    }
   }
 
   $('create').onclick = () => request('create');
@@ -228,7 +304,8 @@
     catch (_) { $('notice').textContent = '房间码 ' + current.room; }
   };
   $('leave').onclick = () => {
-    if (pending || submitting) return;
+    if (pending || submitting || playingAd) return;
+    pendingReward = null;
     session = current = null;
     key = battleKey = '';
     lastEffect = 0;
@@ -239,6 +316,7 @@
   };
   $('accept').onclick = () => request('accept');
   $('decline').onclick = () => request('decline');
+  $('ad-button').onclick = watchAd;
   $('invitation').addEventListener('cancel', event => { event.preventDefault(); request('decline'); });
   if (session) request('state');
   setInterval(() => { if (session) request('state'); }, 500);

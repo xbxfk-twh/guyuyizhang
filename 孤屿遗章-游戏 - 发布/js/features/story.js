@@ -65,7 +65,7 @@ const StoryRules = (() => {
         ? '给石门旁的人鱼看疏散名单。' : '去沉船墓地找神秘人鱼，给她看疏散名单。';
       if (f.ended_C && !run.atlantis?.stoneActive && run.scene !== 'atlantis' && !known('ledger') && !known('guard')) return '回山顶解开传送石的符文。';
       if (run.scene === 'atlantis' || run.atlantis?.unlocked || known('guard') || known('ledger')) {
-        if (run.zone === 'city' && !run.flags.pt_atl_pumphouse) return '去废弃泵房，找维修用的古代源能机芯和源矿。';
+        if (run.zone === 'city' && !run.flags.pt_atl_pumphouse) return '去废弃泵房，找维修用的远古装置和源矿。';
         if (run.zone === 'city' && !known('ledger')) return '去交易机查一查城市的旧账。';
         if (run.zone === 'pearlCave' && !known('decree')) return '看看旧军械工坊旁的铜板。';
         if (lightLevel() < 3) return '探索深水圣殿前，备好防水强光潜水手电。';

@@ -217,7 +217,7 @@ const ITEMS = {
   tideSteel:{ id:'tideSteel', name:'潮鸣钢', cat:'mat', glyph:'潮', stack:20, price:80, desc:'深海高压把源矿反复挤压成的层纹钢。' },
   shipPlate:{ id:'shipPlate', name:'古船甲片', cat:'mat', glyph:'甲', stack:20, price:65, desc:'从沉船残骸上撬下的源质装甲片。' },
   deepCoral:{ id:'deepCoral', name:'深珊瑚', cat:'mat', glyph:'珊', stack:20, price:15, desc:'深海发光的珊瑚，可建可炼。' },
-  anctDevice:{ id:'anctDevice', name:'古代源能机芯', cat:'special', glyph:'机', stack:5, price:120, desc:'从古代机械中拆下的能量调节机芯，用于精炼源质锭和制造源能器材。' },
+  anctDevice:{ id:'anctDevice', name:'远古装置', cat:'special', glyph:'装', stack:5, price:120, desc:'从古代机械中拆下的能量调节装置，用于精炼源质锭和制造源能器材。' },
   pearlGranule:{ id:'pearlGranule', name:'珍珠粒', cat:'mat', glyph:'珠', stack:20, price:10, desc:'深海底的细碎珍珠。' },
   coralArmor:{ id:'coralArmor', name:'珊瑚甲', cat:'armor', glyph:'甲', def:6, dodge:0.15, stack:1, price:0, desc:'略低于玄铁，却提高 15% 闪避率。' },
   sourceArmor:{ id:'sourceArmor', name:'源质重甲', cat:'armor', glyph:'甲', def:10, stack:1, price:0, desc:'源质锻造的重甲，深海的守护。' },
@@ -495,13 +495,13 @@ const SCENES = [
   { id:'atlantis', name:'亚特兰蒂斯', img:'assets/img/atlantis_map.png', distMin:150, danger:5, unlockWatch:0, atlantis:1,
     desc:{
       intro:'沉在海底的失落之城，珊瑚在幽微的光里缓缓摇曳。',
-      night:'海渊沉沉，残破机芯透出幽蓝的光。',
+      night:'海渊沉沉，残破的远古装置透出幽蓝的光。',
       rain:'雨点落不进海里，世界安静得能听见自己的心跳。',
     },
     zones:{
       habitat:{ name:'礁石栖息地', img:'assets/img/atlantis/habitat.png', hotspots:[ { x:40, y:62, label:'礁石驻地' } ], points:[ { id:'atl_rest', name:'礁石驻地', type:'camp', time:0, energy:0, text:'' } ] },
       city:{ name:'沉没之城', img:'assets/img/atlantis/city.png', hotspots:[ { x:44, y:58, label:'遗迹残柱', point:'atl_ruin' }, { x:62, y:70, label:'遗迹石台', point:'atl_altar' }, { x:79, y:70, label:'遗失的交易机', point:'atl_vendor', sprite:'assets/img/atlantis/vendor-sprite.webp' } , { x:74, y:30, label:'城防器材箱', point:'atl_pistol' }, { x:26, y:37, label:'废弃泵房', point:'atl_pumphouse' }], points:[
-        { id:'atl_pumphouse', name:'废弃泵房', type:'gather', time:30, energy:12, need:{}, once:true, yields:[{ id:'anctDevice', min:2, max:2, fixed:true },{ id:'sourceOre', min:4, max:4, fixed:true }], text:'泵房配电柜里还留着维修用的机芯与燃料。' },
+        { id:'atl_pumphouse', name:'废弃泵房', type:'gather', time:30, energy:12, need:{}, once:true, yields:[{ id:'anctDevice', min:2, max:2, fixed:true },{ id:'sourceOre', min:4, max:4, fixed:true }], text:'泵房配电柜里还留着维修用的远古装置与燃料。' },
         { id:'atl_ruin', name:'遗迹残柱', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'deepCoral', min:1, max:2 },{ id:'pearlGranule', min:1, max:2, chance:0.5 }], daily:3, text:'你在断柱间摸索，找到发光的珊瑚。' },
         { id:'atl_altar', name:'遗迹石台', type:'hunt', time:30, energy:20, need:{}, daily:2, enemies:['deepGuard'], text:'石台后的阴影里，深海卫兵睁开了眼。' },
         { id:'atl_vendor', name:'遗失的交易机', type:'atlTrade', time:20, energy:5, need:{}, text:'街角立着一台还在微光闪烁的远古交易机。' }, { id:'atl_pistol', name:'城防器材箱', type:'gather', time:45, energy:22, need:{}, once:true, yields:[{ id:'bpPistol', min:1, max:1 }], text:'你撬开一只锈死的箱子，里面是一张手枪图纸。' } ] },
@@ -517,9 +517,9 @@ const SCENES = [
         { x:79, y:62, label:'石门旁的人鱼', point:'atl_escort' }, { x:63, y:35, label:'灯塔值守席', point:'atl_watch' } ], points:[
         { id:'atl_escort', name:'石门旁的人鱼', type:'story', story:'escort', afterStory:'king', time:0, energy:0, need:{} },
         { id:'atl_watch', name:'灯塔值守席', type:'story', story:'watch', afterStory:'king', time:0, energy:0, need:{} },
-        { id:'atl_device', name:'闸门检修柜', type:'gather', time:40, energy:22, need:{}, needLight:3, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'anctDevice', min:1, max:1 }], daily:1, text:'检修柜里放着一件可用的机芯。' },
+        { id:'atl_device', name:'闸门检修柜', type:'gather', time:40, energy:22, need:{}, needLight:3, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'anctDevice', min:1, max:1 }], daily:1, text:'检修柜里放着一件可用的远古装置。' },
         { id:'atl_boss', name:'守护者祭坛', type:'hunt', time:45, energy:30, need:{}, needLight:3, needCore:4, daily:1, enemies:['sunkenKing'], text:'王座上的人睁开眼。「传令，封门。一个人也不准出去。」' },
-        { id:'atl_runelab', name:'符文密室', type:'gather', time:45, energy:25, need:{}, needLight:3, guard:['tentacle','mechGuard'], guardChance:1, yields:[{ id:'anctDevice', min:1, max:2 },{ id:'atlantisCore', min:1, max:1, chance:0.35 },{ id:'energyCrystal', min:1, max:1, chance:0.6 }], daily:1, text:'密室的控制台还嵌着待换的机芯与晶石。' } ] },
+        { id:'atl_runelab', name:'符文密室', type:'gather', time:45, energy:25, need:{}, needLight:3, guard:['tentacle','mechGuard'], guardChance:1, yields:[{ id:'anctDevice', min:1, max:2 },{ id:'atlantisCore', min:1, max:1, chance:0.35 },{ id:'energyCrystal', min:1, max:1, chance:0.6 }], daily:1, text:'密室的控制台还嵌着待换的远古装置与晶石。' } ] },
       shipwreck:{ name:'沉船墓地', img:'assets/img/atlantis/shipwreck.png', hotspots:[ { x:38, y:62, label:'沉船残骸', point:'atl_wreck' }, { x:64, y:70, label:'船舱深处', point:'atl_wreckhunt' }, { x:25, y:38, label:'船长室', point:'atl_cabin' } , { x:78, y:52, label:'深殿核心', point:'atl_dcore_wreck' }, { x:70, y:84, label:'神秘人鱼', point:'atl_fishman' }], points:[
         { id:'atl_wreck', name:'沉船残骸', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'shipwood', min:1, max:2 },{ id:'ironpart', min:1, max:1, chance:0.4 },{ id:'shipPlate', min:1, max:1, fixed:true }], daily:3, text:'你从沉船里拆下可用的船木与铁件。' },
         { id:'atl_wreckhunt', name:'船舱深处', type:'hunt', time:30, energy:20, need:{}, daily:2, enemies:['deepGuard','tentacle'], text:'船舱深处，有东西在动。' },
@@ -553,7 +553,7 @@ const RECIPES = [
   { id:'r_diveMask', name:'氧气罩', out:{ diveMask:1 }, in:{ leather:2, cloth:3, ironpart:2, flint:2 }, station:'work2', time:180, needBp:'bpDive' },
   { id:'r_goggles', name:'潜水护目镜', out:{ goggles:1 }, in:{ deepCoral:4, pearlGranule:4 }, station:'pearlWork', time:90 },
   { id:'r_lightweak', name:'弱光防水手电', out:{ lightWeak:1 }, in:{ sourceBar:1, glowCrystal:2, crystal:1 }, station:'pearlWork', time:120 },
-  // 强光手电：源能晶石 1→**0**（改由荧光晶簇承担），并下调古代源能机芯 2→1。
+  // 强光手电：源能晶石 1→**0**（改由荧光晶簇承担），并下调远古装置 2→1。
   // 这样"没强光就刷不到做强光的材料"的死锁被打断：浅层点位就能凑齐。
   { id:'r_lightstrong', name:'防水强光潜水手电', out:{ lightStrong:1 }, in:{ sourceBar:3, glowCrystal:4, anctDevice:1, pearlGranule:6 }, station:'pearlWork', time:180 },
   { id:'r_coralarmor', name:'珊瑚甲', out:{ coralArmor:1 }, in:{ deepCoral:12, pearlGranule:6, cloth:2 }, station:'pearlWork', time:180, needBp:'bpCoralArmor' },

@@ -22,7 +22,9 @@ GATHER = {'forest': 'wood', 'river': 'water', 'quarry': 'stone'}
 NAMES = {'wood': '木材', 'water': '淡水', 'stone': '石头', 'bandage': '绷带', 'trophy': '战利品'}
 FOES = {'wolf': ('狼', 32), 'boar': ('野猪', 43), 'bats': ('蝙蝠', 28)}
 START_MINUTE = 8 * 60
-SECONDS_PER_GAME_MINUTE = 1 / 3
+CLOCK_RATES = (0.2, 3, 10)
+AD_MIN_WAIT = 25
+AD_TICKET_LIFETIME = 190
 PRESENCE = 12
 
 
@@ -49,15 +51,64 @@ def inventory_change(bag, item, quantity):
     bag[item] = bag.get(item, 0) + quantity
 
 
-def settle(room, now):
+def clock_deadlines(room):
+    return sorted({p['job']['endMinute'] for p in room['players'] if p['job']})
+
+
+def clock_rate(room):
+    return CLOCK_RATES[sum(p['job'] is not None for p in room['players'])]
+
+
+def finish_jobs(room):
     for p in room['players']:
         job = p['job']
-        if job and job['due'] <= now:
+        if job and job['endMinute'] <= room['clockMinute']:
             if job['kind'] == 'travel':
                 p['zone'] = job['zone']
             else:
                 inventory_change(p['bag'], job['item'], job['quantity'])
             p['job'] = None
+
+
+def advance_clock(room, now):
+    if 'clockAt' not in room:
+        # Rooms from the first trial used three game minutes per wall second.
+        room['clockAt'] = now
+        room['clockMinute'] = START_MINUTE + max(0, now - room['start']) * 3
+        for p in room['players']:
+            job = p['job']
+            if job:
+                job['id'] = secrets.token_hex(8)
+                job['startMinute'] = START_MINUTE + (job.pop('started') - room['start']) * 3
+                job['endMinute'] = START_MINUTE + (job.pop('due') - room['start']) * 3
+        finish_jobs(room)
+        return
+    elapsed = max(0, now - room['clockAt'])
+    for deadline in clock_deadlines(room):
+        seconds = (deadline - room['clockMinute']) / clock_rate(room)
+        if seconds > elapsed + 1e-9:
+            break
+        elapsed = max(0, elapsed - seconds)
+        room['clockMinute'] = deadline
+        finish_jobs(room)
+    room['clockMinute'] += elapsed * clock_rate(room)
+    room['clockAt'] = max(now, room['clockAt'])
+
+
+def projected_due(room):
+    minute, wall = room['clockMinute'], room['clockAt']
+    jobs = [p['job'] for p in room['players'] if p['job']]
+    result = {}
+    for deadline in clock_deadlines(room):
+        rate = CLOCK_RATES[sum(job['endMinute'] > minute for job in jobs)]
+        wall += (deadline - minute) / rate
+        result[deadline] = wall
+        minute = deadline
+    return result
+
+
+def settle(room, now):
+    advance_clock(room, now)
     if room['invite'] and room['invite']['until'] <= now:
         room['invite'] = None
     fight = room['fight']
@@ -86,9 +137,45 @@ def can_act(room, p):
     return not p['job'] and not fighting(room, p)
 
 
-def begin_job(p, now, minutes, kind, **data):
-    p['job'] = {'kind': kind, 'started': now,
-                'due': now + minutes * SECONDS_PER_GAME_MINUTE, **data}
+def begin_job(room, p, minutes, kind, **data):
+    minute = room['clockMinute']
+    p['job'] = {'id': secrets.token_hex(8), 'kind': kind,
+                'startMinute': minute, 'endMinute': minute + minutes, **data}
+
+
+def ad_offer(p, now, deadlines):
+    job, ticket = p['job'], p.get('ad')
+    if not job or deadlines[job['endMinute']] - now <= AD_MIN_WAIT + 1e-7:
+        return None
+    if ticket and (ticket['job'] == job['id'] and ticket['claimed'] or
+                   not ticket['claimed'] and ticket['until'] > now):
+        return None
+    item = 'water' if job['kind'] == 'travel' else job['item']
+    return {'job': job['id'], 'item': item, 'quantity': 1}
+
+
+def ad_command(room, p, data, now):
+    action = data['action']
+    if action == 'reserveAd':
+        offer = ad_offer(p, now, projected_due(room))
+        need(offer and data.get('job') == offer['job'], '这次行动的广告奖励已结束。')
+        p['ad'] = offer | {'token': secrets.token_urlsafe(24),
+                           'until': now + AD_TICKET_LIFETIME, 'claimed': False}
+        return
+    ticket = p.get('ad')
+    token = data.get('ticket')
+    need(ticket and isinstance(token, str) and secrets.compare_digest(token, ticket['token']),
+         '广告奖励凭据失效。')
+    if ticket['claimed']:
+        return
+    if action == 'cancelAd':
+        del p['ad']
+        return
+    need(ticket['until'] >= now, '广告奖励领取已超时。')
+    # This trial trusts the host SDK callback in its browser client. Room items
+    # are local to this trial and never enter account or main-game inventories.
+    inventory_change(p['bag'], ticket['item'], ticket['quantity'])
+    ticket['claimed'] = True
 
 
 def add_effect(fight, kind, p, target, now):
@@ -136,16 +223,16 @@ def command(room, p, data, now):
             need(isinstance(zone, str) and zone in LAND and zone != p['zone'], '请选择地图上的另一处地点。')
             if room['invite']:
                 room['invite'] = None
-            begin_job(p, now, LAND[zone][1] or 30, 'travel', zone=zone)
+            begin_job(room, p, LAND[zone][1] or 30, 'travel', zone=zone)
         elif action == 'craft':
             need(p['zone'] == 'camp', '回营地后再制作。')
             need(p['bag']['wood'] >= 1 and p['bag']['water'] >= 1, '制作绷带需要木材×1、淡水×1。')
             inventory_change(p['bag'], 'wood', -1)
             inventory_change(p['bag'], 'water', -1)
-            begin_job(p, now, 30, 'craft', item='bandage', quantity=2)
+            begin_job(room, p, 30, 'craft', item='bandage', quantity=2)
         elif action == 'gather':
             need(p['zone'] in GATHER, '这里没有可采集的物资。')
-            begin_job(p, now, 24, 'gather', item=GATHER[p['zone']], quantity=2)
+            begin_job(room, p, 24, 'gather', item=GATHER[p['zone']], quantity=2)
         else:
             need(p['zone'] == 'camp', '回营地后再休整。')
             p['hp'] = 60
@@ -204,6 +291,8 @@ def command(room, p, data, now):
         need(src.get(item, 0) > 0, '手边没有这件物品。')
         inventory_change(src, item, -1)
         inventory_change(dst, item, 1)
+    elif action in ('reserveAd', 'claimAd', 'cancelAd'):
+        ad_command(room, p, data, now)
     else:
         raise RuleError('未知操作。')
 
@@ -226,7 +315,8 @@ class Rooms:
             if action == 'create':
                 while True:
                     code = secrets.token_hex(4).upper()
-                    room = {'start': now, 'players': [player(0, now)], 'invite': None,
+                    room = {'start': now, 'clockAt': now, 'clockMinute': START_MINUTE,
+                            'players': [player(0, now)], 'invite': None,
                             'fight': None, 'lastFight': None, 'chest': {}}
                     row = db.execute('INSERT OR IGNORE INTO rooms VALUES (?, ?)', (code, json.dumps(room)))
                     if row.rowcount:
@@ -255,15 +345,25 @@ class Rooms:
                         command(room, p, data, now)
                         p['recent'] = (p['recent'] + [nonce])[-48:]
             db.execute('UPDATE rooms SET state = ? WHERE code = ?', (json.dumps(room), code))
-            visible = [{k: v for k, v in q.items() if k not in ('secret', 'recent', 'seen') and (q is p or k != 'bag')}
-                       | {'online': now - q['seen'] <= PRESENCE} for q in room['players']]
-            result = {k: v for k, v in room.items() if k != 'players'} | {
+            deadlines = projected_due(room)
+            visible = []
+            for q in room['players']:
+                shown = {k: v for k, v in q.items()
+                         if k not in ('secret', 'recent', 'seen', 'ad') and (q is p or k != 'bag')}
+                shown['online'] = now - q['seen'] <= PRESENCE
+                if q['job']:
+                    shown['job'] = q['job'] | {'due': round(deadlines[q['job']['endMinute']], 3)}
+                visible.append(shown)
+            result = {k: v for k, v in room.items() if k not in ('players', 'clockAt')} | {
                 'room': code, 'seat': p['seat'], 'players': visible, 'now': now,
-                'minute': START_MINUTE + int(max(0, now - room['start']) / SECONDS_PER_GAME_MINUTE),
-                'places': LAND, 'items': NAMES,
+                'minute': int(room['clockMinute']), 'clockRate': clock_rate(room),
+                'nextClockChange': min(deadlines.values(), default=None),
+                'places': LAND, 'items': NAMES, 'adOffer': ad_offer(p, now, deadlines),
             }
             if action in ('create', 'join'):
                 result['secret'] = p['secret']
+            if action in ('reserveAd', 'claimAd') and p.get('ad'):
+                result['adReceipt'] = p['ad']
             return result
         return self.transaction(update)
 

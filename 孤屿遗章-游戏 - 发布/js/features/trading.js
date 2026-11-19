@@ -169,7 +169,7 @@ function buyVendorDevice() {
       return {ok:false, reason:'请到沉没之城的交易机购买。'};
     }
     const {price, sold} = vendorDevice();
-    if (sold) return {ok:false, reason:'今日的机芯已经售出。'};
+    if (sold) return {ok:false, reason:'今日的远古装置已经售出。'};
     if (invCount('beibi') < price) return {ok:false, reason:`需要 ${price} 贝壳币。`};
     if (!fitsInBag({[id]:1})) return {ok:false, reason:'背包装不下，请先腾出一格。'};
     const next = JSON.parse(JSON.stringify(run));

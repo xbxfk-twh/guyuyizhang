@@ -6,6 +6,7 @@
   <title>双人试验 · 孤屿遗章</title>
   <link rel="stylesheet" href="css/coop.css">
   <script defer src="js/data.js"></script>
+  <script defer src="js/ads.js"></script>
   <script defer src="js/ui/views/coop.js"></script>
 </head>
 <body>
@@ -32,6 +33,14 @@
         </section>
         <section id="activities" aria-label="队伍行动">
           <div id="party"></div>
+          <section id="job-progress" hidden aria-label="当前行动">
+            <div class="job-animation" aria-hidden="true"><i></i><i></i><i></i></div>
+            <div id="wait-ad" hidden><span id="ad-label">看个广告吧</span>
+              <button type="button" id="ad-button" aria-label="观看广告并领取房间物资">AD</button>
+              <small id="ad-reward"></small>
+            </div>
+            <progress id="job-bar" max="1" aria-label="当前行动进度"></progress>
+          </section>
           <section id="combat" hidden aria-label="并肩作战"></section>
           <div id="actions" class="actions"></div>
           <div id="inventory"></div>
