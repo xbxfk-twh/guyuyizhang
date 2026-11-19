@@ -6,13 +6,22 @@ const CollectionView = (() => {
     const itemIcon=(...args)=>deps.itemIcon(...args);
 function diaryModal() {
     const st = S();
-    let html = `<div class="modal-title">我的日记</div><div class="diary-list">`;
-    if (!st.diary.length) html += '<div class="hint">日记还是空的。</div>';
+    const story = Game.storyDiary();
+    const notes = entries => entries.map(([title, line]) =>
+      `<li><b>${esc(title)}</b><p>${esc(line)}</p></li>`).join('');
+    let html = `<div class="modal-title">我的日记</div>
+      ${story.next ? `<p class="diary-next">${esc(story.next)}</p>` : ''}
+      ${story.main.length ? `<details class="diary-section" open><summary>亚特兰蒂斯 · ${story.main.length}</summary><ul>${notes(story.main)}</ul></details>` : ''}
+      <details class="diary-section" ${story.main.length ? '' : 'open'}><summary>潮退以前 · ${story.tide.length}</summary>
+        ${story.side && story.side !== story.next ? `<p class="hint">${esc(story.side)}</p>` : ''}
+        <ul>${notes(story.tide)}</ul>
+      </details>
+      <details class="diary-section"><summary>生存日常</summary><div class="diary-list">`;
+    if (!st.diary.length) html += '<div class="hint">还没有日常记录。</div>';
     for (const d of st.diary.slice(-40).reverse()) {
       html += `<div class="diary-line"><span class="diary-day">第${d.day}天</span>${esc(d.line)}</div>`;
     }
-    html += `</div><div class="modal-actions"><button id="modal-close">合 上</button></div>`;
-    return html;
+    return html + '</div></details><div class="modal-actions"><button id="modal-close">合 上</button></div>';
   }
 
 const COL_CAT_N = { mat:'材料', special:'特殊', bp:'元件', seed:'种子', food:'食物', drink:'饮品', med:'药品', weapon:'武器', armor:'防具', cloth:'衣物', tool:'工具', currency:'货币', accessory:'饰品' };

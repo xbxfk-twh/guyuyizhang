@@ -21,6 +21,7 @@ function currentObjective() {
     if (gameState.run.stats.hunger < 30 || gameState.run.stats.thirst < 30) return seasonInfo().name === '冬'
       ? '先解决吃喝：采点野莓/野菜、去河畔采雪并烧成淡水，别把自己耗垮了。'
       : '先解决吃喝：采点野莓/野菜、到河边取水，别把自己耗垮了。';
+    if (!deps.story.known('refuge') && (gameState.run.scene === 'atlantis' || deps.story.known('king'))) return deps.story.routeHint();
     if (day === 1) return '帐篷和篝火已经搭好了——先点开看看，再摸清营地周边的物资。';
     if(gameState.run.atlantis?.unlocked)return '前往礁石栖息地整备潜水装备与照明，逐步探索各片海域的遗迹。';
     const hasAxe = hasItem('axeStone') || hasItem('axeIron') || hasItem('axeSteel');

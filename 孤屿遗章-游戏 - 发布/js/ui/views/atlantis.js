@@ -27,7 +27,8 @@ function repairModal() {
   }
 
 function atlTradeModal() {
-    let html = `<div class="modal-title">遗失的交易机</div>${walletBar()}`;
+    let html = `<div class="modal-title">遗失的交易机</div>${walletBar()}
+      <div class="story-links"><button class="mini-btn" data-story="ledger">查看城市账目</button><button class="mini-btn" data-story="receipt">检查取货口</button></div>`;
     html += '<div class="modal-title" style="margin-top:8px">卖出（换贝壳币）</div><div class="help-list">';
     let any = false;
     for (const e of deps.ATL_SHOP) { const q = Game.invCount(e.id); if (q > 0) { any = true; html += `<div class="help-item"><b>${ITEMS[e.id].name}×${q}</b><span>${Game.priceOf(e.base, true, e.id)} 贝壳币 / 个</span><button class="mini-btn" data-asell="${e.id}">卖 1</button></div>`; } }
@@ -53,6 +54,7 @@ function atlTradeModal() {
 
 function fishmanModal() {
     let html = `<div class="modal-title">神秘人鱼</div><div class="overlay-text">她坐在沉船龙骨旁，银发垂落，薄纱遮住容颜。<br>“贝壳？海底用不上。拿金锭和海里的材料来。”</div><div class="help-list">`;
+    if (Game.storyKnown('king')) html += `<div class="story-links"><button class="mini-btn" data-story="escort">${Game.storyKnown('escort') ? '请侍卫带路' : '给她看疏散名单'}</button></div>`;
     const deals = Game.fishmanDeals();
     let any = false;
     for (const d of deals) {

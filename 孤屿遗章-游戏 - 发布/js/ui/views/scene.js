@@ -262,6 +262,8 @@ function renderHotspots() {
       if (h.sprite) {
         d.classList.add('hotspot-prop');
         d.classList.toggle('art-colored', skinOn('seasons'));
+      }
+      if (h.sprite || pts.some(p => p.id === h.point && p.type === 'story')) {
         d.setAttribute('role', 'button');
         d.tabIndex = 0;
         d.onkeydown = event => {
@@ -344,7 +346,7 @@ function sceneActions() {
       const t = p.time ? `耗时${Game.pointMinutes(p)}分钟` : '';
       const tool=p.need?.tool ? Game.selectedTool(p.need.tool) : null;
       const daily = p.daily ? `今日余${Math.max(0, p.daily - ((st.pointUses || {})[p.id] || 0))}次` : '';
-      a.desc = [`体力-${Game.pointEnergy(p)}`, t, daily,tool ? ITEMS[tool.id].name+(tool.source==='bag'?'':'（仓库）') : ''].filter(Boolean).join(' · ');
+      a.desc = [p.type === 'story' ? '' : `体力-${Game.pointEnergy(p)}`, t, daily,tool ? ITEMS[tool.id].name+(tool.source==='bag'?'':'（仓库）') : ''].filter(Boolean).join(' · ');
       if (p.type === 'hunt') { a.cls = 'danger'; if (Game.playerAtk() <= 5) { label += '（赤手空拳，危险！）'; a.label = label; } }
       if (p.type === 'adventure') a.cls = 'adv';
       if (p.type === 'trade') a.cls = 'trade';

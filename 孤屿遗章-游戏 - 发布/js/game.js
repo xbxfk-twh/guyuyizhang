@@ -8,6 +8,7 @@ const Game = (() => {
   const gameState=StateStore.create();
   const callbacks={onLog:null,onChange:null,onFight:null,onEnding:null,onOverlay:null,onSaveFail:null,onSaveConflict:null};
   const activity={craftBatchConfirmed:false};
+  const story = StoryRules.create({gameState, log, change, showOverlay, gainItem, invCount, knowsBlueprint, lightLevel});
   const ACT_CD_BASE = 20;
   const BUFF_NAMES = {atk:'攻击',def:'防御',spd:'攻速',hp:'生命上限',accuracy:'命中'};
   const CK=SaveService.keys;
@@ -90,7 +91,7 @@ const Game = (() => {
   });
   const objectivesRules=ObjectiveRules.create({
     gameState, invCount, hasItem, knowsBlueprint, seasonInfo, materialCount,
-    priceOf
+    priceOf, story
   });
   const endingsRules=EndingRules.create({
     gameState, persistPair, callbacks, log, change, invCount, hasItem, save, showOverlay, diaryAdd,
@@ -126,7 +127,7 @@ const Game = (() => {
     ACT_CD_BASE, hasHeavy, hasSure, heavyInfo, sureInfo, coverReduceOf, rollEnemyIntents, combatSpeed, wNameOf,
     temperatureInfo, rangedWeapon, hasRanged, rangedKind, rangedAcc, ammoConsume, cxCrit, critMul,
     sweepCdTotal, sweepMul, medHeal, vampRate, execThreshold, revengeBonus, hasDualDagger, wallBlockBonus,
-    wallDurMul, rageAtkMul, rageTakenMul, ironTakenMul, ironAtkMul, awardExperience, diaryAdd,
+    wallDurMul, rageAtkMul, rageTakenMul, ironTakenMul, ironAtkMul, awardExperience, diaryAdd, story,
     nightmareInfusionBonus, metaSave, metaState, noteMissStreak, metaBonus, metaSettle, hasRelic,
     hpMax
   });
@@ -156,9 +157,9 @@ const Game = (() => {
     gameState,rng,
     callbacks, rnd, chance, pick, log, change, qtyParse, invCount, hasItem, notifyBagFull, addItem, removeItem,
     selectedTool, bestToolTier, autoToolsEnabled, wearSelectedTool, autoToolkit, drainById, hasTool, applyHarm,
-    lanternRiskMul, addMin, gainItem, seasonInfo, isNight, triggerStory, die, sceneOf, canTravel, staminaCost,
+    lanternRiskMul, addMin, gainItem, seasonInfo, isNight, die, sceneOf, canTravel, staminaCost,
     travel, triggerRandomEvent, showOverlay, EXP_GATHER, gxYieldMul, gxTimeMul, gxEnergyMul, gxPineBonus,
-    gxWoodExtra, awardExperience, startFight, diaryAdd, doPeakRitual, nightmareEncounter,
+    gxWoodExtra, awardExperience, startFight, diaryAdd, doPeakRitual, nightmareEncounter, story,
     achUnlock
   });
   const journeyRules=JourneyRules.create({
@@ -1295,6 +1296,7 @@ function change() {
     newGame, load, hasSave, save,
     sceneOf, sceneUnlocked, canTravel, travel, atlantisTeleport, activatePortal, setZone, lightLevel, pointsOf, pointAvailable, pointStatus, doPoint, randomEventPool,
     onceRewardMissing,
+    storyDiary: story.diary, informantStory: story.informant, storyInteract: story.interact, storyKnown: story.known,
     buildChain, canBuildFurniture, buildFurniture, buildHouseExt, houseExtMax, houseExtMats, buildStoreExt, storeExtMax, storeExtMats, storeExtCap, atlantisCamp, atlantisFurnitureUsed, buildAtlantisFurniture, repairDive, repairDiveCost, demolishFurniture, collectRainWater, collectHiveHoney, canCraft, craft, exchangeShells, exchangeGold, SHELL_PER_COIN, SHELL_FOR_COIN, shrinePool, shrineChoices, triggerShrine,
     liveInfo, liveCap, coopCap, coopExtMats, buildCoopExt, addSheep, addChick, toggleAutoFeed, deliverToBag,
     plant, harvest, consume, useMed, equipToSlot, equip, rest, sleep, farmPlots, farmExt, tillPlot, loosenPlot, FARM_EXTRA_MAX, raidWolves, continueRun, syncToolkit, drainTool, drainById, restoreBackupSave, dailySign, dailySignState, dailyGiftState, claimDailyGift, noticeState, markNoticeRead,

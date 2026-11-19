@@ -205,25 +205,26 @@ function missionModal() {
 
 function infoModal() {
     const st = S();
-    if (st.fame < 2) return `<div class="modal-title">酒馆</div>
-      <div class="hint">情报贩子只跟有门路的人说话（需要盐镇声望 2，你现在是 ${st.fame}/5）。</div>
-      <div class="hint">声望来自告示板的委托：兽皮订单（第 8 天）、珍珠委托（第 14 天）、剿灭海盗（第 20 天）、古生物收藏（第 22 天）。</div>
-      <div class="modal-actions"><button id="modal-close">离 开</button></div>`;
-    let html = `<div class="modal-title">酒馆 · 情报贩子</div>
-      <div class="trader-talk">"回家的海图，一百五十金币。远洋船、还有下海那套装备的图纸，我这儿都有。玄铁那种脏东西？去沉船湾找独眼。"</div>
-      <div class="trade-grid"><div class="trade-col"><b>情报</b></div><div class="trade-col"><b>价</b></div><div class="trade-col"><b>买</b></div></div>`;
-    for (const e of TOWN.informant.sell) {
-      if (e.kind === 'bp' && Game.invCount(e.id) > 0) continue;
-      const p = Game.priceOf(e.base, false, e.id);
-      const cur = e.currency || 'beibi';
-      html += `<div class="trade-grid"><div class="trade-col">${ITEMS[e.id].name}${e.id === 'seachart' ? '（结局·归乡关键）' : ''}</div><div class="trade-col">${p} ${cur === 'coin' ? '金币' : '贝壳'}</div>
-        <div class="trade-col"><button class="mini-btn" data-tbuy="informant:${e.id}" ${(st.inv[cur] || 0) >= p ? '' : 'disabled'}>买</button></div></div>`;
+    const story = Game.informantStory();
+    const required = TOWN.informant.needFame;
+    let html = `<div class="modal-title">酒馆</div>
+      <div class="trader-talk">${story.speech}</div>
+      ${story.label ? `<button class="mini-btn" data-story="informant">${story.label}</button>` : ''}
+      ${story.hint ? `<div class="hint">${story.hint}</div>` : ''}
+      ${story.sailing ? `<div class="hint">${story.sailing}</div>` : ''}`;
+    if (st.fame < required) {
+      html += `<div class="hint">海图与图纸需声望 ${required}（当前 ${st.fame}）。可在告示板接委托。</div>`;
+    } else {
+      html += '<div class="modal-title story-shelf">海图与图纸</div>';
+      for (const e of TOWN.informant.sell) {
+        if (e.kind === 'bp' && (Game.knowsBlueprint(e.id) || Game.invCount(e.id) > 0)) continue;
+        const price = Game.priceOf(e.base, false, e.id);
+        const currency = e.currency || 'beibi';
+        html += `<div class="trade-grid"><div class="trade-col">${ITEMS[e.id].name}</div><div class="trade-col">${price} ${currency === 'coin' ? '金币' : '贝壳'}</div>
+          <div class="trade-col"><button class="mini-btn" data-tbuy="informant:${e.id}" ${Game.invCount(currency) >= price ? '' : 'disabled'}>买</button></div></div>`;
+      }
     }
-    html += `<div class="hint">海图：能开往亚克兰蒂斯（需配潜水服与氧气罩），也是「结局·归乡」的必需品——远洋船 + 海图 + 3 箱补给。</div>`;
-    html += `<div class="hint">金币从哪来？对岸遗迹的石门守卫、海域的海盗与海盗头目、山顶的石碑守卫都会掉；也可以用贝壳币跟老潮换些日用品周转。</div>`;
-    html += `<div class="trader-talk warn-text">"听说……集齐三块石板，能读懂这座岛的过去。"</div>`;
-    html += `<div class="modal-actions"><button id="modal-close">离 开</button></div>`;
-    return html;
+    return html + '<div class="modal-actions"><button id="modal-close">离 开</button></div>';
   }
     return Object.freeze({shopBuyList,shopSellList,walletBar,laochaoModal,laochaoTab,townModal,townShop,blackModal,missionModal,infoModal});
   }

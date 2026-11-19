@@ -511,9 +511,12 @@ const SCENES = [
         { id:'atl_source', name:'沟壁矿脉', type:'gather', time:40, energy:22, need:{ tool:'pick', tier:3 }, needLight:2, guard:['tentacle','mechGuard'], guardChance:1, yields:[{ id:'sourceOre', min:1, max:2 },{ id:'tideSteel', min:1, max:1, chance:0.35 }], daily:2, text:'你凿下几块发光的源矿。' },
         { id:'atl_deep', name:'深渊怪影', type:'hunt', time:35, energy:25, need:{}, needLight:2, daily:1, enemies:['tentacle','mechGuard'], text:'黑暗中，触手与机械在你周围游弋。' },
         { id:'atl_dark', name:'无光深渊', type:'gather', time:45, energy:25, need:{ tool:'pick', tier:3 }, needLight:3, guard:['mechGuard'], guardChance:0.8, yields:[{ id:'sourceOre', min:1, max:2 },{ id:'tideSteel', min:1, max:2, chance:0.6 },{ id:'atlantisCore', min:1, max:1, chance:0.2 },{ id:'energyCrystal', min:1, max:1, chance:0.5 }], daily:1, text:'更深的沟底漆黑一片，海底矿晶反射出一点微光——机械守卫守在那里。' }, { id:'atl_dcore_trench', name:'深殿核心·海沟', type:'gather', time:45, energy:22, need:{}, once:true, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'deepCore', min:1, max:1 }], text:'沟底的石匣里封着一块核心。' }, { id:'atl_deepfish', name:'暗流鱼群', type:'gather', time:45, energy:20, need:{ item:'net' }, needLight:2, daily:2, guard:['tentacle'], guardChance:0.3, yields:[{ id:'fish', min:1, max:3 },{ id:'rareFishC', min:1, max:1, chance:0.15 },{ id:'rareFishD', min:1, max:1, chance:0.1 },{ id:'rareFishE', min:1, max:1, chance:0.08 }], text:'暗流里藏着发光的鱼影。' } ] },
-      sanctum:{ name:'深水圣殿', img:'assets/img/atlantis/sanctum.png', needLight:3, hotspots:[ { x:42, y:60, label:'圣殿之门', point:'atl_device' }, { x:62, y:72, label:'守护者祭坛', point:'atl_boss' }, { x:29, y:42, label:'符文密室', point:'atl_runelab' } ], points:[
+      sanctum:{ name:'深水圣殿', img:'assets/img/atlantis/sanctum.png', needLight:3, hotspots:[ { x:42, y:60, label:'圣殿之门', point:'atl_device' }, { x:62, y:72, label:'守护者祭坛', point:'atl_boss' }, { x:29, y:42, label:'符文密室', point:'atl_runelab' },
+        { x:79, y:62, label:'石门旁的人鱼', point:'atl_escort' }, { x:63, y:35, label:'灯塔值守席', point:'atl_watch' } ], points:[
+        { id:'atl_escort', name:'石门旁的人鱼', type:'story', story:'escort', afterStory:'king', time:0, energy:0, need:{} },
+        { id:'atl_watch', name:'灯塔值守席', type:'story', story:'watch', afterStory:'king', time:0, energy:0, need:{} },
         { id:'atl_device', name:'圣殿之门', type:'gather', time:40, energy:22, need:{}, needLight:3, guard:['deepGuard','tentacle','mechGuard'], guardChance:1, yields:[{ id:'anctDevice', min:1, max:1 }], daily:1, text:'圣殿之门旁，躺着一件发光远古装置。' },
-        { id:'atl_boss', name:'守护者祭坛', type:'hunt', time:45, energy:30, need:{}, needLight:3, needCore:4, daily:1, enemies:['sunkenKing'], text:'沉没之王在祭坛中央缓缓起身。' },
+        { id:'atl_boss', name:'守护者祭坛', type:'hunt', time:45, energy:30, need:{}, needLight:3, needCore:4, daily:1, enemies:['sunkenKing'], text:'王座上的人睁开眼。「传令，封门。一个人也不准出去。」' },
         { id:'atl_runelab', name:'符文密室', type:'gather', time:45, energy:25, need:{}, needLight:3, guard:['tentacle','mechGuard'], guardChance:1, yields:[{ id:'anctDevice', min:1, max:2 },{ id:'atlantisCore', min:1, max:1, chance:0.35 },{ id:'energyCrystal', min:1, max:1, chance:0.4 }], daily:1, text:'密室的门要懂符文才开；门后是远古装置与一块源晶。' } ] },
       shipwreck:{ name:'沉船墓地', img:'assets/img/atlantis/shipwreck.png', hotspots:[ { x:38, y:62, label:'沉船残骸', point:'atl_wreck' }, { x:64, y:70, label:'船舱深处', point:'atl_wreckhunt' }, { x:25, y:38, label:'船长室', point:'atl_cabin' } , { x:78, y:52, label:'深殿核心', point:'atl_dcore_wreck' }, { x:70, y:84, label:'神秘人鱼', point:'atl_fishman' }], points:[
         { id:'atl_wreck', name:'沉船残骸', type:'gather', time:30, energy:15, need:{}, yields:[{ id:'shipwood', min:1, max:2 },{ id:'ironpart', min:1, max:1, chance:0.4 },{ id:'shipPlate', min:1, max:1, chance:0.5 }], daily:3, text:'你从沉船里拆下可用的船木与铁件。' },
@@ -523,7 +526,8 @@ const SCENES = [
         { id:'atl_cforest', name:'珊瑚林', type:'gather', time:25, energy:12, need:{}, yields:[{ id:'deepCoral', min:2, max:4 }], daily:3, text:'珊瑚林里资源丰饶。' },
         { id:'atl_glow', name:'发光丛', type:'gather', time:30, energy:15, need:{}, guard:'tentacle', guardChance:0.7, yields:[{ id:'anctDevice', min:1, max:1, chance:0.3 },{ id:'glowCrystal', min:1, max:2 },{ id:'pearlGranule', min:1, max:3 }], daily:2, text:'你在发光丛里翻找。' },
         { id:'atl_deepbloom', name:'幽光花', type:'gather', time:35, energy:18, need:{}, needLight:1, guard:'tentacle', guardChance:0.7, yields:[{ id:'anctDevice', min:1, max:1, chance:0.4 },{ id:'atlantisCore', min:1, max:1, chance:0.1 }], daily:2, text:'幽光花会发光，也会招来触手。' } ] },
-      pearlCave:{ name:'珍珠洞窟', img:'assets/img/atlantis/pearlCave.png', needLight:1, hotspots:[ { x:42, y:64, label:'珍珠壁', point:'atl_pearlcave' }, { x:64, y:52, label:'晶簇', point:'atl_crystal' }, { x:52, y:30, label:'珍珠之心', point:'atl_pearlheart' } , { x:34, y:44, label:'古匠工坊', point:'atl_bullet' }], points:[
+      pearlCave:{ name:'珍珠洞窟', img:'assets/img/atlantis/pearlCave.png', needLight:1, hotspots:[ { x:42, y:64, label:'珍珠壁', point:'atl_pearlcave' }, { x:64, y:52, label:'晶簇', point:'atl_crystal' }, { x:52, y:30, label:'珍珠之心', point:'atl_pearlheart' } , { x:34, y:44, label:'古匠工坊', point:'atl_bullet' }, { x:24, y:60, label:'工匠的铜板', point:'atl_decree' }], points:[
+        { id:'atl_decree', name:'工匠的铜板', type:'story', story:'decree', time:0, energy:0, need:{} },
         { id:'atl_pearlcave', name:'珍珠壁', type:'gather', time:30, energy:15, need:{}, needLight:1, yields:[{ id:'pearlGranule', min:3, max:5 }], daily:3, text:'洞壁上嵌满珍珠。' },
         { id:'atl_crystal', name:'晶簇', type:'gather', time:35, energy:18, need:{ tool:'pick', tier:2 }, needLight:1, yields:[{ id:'crystal', min:1, max:2 },{ id:'sourceOre', min:1, max:2, chance:0.5 }], daily:2, text:'你凿下发光晶簇。' },
         { id:'atl_pearlheart', name:'珍珠之心', type:'gather', time:40, energy:20, need:{}, needLight:1, guard:['deepGuard'], guardChance:0.7, yields:[{ id:'pearlGranule', min:4, max:6 },{ id:'atlantisCore', min:1, max:1, chance:0.2 },{ id:'energyCrystal', min:1, max:1, chance:0.5 }], daily:1, text:'洞窟最深处嵌着一颗"珍珠之心"，卫兵守在那里。' }, { id:'atl_bullet', name:'古匠工坊', type:'gather', time:45, energy:22, need:{}, once:true, yields:[{ id:'bpBullet', min:1, max:1 }], text:'工坊的台面上压着一张画满弹丸的图纸。' } ] },
@@ -994,14 +998,11 @@ const BLACKMARKET = {
 
 // ---------- 事件 ----------
 const STORY_EVENTS = [
-  { day:3, id:'e_driftbottle', text:'你在河畔的漂流物里发现一个瓶子，瓶口用蜡封着。', scene:'river', once:1 },
   { day:5, id:'e_laochao', text:'海平线上出现一面帆。一个戴斗笠的老头把船靠上南岸，朝你的炊烟挥手。', scene:'camp', once:1 },
   { day:7, id:'e_wolfraid', text:'入夜后，营地外的黑暗里亮起几双绿眼睛。狼群来了。', scene:'camp', once:1 },
   { day:10, id:'e_caveTip', text:'老潮临走前说："山里那个洞，有富铁矿。不过夜里别去，里头有东西。"', scene:'camp', once:1 },
   { day:15, id:'e_storm', text:'一场风暴横扫海岸。风停之后，沉船湾的方向露出更多残骸。', scene:'camp', once:1 },
   { day:20, id:'e_pirate', text:'对岸传来消息：海盗船常在近海出没，盐镇贴出了悬赏。', scene:'camp', once:1 },
-  { day:25, id:'e_altar', text:'深夜，山顶方向亮起微光，像有人在云海之上点灯。', scene:'camp', once:1 },
-  { day:30, id:'e_bell', text:'对岸的方向传来遥远的钟声，像隔着海在呼唤什么。', scene:'camp', once:1 },
   { day:45, id:'e_winter', text:'第一场雪落下来。冬天到了，这是孤岛最漫长的季节。', scene:'camp', once:1 },
   { day:60, id:'e_newyear', text:'新的一年。海还是那片海，而你已经不是刚漂来时的你了。', scene:'camp', once:0 },
 ];

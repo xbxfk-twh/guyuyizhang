@@ -26,7 +26,6 @@ const GatheringRules = (() => {
     const gainItem=(...args)=>deps.gainItem(...args);
     const seasonInfo=(...args)=>deps.seasonInfo(...args);
     const isNight=(...args)=>deps.isNight(...args);
-    const triggerStory=(...args)=>deps.triggerStory(...args);
     const die=(...args)=>deps.die(...args);
     const sceneOf=(...args)=>deps.sceneOf(...args);
     const canTravel=(...args)=>deps.canTravel(...args);
@@ -49,7 +48,7 @@ function pointsOf() {
     const sc = sceneOf(gameState.run.scene);
     if (sc.zones) {
       const z = gameState.run.zone ? sc.zones[gameState.run.zone] : sc.zones[Object.keys(sc.zones)[0]];
-      return (z && z.points) || [];
+      return (z?.points || []).filter(p => !p.afterStory || deps.story.known(p.afterStory));
     }
     return sc.points || [];
   }
@@ -68,6 +67,7 @@ function onceRewardMissing(p) {
 
 function pointAvailable(p) {
     if (!p) return false;                     // 兜底：坏点位（数据缺项/找不到 id）不该让整局崩掉
+    if (p.afterStory && !deps.story.known(p.afterStory)) return false;
     if (riverNetBanned(p)) return false;
     // 山顶祭坛例外：遗物虽然拿过了，但凑齐"遗物+石板×3+龙骨"要能再点开举行仪式（结局 C 的入口）
     if (p.once && gameState.run.flags['pt_'+p.id] && !altarReady(p) && !onceRewardMissing(p)) return false;
@@ -149,12 +149,14 @@ function riverNetBanned(p) {
   }
 
 function pointMinutes(p, tier) {
+    if (p.type === 'story') return 0;
     const tt=tier ?? (p.need?.tool ? bestToolTier(p.need.tool) : 1);
     const slow=(gameState.run.stats.spirit ?? 100)<20 && ['gather','fish','trap','drift'].includes(p.type) ? 1.1 : 1;
     return Math.max(1,Math.round((p.time||15)*(1-(tt-1)*0.2)*slow*gxTimeMul()));
   }
 
 function pointEnergy(p) {
+    if (p.type === 'story') return 0;
     const tt=p.need && p.need.tool ? bestToolTier(p.need.tool) : 1;
     return staminaCost(Math.max(2,Math.round((p.energy || 10)*(1-(tt-1)*0.12)*gxEnergyMul())));
   }
@@ -166,8 +168,9 @@ function pointReason(p) {
   }
 
 function doPoint(p) {
-    if (!autoToolsEnabled() && (!gameState.run.toolkit || !gameState.run.toolkit.some(Boolean))) autoToolkit();
+    if (p?.type !== 'story' && !autoToolsEnabled() && (!gameState.run.toolkit || !gameState.run.toolkit.some(Boolean))) autoToolkit();
     if (!pointAvailable(p)) { const why = pointStatus(p); log(why && why !== 'ok' ? why : '现在做不了这件事。', 'warn'); return; }
+    if (p.type === 'story') { deps.story.interact(p.story); return; }
     const st = gameState.run.stats;
     const usedTool = p.need?.tool ? selectedTool(p.need.tool) : null;
     const tt = usedTool?.tier || 1;   // 本次收益与磨损绑定同一件工具
@@ -289,7 +292,7 @@ function doPoint(p) {
       if (huntTarget.id === 'boneguard' && !isNight()) huntTarget = ENEMIES['scorpion'];
       if (huntTarget.boss) {
         const tgt = huntTarget;
-        showOverlay({ title:'危险 · ' + tgt.name, text:'此怪物异常强大，需要做好充足准备。确定讨伐？', choices:[
+        showOverlay({ title:'危险 · ' + tgt.name, text:p.id === 'atl_boss' ? p.text : '此怪物异常强大，需要做好充足准备。确定讨伐？', choices:[
           { label:'迎战', ok:() => { pointCharge(); log(p.text); startFight(tgt, true); } },
           { label:'撤退', ok:() => { log('你谨慎地退了回去，从长计议。', 'sys'); } },
         ]});
@@ -431,13 +434,13 @@ function doPoint(p) {
       log('你在兽径上布下陷阱，明天去草地上看看有没有收获。', 'good');
       awardExperience('gather',deps.EXP_GATHER);
     } else if (p.type === 'drift') {
+      const foundBottle = p.id === 'river_drift' && deps.story.findBottle();
       if (chance(0.6)) {
         const roll = deps.rng.random();
         if (roll < 0.5) { const q = rnd(1,3); gainItem('wood', q); log(`你捞起几根上游漂来的木头（木材×${q}）。`, 'good'); }
         else if (roll < 0.8) { gainItem('plank', 1); log('你捞起一块完整的木板。', 'good'); }
-        else if (roll < 0.9) { gainItem('driftbottle', 1); log('一个漂流瓶！你把它捞了上来。', 'good'); triggerStory({ id:'e_driftbottle' }); }
-        else { log('只有水草和泡沫。'); }
-      } else { log('今天河里很干净，什么也没漂来。'); }
+        else if (!foundBottle) log('只有水草和泡沫。');
+      } else if (!foundBottle) log('今天河里很干净，什么也没漂来。');
       awardExperience('gather',deps.EXP_GATHER);
     } else if (p.type === 'adventure') {
       adventure(p);
@@ -515,7 +518,7 @@ function adventure(p) {
       choices.push({ label:'搜刮包裹', hint:'可能得金币，或窜出沙蝎（-8 生命）', ok:()=>{ if (chance(0.5)) { const n = rnd(2,4); if (gainItem('coin', n)) log(`破包裹里竟有几枚古金币！获得：金币×${n}。`,'good'); } else { applyHarm(8); log('包裹里窜出一条沙蝎！（-8 生命）','danger'); if (gameState.run.stats.hp<=0) die('你倒在了白骨旁。'); } markDone(); addMin(20);} });
       choices.push({ label:'合十离开', hint:'精神+1', ok:()=>{ gameState.run.stats.spirit = Math.min(100, gameState.run.stats.spirit+1); log('你为他掩上一点沙，心里平静了一些。'); } });
     } else if (id === 'cave_slate') {
-      showOnce({ title:'洞中遗迹', text:'岩壁上刻满了与荒漠白骨同源的古老文字。你在石缝里找到一块脱落的石板。', choices:[{ label:'带走石板', ok:()=>{ if (gainItem('slate',1)) { markDone(); log('获得：石板×1。','good'); } diaryAdd('洞深处的古文字。这座岛比我想的更老。'); } }]});
+      showOnce({ title:'洞中遗迹', text:'岩壁上刻满了与荒漠白骨同源的古老文字。你在石缝里找到一块脱落的石板。', choices:[{ label:'带走石板', ok:()=>{ if (gainItem('slate',1)) { markDone(); log('获得：石板×1。','good'); deps.story.found('cave'); } } }]});
       return;
     } else if (id === 'peak_altar') {
       // 材料齐了就直接在这里开仪式（原来只有右下角那个小按钮，玩家极容易漏看）
@@ -552,7 +555,7 @@ function adventure(p) {
       choices.push({ label:'撬开它', hint:'70%得金币，或触发机关（-10 生命）', ok:()=>{ if (chance(0.7)) { const n = rnd(2,5); if (gainItem('coin', n)) log(`生锈的宝箱里滚出金币！获得：金币×${n}。`,'good'); } else { applyHarm(10); log('箱子里有机关！飞针擦过你的手臂。（-10 生命）','danger'); if (gameState.run.stats.hp<=0) die('锈箱里的机关要了你的命。'); } addMin(20);} });
       choices.push({ label:'不敢碰', hint:'无风险', ok:()=>{ log('你离开了宝箱。'); } });
     } else if (id === 'ruins_slate') {
-      showOnce({ title:'遗迹石板', text:'断柱之间，一块石板完整无缺，刻着与洞中相同的文字。', choices:[{ label:'带走石板', ok:()=>{ if (gainItem('slate',1)) { markDone(); log('获得：石板×1。','good'); } } }]});
+      showOnce({ title:'遗迹石板', text:'断柱之间，一块石板完整无缺，刻着与洞中相同的文字。', choices:[{ label:'带走石板', ok:()=>{ if (gainItem('slate',1)) { markDone(); log('获得：石板×1。','good'); deps.story.found('ruins'); } } }]});
       return;
     } else if (id === 'ruins_explore') {
       choices.push({ label:'摸进废墟', hint:'可能得金币/遇守卫/迷路', ok:()=>{ const r = deps.rng.random(); if (r < 0.4) { const n = rnd(2,5); addItem('coin', n); if (chance(0.3)) gainItem('crystal',1); log(`你在废墟里找到古金币×${n}。`,'good'); } else if (r < 0.7) { log('石像的阴影动了！'); startFight(ENEMIES.guard); } else { gameState.run.stats.spirit = Math.max(0, gameState.run.stats.spirit-8); log('你在断壁间迷了路，许久才转出来。（精神-8）','warn'); } addMin(30);} });

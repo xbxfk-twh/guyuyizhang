@@ -32,17 +32,19 @@ function showTitle() {
     deps.dom.dispose(app);app.innerHTML = `
       <div id="title-screen">
         <div class="title-language">${window.Locale?Locale.control():''}</div>
-        <img src="assets/img/title.png" alt="">
-        <div id="title-name"><span class="tt" data-ch="孤">孤</span><span class="tt" data-ch="屿">屿</span><span class="tt" data-ch="遗">遗</span><span class="tt" data-ch="章">章</span></div>
-        <div id="title-sub">一座孤岛 · 一段余生 · 一本日记</div>
-        <div id="title-btns">
-          <button id="btn-new">新的旅程</button>
-          ${has ? '<button id="btn-load">继续上次游戏</button>' : ''}
-        <button id="btn-meta">◈ 历代遗章</button>
-        <button id="btn-bak">📦 备份·读档</button>
-        <button id="btn-set">☰ 大菜单${NoticeBadges.dot('menu')}</button>
+        <img src="assets/img/tide-gate-title.webp" width="1536" height="1024" alt="" fetchpriority="high">
+        <div class="title-panel">
+          <h1 id="title-name"><span class="tt" data-ch="孤">孤</span><span class="tt" data-ch="屿">屿</span><span class="tt" data-ch="遗">遗</span><span class="tt" data-ch="章">章</span></h1>
+          <nav id="title-btns" aria-label="旅程">
+            ${has ? '<button id="btn-load" class="title-primary"><span>继续旅程</span></button>' : ''}
+            <button id="btn-new"${has ? '' : ' class="title-primary"'}><span>新的旅程</span></button>
+          </nav>
+          <nav class="title-utility" aria-label="其他选项">
+            <button id="btn-meta">历代遗章</button>
+            <button id="btn-bak">备份·读档</button>
+            <button id="btn-set">菜单${NoticeBadges.dot('menu')}</button>
+          </nav>
         </div>
-        <div id="title-tip">备份点 ${Game.backupPoints()}</div>
         <div id="modal"></div>
       </div>`;
     NoticeBadges.refresh(app);

@@ -23,13 +23,7 @@ function raidWolves() {
 function storyDay(ev) { return ev.id === 'e_wolfraid' ? raidDay() : ev.day; }
 
 function triggerStory(ev) {
-    if (ev.id === 'e_driftbottle') {
-      gainItem('driftbottle', 1);
-      showOverlay({
-        title:'漂流瓶', text:'你在漂流物里找到一个用蜡封口的瓶子。里面的信写着：\n\n"落难的朋友，每月商船会路过南岸。看到炊烟就靠岸。带上鱼干，换什么都行。——老潮"',
-        choices:[{ label:'把瓶子收好', ok:()=>{ log('你记下了这个名字：老潮。'); } }]
-      });
-    } else if (ev.id === 'e_laochao') {
+    if (ev.id === 'e_laochao') {
       gameState.run.laochao.arrived = true; gameState.run.laochao.arrivedDay = gameState.run.day; gameState.run.flags.flagSignal = 0;   // 剧情说老潮来了 → 确保交易按钮出现
       showOverlay({
         title:'商船靠岸', text:'一个戴斗笠的老头跳下船，嗓门洪亮："嚯！真有活人！我是老潮，走南闯北的小买卖人。有货换货，没货聊聊也成！"',
@@ -40,7 +34,7 @@ function triggerStory(ev) {
       showOverlay({ title:'不祥的预感', text:'入夜后，营地外的黑暗里似乎亮起了几双绿眼睛。今晚恐怕不太平。', choices:[
         { label:'今晚提高警惕', ok:()=>{ log('今晚睡觉时可能遭遇夜袭。可以选择守夜，或靠围墙硬撑。', 'warn'); } }
       ]});
-    } else if (ev.id === 'e_caveTip' || ev.id === 'e_storm' || ev.id === 'e_pirate' || ev.id === 'e_altar' || ev.id === 'e_bell' || ev.id === 'e_winter' || ev.id === 'e_newyear') {
+    } else if (ev.id === 'e_caveTip' || ev.id === 'e_storm' || ev.id === 'e_pirate' || ev.id === 'e_winter' || ev.id === 'e_newyear') {
       showOverlay({ title:'消息', text: ev.text, choices:[{ label:'记在日记里', ok:()=>{} }] });
       diaryAdd(ev.text);
     }

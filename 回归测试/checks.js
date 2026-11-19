@@ -333,10 +333,10 @@ section('4. 交易 / 图纸 / 声望');
   ck('声望0 只开杂货商', TOWN.smith.needFame > S.fame && TOWN.informant.needFame > S.fame);
   S.fame = 1; ck('声望1 开铁匠', TOWN.smith.needFame <= S.fame && TOWN.informant.needFame > S.fame);
   S.fame = 2; ck('声望2 开情报贩子', TOWN.informant.needFame <= S.fame);
-  // 海图：150 金币、台词与目标提示一致
+  // 海图定价由交易数据提供，开价随同一套声望定价计算。
   const scEntry = TOWN.informant.sell.find(e => e.id === 'seachart');
   ck('海图定价 150 金币', scEntry.base === 150 && scEntry.currency === 'coin');
-  ck('酒馆台词写的是 150 金币（不再是 300）', /一百五十金币/.test(UI) && !/三百金币/.test(UI));
+  ck('酒馆商品与购买接口使用同一个动态定价', /Game\.priceOf\(e.base, false, e.id\)/.test(UI) && /data-tbuy="informant:/.test(UI));
   G.newGame('fisher', 'normal');
   const Sc = G.S();
   Sc.day = 10; Sc.flags.firstTrade = 1;
@@ -1529,14 +1529,13 @@ ck('战斗日志标出所用武器（双持才标；传的是装备槽 id，不�
      /querySelectorAll\('\[data-open\]'\)/.test(UI) && /showModal\('collection'\)/.test(UI));
   ck('主界面不留死分支（btn-sign / btn-codex 的点击处理已清干净）',
      !/btn\.id === 'btn-sign'/.test(UI) && !/btn\.id === 'btn-codex'/.test(UI));
-  // 标题页按钮瘦身：外框约 2/3（38px 高 / 114px 宽），小屏单独放大字，不跟着缩
   const CSS_T = fs.readFileSync(ROOT + '/css/style.css', 'utf8');
-  ck('标题页按钮缩小约 1/3（padding 8px 22px / 13.5px）',
-     /#title-btns button \{[\s\S]{0,200}?padding: 8px 22px; font-size: 13\.5px;/.test(CSS_T) &&
-     /#title-btns \{ position: relative; margin-top: 36px; display: flex; gap: 12px;/.test(CSS_T));
-  ck('★ 手机端按钮跟桌面同一档（也缩 1/3，不再给小屏单独放大）',
-     /@media \(max-width: 700px\), \(max-height: 520px\) \{\s*#title-btns \{ margin-top: 24px; gap: 10px; \}\s*#title-btns button \{ padding: 8px 20px; font-size: 13\.5px; \}/.test(CSS_T) &&
-     !/font-size: 14\.5px; \}\s*\}\s*#title-tip/.test(CSS_T));
+  ck('标题布局把旅程主按钮和存档辅助入口分别排列',
+     /id="title-btns"[\s\S]*?id="btn-new"[\s\S]*?<\/nav>[\s\S]*?class="title-utility"[\s\S]*?id="btn-bak"/.test(UI) &&
+     /#title-btns \{\s*display: grid;/.test(CSS_T));
+  ck('横屏矮窗缩短主按钮间距，保留手机触控高度和竖屏封面',
+     /@media \(orientation: landscape\) and \(max-height: 520px\) \{[\s\S]{0,250}?#title-btns button \{ min-height: 36px; \}/.test(CSS_T) &&
+     /html:has\(#title-screen\)::after \{ display: none; \}/.test(CSS_T));
   ck('★ 标题页不再多出 30px：整屏页高度跟着 #app 走，没被顶到屏幕外',
      /#title-screen \{\s*\/\*[\s\S]{0,200}?position: relative; height: 100%; width: 100%;/.test(CSS_T) &&
      /#select-screen \{\s*height: 100%;/.test(CSS_T) &&

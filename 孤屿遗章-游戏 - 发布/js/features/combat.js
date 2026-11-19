@@ -539,6 +539,7 @@ function endFight(win) {
     const en = C.enemy;
     if (win) {
       if (gameState.run.weaponSharpen) { gameState.run.weaponSharpen.fights = (gameState.run.weaponSharpen.fights || 1) - 1; if (gameState.run.weaponSharpen.fights <= 0) { gameState.run.weaponSharpen = null; log('打磨的锋利劲头过去了。', 'warn'); } }
+      const firstWin = !gameState.run.killCount[en.id];
       gameState.run.killCount[en.id] = (gameState.run.killCount[en.id] || 0) + 1;
       if (!gameState.run.seen['mon_'+en.id]) { gameState.run.seen['mon_'+en.id] = 1; const mm = metaState(); mm.seenMon[en.id] = 1; metaSave(); log(`「图鉴」击败了：${en.name}`, 'sys'); }
       let got = [];
@@ -555,6 +556,9 @@ function endFight(win) {
       log(`战斗经验 +${xg}。`, 'sys');
       if (en.boss) { gameState.run.flags['boss_'+en.id] = 1; diaryAdd(`我击败了${en.name}。`); }
       if (en.id === 'slateGuard') gameState.run.flags.slateGuardDone = 1;
+      if (firstWin && en.id === 'slateGuard') deps.story.found('peak');
+      if (firstWin && en.id === 'deepGuard') deps.story.found('guard');
+      if (firstWin && en.id === 'sunkenKing') deps.story.found('king');
       if (en.id === 'wolfKing') gameState.run.flags.wolfKingDone = 1;
       if (en.id === 'pirateBoss' && gameState.run.flags['boss_pirateBoss']) log('海盗的威胁解除了。盐镇的悬赏可以领取。', 'good');
       if (gameState.run.stats.hp < 20) diaryAdd('险胜一场，差点回不来。');
