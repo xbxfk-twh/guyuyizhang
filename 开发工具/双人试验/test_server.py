@@ -1,160 +1,174 @@
 from concurrent.futures import ThreadPoolExecutor
-import json
 from pathlib import Path
+import json
 import tempfile
 import unittest
 import uuid
 
-from server import Rooms, RuleError
+from server import PRESENCE, Rooms, RuleError, travel_minutes
 
 
-class SharedRoomTest(unittest.TestCase):
+class RoomTest(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.db = Path(self.directory.name) / 'rooms.sqlite3'
-        self.now = 1000
+        self.now = 1000.0
         self.rooms = Rooms(self.db, lambda: self.now)
         a = self.rooms.request({'action':'create'})
-        b = self.rooms.request({'action':'join', 'room':a['room']})
-        self.a, self.b = [{k: q[k] for k in ('room','secret')} for q in (a,b)]
+        self.a = self.credentials(a)
+        self.b = self.credentials(self.rooms.request({'action':'join', 'room':a['room']}))
 
-    def send(self, session, action, **args):
-        return self.rooms.request(session | {'action':action, 'nonce':str(uuid.uuid4())} | args)
+    def credentials(self, view):
+        return {k:view[k] for k in ('room','secret')}
 
-    def meet(self):
-        self.send(self.a,'travel',zone='forest')
-        self.send(self.b,'travel',zone='forest')
-        self.now += 4.5
-        self.send(self.a,'state')
-        self.send(self.b,'state')
+    def send(self, session, action, **data):
+        return self.rooms.request(session | {'action':action, 'nonce':str(uuid.uuid4())} | data)
 
-    def test_parallel_actions_and_reload(self):
-        self.now += 10
-        a = self.send(self.a,'travel',zone='forest')
-        self.assertEqual(a['clockMinute'], 482)
-        self.assertEqual(a['clockRate'], 3)
-        b = self.send(self.b,'craft')
-        self.assertEqual(a['players'][0]['job']['due'], self.now + 15)
-        self.assertEqual(b['clockRate'], 10)
-        self.assertEqual(b['players'][0]['job']['due'], self.now + 8)
-        self.assertEqual(b['players'][1]['job']['due'], self.now + 3)
-        self.now += 4
-        self.rooms = Rooms(self.db, lambda: self.now)
-        b = self.send(self.b,'state')
-        self.assertEqual(b['clockMinute'], 515)
-        self.assertEqual(b['clockRate'], 3)
-        self.assertEqual(b['players'][1]['bag']['bandage'],2)
-        self.assertEqual(b['players'][0]['zone'],'camp')
-        self.assertNotIn('bag',b['players'][0])
-        self.assertNotIn('secret',b['players'][0])
-        self.now += 9
-        a = self.send(self.a,'state')
-        self.assertEqual(a['players'][0]['zone'],'forest')
-        self.assertEqual(a['clockRate'], 0.2)
-        self.assertEqual(a['clockMinute'], 528)
-        self.assertEqual(self.send(self.b,'state')['players'][1]['bag']['bandage'],2)
-        self.assertEqual(self.send(self.a,'state')['minute'],self.send(self.b,'state')['minute'])
+    def meet(self, location='forest'):
+        for session in (self.a, self.b):
+            self.send(session, 'travel', zone=location)
+        self.now += travel_minutes('camp', location) / 10
 
-    def test_idle_rate_and_clock_skew(self):
+    def edit_room(self, edit):
+        def change(db):
+            key = self.a['room']
+            room = json.loads(db.execute('SELECT state FROM rooms WHERE code=?',(key,)).fetchone()[0])
+            edit(room)
+            db.execute('UPDATE rooms SET state=? WHERE code=?',(json.dumps(room),key))
+        self.rooms.transaction(change)
+
+    def test_original_distances_and_piecewise_clock(self):
+        self.assertEqual(travel_minutes('camp','cave'),35)
+        self.assertEqual(travel_minutes('cave','camp'),35)
+        self.assertEqual(travel_minutes('forest','cave'),20)
         self.now += 5
-        self.assertEqual(self.send(self.a,'state')['clockMinute'], 481)
-        self.now -= 4
-        self.assertEqual(self.send(self.a,'state')['clockMinute'], 481)
-        self.now += 9
-        self.assertEqual(self.send(self.a,'state')['clockMinute'], 482)
-
-    def test_legacy_room_preserves_elapsed_work(self):
-        def old_record(db):
-            code = self.a['room']
-            row = db.execute('SELECT state FROM rooms WHERE code = ?', (code,)).fetchone()
-            room = json.loads(row[0])
-            del room['clockAt'], room['clockMinute']
-            room['players'][0]['job'] = {'kind':'travel', 'zone':'forest', 'started':self.now, 'due':self.now + 15}
-            db.execute('UPDATE rooms SET state=? WHERE code=?', (json.dumps(room), code))
-
-        self.rooms.transaction(old_record)
-        self.now += 10
-        a = self.send(self.a,'state')
-        self.assertEqual(a['clockMinute'], 510)
-        self.assertEqual(a['players'][0]['job']['due'], self.now + 5)
-        self.send(self.b,'craft')
-        self.now += 1.5
-        a = self.send(self.a,'state')
-        self.assertEqual(a['players'][0]['zone'], 'forest')
-        self.assertEqual(a['clockRate'], 3)
-
-    def test_reward_wait_boundary_and_once_after_travel(self):
         a = self.send(self.a,'travel',zone='cave')
-        offer = a['adOffer']
-        self.assertEqual((offer['item'], offer['quantity']), ('water',1))
-        self.now += 5
-        self.assertIsNone(self.send(self.a,'state')['adOffer'])
-        with self.assertRaisesRegex(RuleError,'结束'):
-            self.send(self.a,'reserveAd',job=offer['job'])
-        self.now += 25
-        a = self.send(self.a,'travel',zone='forest')
-        self.assertIsNone(a['adOffer'])
-        self.now += 15
-        offer = self.send(self.a,'travel',zone='cave')['adOffer']
-        self.send(self.b,'craft')
-        self.assertIsNone(self.send(self.a,'state')['adOffer'])
-        self.now += 23
-        self.send(self.a,'travel',zone='forest')
-        self.now += 15
-        offer = self.send(self.a,'travel',zone='cave')['adOffer']
-        first = self.send(self.a,'reserveAd',job=offer['job'])['adReceipt']['token']
-        self.assertIsNone(self.send(self.a,'state')['adOffer'])
-        self.assertNotIn('ad',self.send(self.b,'state')['players'][0])
-        self.send(self.a,'cancelAd',ticket=first)
-        self.assertEqual(self.send(self.a,'state')['players'][0]['bag']['water'], 2)
-        ticket = self.send(self.a,'reserveAd',job=offer['job'])['adReceipt']['token']
-        with self.assertRaisesRegex(RuleError,'凭据'):
-            self.send(self.b,'claimAd',ticket=ticket)
-        self.now += 42
-        self.assertTrue(self.send(self.a,'claimAd',ticket=ticket)['adReceipt']['claimed'])
-        self.assertEqual(self.send(self.a,'claimAd',ticket=ticket)['players'][0]['bag']['water'], 3)
-
-    def test_invite_same_place_and_decline(self):
-        self.send(self.a,'travel',zone='forest')
-        self.now += 15
-        with self.assertRaisesRegex(RuleError,'同一地点'):
-            self.send(self.a,'invite')
-        self.send(self.b,'travel',zone='forest')
-        self.now += 15
-        self.send(self.b,'state')
-        self.send(self.a,'invite')
+        self.assertEqual(a['clockMinute'],481)
+        self.assertEqual(a['clockRate'],3)
+        self.assertEqual(a['players'][0]['job']['due'],round(self.now+35/3,3))
+        b = self.send(self.b,'craft')
+        self.assertEqual(b['clockRate'],10)
+        self.assertEqual(b['players'][1]['job']['due'],self.now+1.5)
+        self.assertAlmostEqual(b['players'][0]['job']['due'],self.now+1.5+20/3,places=3)
+        self.now += 3.5
+        self.rooms = Rooms(self.db,lambda:self.now)
         b = self.send(self.b,'state')
-        self.assertEqual(b['invite']['to'],1)
-        with self.assertRaisesRegex(RuleError,'另一位'):
-            self.send(self.a,'accept')
-        self.assertIsNone(self.send(self.b,'decline')['invite'])
-        self.assertIsNone(self.send(self.a,'state')['fight'])
-        self.send(self.a,'invite')
-        self.send(self.b,'travel',zone='cave')
-        with self.assertRaisesRegex(RuleError,'结束'):
-            self.send(self.b,'accept')
+        self.assertEqual(b['players'][1]['bag']['bandage'],1)
+        self.assertEqual(b['clockRate'],3)
+        self.assertAlmostEqual(b['clockMinute'],502)
 
-    def test_concurrent_targets_and_idempotency(self):
+    def test_departure_pauses_jobs_and_resumes_without_catchup(self):
+        self.send(self.a,'travel',zone='cave')
+        self.send(self.b,'craft')
+        self.now += 1
+        b = self.send(self.b,'leave')
+        self.assertEqual(b['clockRate'],10)
+        self.assertFalse(b['players'][1]['online'])
+        self.assertEqual(b['players'][1]['job']['left'],5)
+        self.now += 2.5
+        a = self.send(self.a,'state')
+        self.assertEqual(a['players'][0]['zone'],'cave')
+        self.assertEqual(a['clockRate'],.2)
+        self.send(self.a,'leave')
+        self.now += 10000
+        b = self.send(self.b,'state')
+        self.assertAlmostEqual(b['clockMinute'],a['clockMinute'])
+        self.assertEqual(b['clockRate'],10)
+        self.now += .5
+        self.assertEqual(self.send(self.b,'state')['players'][1]['bag']['bandage'],1)
+
+    def test_heartbeat_expiry_preserves_partial_action_on_restart(self):
+        self.edit_room(lambda room:room['players'][0]['bag'].update(wood=30,water=30))
+        a = self.send(self.a,'craft',count=20)
+        self.assertGreater(a['players'][0]['job']['due'] - self.now, a['adWait'])
+        self.now += PRESENCE + 1000
+        self.rooms = Rooms(self.db,lambda:self.now)
+        a = self.send(self.a,'state')
+        self.assertFalse(a['players'][1]['online'])
+        self.assertEqual(a['clockRate'],10)
+        self.assertEqual(a['players'][0]['job']['left'],264)
+        self.now += 4
+        self.send(self.a,'state')
+        self.now += 1
+        b = self.send(self.b,'state')
+        self.assertEqual(b['clockRate'],3)
+        self.assertEqual(b['players'][0]['job']['left'],214)
+        self.assertNotIn('secret', b['players'][0])
+        self.assertNotIn('bag', b['players'][0])
+        with self.assertRaisesRegex(RuleError,'未知操作'):
+            self.send(self.a,'claimAd',amount=200)
+
+    def test_v5_room_migration_retains_job_without_old_ad_booking(self):
+        def convert(room):
+            room.pop('schema')
+            room.pop('fights')
+            room['fight'] = None
+            room.update(clockAt=self.now,clockMinute=500)
+            room['players'][0].update(job={'id':'old','kind':'travel','zone':'forest',
+                 'startMinute':480,'endMinute':525},ad={'old':True})
+        self.edit_room(convert)
+        a = self.send(self.a,'state')
+        self.assertEqual(a['players'][0]['job']['left'],25)
+        self.now += 9
+        self.assertEqual(self.send(self.a,'state')['players'][0]['zone'],'forest')
+
+    def test_invitation_location_recipient_expiry_and_id(self):
+        with self.assertRaisesRegex(RuleError,'树林或山洞'):
+            self.send(self.a,'invite')
         self.meet()
-        self.send(self.a,'invite')
-        fight = self.send(self.b,'accept')['fight']
+        offer = self.send(self.a,'invite')['invite']['id']
+        with self.assertRaisesRegex(RuleError,'另一位'):
+            self.send(self.a,'accept',invite=offer)
+        self.assertIsNone(self.send(self.b,'decline',invite=offer)['invite'])
+        replacement = self.send(self.a,'invite')['invite']['id']
+        with self.assertRaisesRegex(RuleError,'结束'):
+            self.send(self.b,'accept',invite=offer)
+        self.send(self.b,'leave')
+        with self.assertRaisesRegex(RuleError,'结束'):
+            self.send(self.b,'accept',invite=replacement)
+
+    def test_independent_attacks_and_enemy_clock(self):
+        self.meet()
+        offer = self.send(self.a,'invite')['invite']['id']
+        fight = self.send(self.b,'accept',invite=offer)['fight']
         self.assertEqual(fight['team'],[0,1])
+        fid = fight['id']
         nonce = str(uuid.uuid4())
         with ThreadPoolExecutor(max_workers=2) as threads:
-            a = threads.submit(self.send,self.a,'attack',target=0,nonce=nonce)
-            b = threads.submit(self.send,self.b,'attack',target=1)
+            a = threads.submit(self.send,self.a,'attack',fight=fid,target=0,nonce=nonce)
+            b = threads.submit(self.send,self.b,'attack',fight=fid,target=1)
             a.result()
             b.result()
-        result = self.send(self.a,'attack',target=0,nonce=nonce)
-        self.assertEqual([p['target'] for p in result['players']],[0,1])
-        fight = result['fight']
-        self.assertEqual([foe['hp'] for foe in fight['foes']],[23,34])
-        self.assertEqual({(e['seat'],e['target']) for e in fight['effects']},{(0,0),(1,1)})
+        a = self.send(self.a,'attack',fight=fid,target=0,nonce=nonce)
+        self.assertEqual([p['target'] for p in a['players']],[0,1])
+        self.assertEqual([f['hp'] for f in a['fight']['foes']],[23,34])
         with self.assertRaisesRegex(RuleError,'恢复'):
-            self.send(self.a,'attack',target=0)
+            self.send(self.a,'attack',fight=fid,target=0)
+        self.now += 2.8
+        self.assertEqual([p['hp'] for p in self.send(self.a,'state')['players']],[56,60])
+        self.send(self.b,'leave')
+        self.now += 1.1
+        self.assertEqual([p['hp'] for p in self.send(self.a,'state')['players']],[52,60])
 
-    def test_shared_chest_does_not_duplicate_last_item(self):
+    def test_separate_fights_and_no_enemy_offline_backlog(self):
+        self.send(self.a,'travel',zone='forest')
+        self.send(self.b,'travel',zone='cave')
+        self.now += 9
+        a = self.send(self.a,'solo')
+        b = self.send(self.b,'solo')
+        self.assertNotEqual(a['fight']['id'],b['fight']['id'])
+        self.assertEqual(len(b['fight']['foes']),1)
+        self.assertTrue(b['players'][0]['inCombat'])
+        self.send(self.a,'leave')
+        self.now += 600
+        a = self.send(self.a,'state')
+        self.assertEqual(a['players'][0]['hp'],60)
+        self.assertGreater(a['fight']['foes'][0]['ready'],self.now)
+        with self.assertRaisesRegex(RuleError,'未参加'):
+            self.send(self.a,'attack',fight=b['fight']['id'],target=0)
+
+    def test_shared_chest_atomic_and_room_token_private(self):
         self.send(self.a,'store',item='wood')
         def take(session):
             try:
@@ -164,13 +178,21 @@ class SharedRoomTest(unittest.TestCase):
                 return 0
         with ThreadPoolExecutor(max_workers=2) as pool:
             self.assertEqual(sum(pool.map(take,(self.a,self.b))),1)
-        self.assertEqual(self.send(self.a,'state')['chest']['wood'],0)
-
-    def test_join_and_token_validation(self):
         with self.assertRaisesRegex(RuleError,'满了'):
-            self.rooms.request({'action':'join','room':self.a['room']})
+            self.rooms.request({'action':'join', 'room':self.a['room']})
         with self.assertRaisesRegex(RuleError,'凭据'):
             self.send(self.a | {'secret':'a'*32},'state')
+
+    def test_create_and_join_network_retries_reclaim_the_same_seat(self):
+        create = {'action':'create','nonce':str(uuid.uuid4())}
+        a = self.rooms.request(create)
+        join = {'action':'join','room':a['room'],'nonce':str(uuid.uuid4())}
+        b = self.rooms.request(join)
+        self.rooms = Rooms(self.db,lambda:self.now)
+        self.assertEqual(self.credentials(self.rooms.request(create)),self.credentials(a))
+        self.assertEqual(self.credentials(self.rooms.request(join)),self.credentials(b))
+        with self.assertRaisesRegex(RuleError,'凭据'):
+            self.rooms.request(join | {'room':self.a['room']})
 
 
 if __name__ == '__main__':

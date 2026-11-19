@@ -1325,7 +1325,7 @@ function change() {
     takeCombatEvents, wallBlockBonus, wallDurMul, swiftBonus, rageAtkMul, rageTakenMul, ironTakenMul, ironAtkMul, ammoSaveChance, rangedAcc, combatAccuracy, combatActionInfo,
     cloudStatus, cloudPush, cloudInit,
     hasItem, invCount, addItem, removeItem, capacity, fertilize,
-    lotteryState, lotteryValue, lotteryChance, lotteryOffer, lotteryDeposit, lotteryDraw, lotteryPools, adCoinBalance, adCurrencyName, adRewardState, claimAdReward, adShopState, buyAdShop, exchangeAdCoins, exchangeSoulForStars,
+    lotteryState, lotteryValue, lotteryChance, lotteryOffer, lotteryDeposit, lotteryDraw, lotteryPools, adCoinBalance, adCurrencyName, adRewardState, claimAdReward, coopAdState:shopRules.coopAdState, watchCoopAd:shopRules.watchCoopAd, adShopState, buyAdShop, exchangeAdCoins, exchangeSoulForStars,
     sweepInfo, activeBuffs, pointEnergy, staminaCost, foodFreshness,
     playerAtk, playerAtkAvg, rangedAtk, playerDef, warmth, weatherTemperature, environmentTemperature, temperatureInfo, maxStam, combatLv, expLevel, charStats, combatSpeed, train, trainingHp, trainingAtk,
     isNight, isDusk, seasonInfo, seasonOnDay, winterJustStarted, fmtTime,

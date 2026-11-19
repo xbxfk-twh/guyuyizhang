@@ -21,6 +21,21 @@ function rememberIdentity() {
     } catch (e) {}
   }
 
+function openCoop(button) {
+    const dialog = document.createElement('dialog');
+    const frame = document.createElement('iframe');
+    dialog.className = 'coop-launch';
+    frame.title = '双人联机';
+    frame.roomHost = { adState:Game.coopAdState, watchAd:Game.watchCoopAd,
+      close:()=>dialog.close() };
+    frame.src = 'coop.html';
+    dialog.append(frame);
+    dialog.addEventListener('cancel', event => event.preventDefault());
+    dialog.addEventListener('close', () => { dialog.remove(); button.focus(); }, {once:true});
+    document.body.append(dialog);
+    dialog.showModal();
+  }
+
 function showTitle() {
     const app = $('#app');
     const has = Game.hasSave();
@@ -43,7 +58,7 @@ function showTitle() {
             <button id="btn-meta">历代遗章</button>
             <button id="btn-bak">备份·读档</button>
             <button id="btn-set">菜单${NoticeBadges.dot('menu')}</button>
-            <a class="title-coop" href="coop.html">双人试验</a>
+            <button id="btn-coop">双人联机</button>
           </nav>
         </div>
         <div id="modal"></div>
@@ -63,6 +78,7 @@ function showTitle() {
           begin();
         } else centerToast('存档暂时无法读取，原记录已保留。请重试或从备份中恢复。');
       }
+      else if (btn.id === 'btn-coop') openCoop(btn);
       else if (btn.id === 'btn-meta') { AudioFX.init(); showModal('heirloom'); }
       else if (btn.id === 'btn-bak') { AudioFX.init(); showModal('backup'); }
       else if (btn.id === 'btn-set') { AudioFX.init(); showModal('savemenu'); }

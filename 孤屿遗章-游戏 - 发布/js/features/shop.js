@@ -9,6 +9,8 @@ const ShopRules = (() => {
     const metaSave=(...args)=>deps.metaSave(...args);
     const metaState=(...args)=>deps.metaState(...args);
 const SIGN_SOUL = 10, SIGN_BACKUP = 1;
+const VIDEO_REWARD = { min:3, max:6 };
+let waitingAdCredit = null;
 
 function todayKey() {
     const d = new Date(), p = (n) => String(n).padStart(2, '0');
@@ -110,7 +112,7 @@ function adRewardState() {
     const native=typeof NativeAds!=='undefined' && NativeAds.supported();
     const reason = adCurrencyName() !== '广告币' && !native ? '当前渠道不支持广告奖励。' : !gameState.run || gameState.run.death || gameState.run.ending ? '请在正在进行的游戏中领取。'
       : gameState.run.difficulty === 'legend' ? '传奇难度不领取广告物资。' : uses >= 5 ? '今天已领取 5 次，明天再来。' : '';
-    return {today, uses, limit:5, min:3, max:6, canClaim:!reason, reason};
+    return {today, uses, limit:5, ...VIDEO_REWARD, canClaim:!reason, reason};
   }
 
 function claimAdReward(runId, requestDay) {
@@ -126,6 +128,42 @@ function claimAdReward(runId, requestDay) {
     if (!result.ok) return result;
     log(`完整观看视频，获得 ${amount} ${adCurrencyName()}。`, 'good'); change();
     return {ok:true, amount};
+  }
+
+function coopAdProvider() {
+    if (typeof NativeAds !== 'undefined' && NativeAds.supported()) return NativeAds;
+    if (typeof TapAds !== 'undefined' && TapAds.supported()) return TapAds;
+    return null;
+  }
+
+function coopAdState() {
+    const provider = coopAdProvider();
+    return { available: !!provider && !provider.busy(), pending: !!waitingAdCredit,
+      currency: adCurrencyName(), ...VIDEO_REWARD };
+  }
+
+function saveCoopAdCredit() {
+    const {id, amount} = waitingAdCredit;
+    const meta = JSON.parse(JSON.stringify(metaState()));
+    const run = gameState.run ? JSON.parse(JSON.stringify(gameState.run)) : null;
+    walletEntry(meta, id, amount);
+    const result = persistPair(run, meta, false);
+    if (!result.ok) return result;
+    waitingAdCredit = null;
+    return {ok:true, amount, currency:adCurrencyName()};
+  }
+
+async function watchCoopAd() {
+    if (waitingAdCredit) return saveCoopAdCredit();
+    const provider = coopAdProvider();
+    if (!provider || provider.busy()) return {ok:false, reason:'激励视频暂不可播放。'};
+    provider.onReward(null);
+    const result = await new Promise(resolve => {
+      if (!provider.showRewardedVideo(resolve)) resolve({ok:false, reason:'激励视频暂不可播放。'});
+    });
+    if (!result.ok) return result;
+    waitingAdCredit = {id:walletId(), amount:rnd(VIDEO_REWARD.min,VIDEO_REWARD.max)};
+    return saveCoopAdCredit();
   }
 
 function dailySign() {
@@ -165,7 +203,7 @@ function unlockSkin(id) {
     metaSave();
     return { ok:true, cost:SKIN_COST, soul:m.soul };
   }
-    return Object.freeze({todayKey,dailySignState,dailyGiftState,claimDailyGift,walletEntry,adCoinBalance,walletId,adCurrencyName,adShopState,buyAdShop,exchangeAdCoins,exchangeSoulForStars,adRewardState,claimAdReward,dailySign,backupPoints,skinCost,skinOwned,unlockSkin});
+    return Object.freeze({todayKey,dailySignState,dailyGiftState,claimDailyGift,walletEntry,adCoinBalance,walletId,adCurrencyName,adShopState,buyAdShop,exchangeAdCoins,exchangeSoulForStars,adRewardState,claimAdReward,coopAdState,watchCoopAd,dailySign,backupPoints,skinCost,skinOwned,unlockSkin});
   }
   return Object.freeze({create});
 })();

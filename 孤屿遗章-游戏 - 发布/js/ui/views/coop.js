@@ -24,8 +24,27 @@
   let lastEffect = 0;
   let battleKey = '';
   let playingAd = false;
-  let pendingReward = null;
-  try { session = JSON.parse(sessionStorage.getItem('guyuyizhang_coop') || 'null'); } catch (_) {}
+  let batch = 1;
+  const local = location.protocol === 'http:' || ['localhost','127.0.0.1'].includes(location.hostname);
+  const endpoint = local ? new URL('api/coop', location.href) : 'https://guyuyizhang.top:8443/coop/v1';
+  const storageKey = 'guyuyizhang_coop';
+  const host = window.frameElement?.roomHost;
+  let saved = [];
+  try {
+    session = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
+    const previous = JSON.parse(localStorage.getItem(storageKey) || 'null') || session;
+    saved = (Array.isArray(previous) ? previous : [previous]).filter(s => s?.room && s?.secret);
+  } catch (_) {}
+  renderSavedRooms();
+
+  function renderSavedRooms() {
+    $('saved-rooms').hidden = !saved.length;
+    $('saved-room').replaceChildren(...saved.map(s => {
+      const option = tag('option', s.room);
+      option.value = s.room;
+      return option;
+    }));
+  }
 
   function nonce() {
     return crypto.randomUUID?.() || [...crypto.getRandomValues(new Uint8Array(18))]
@@ -47,23 +66,21 @@
   async function send(action, params) {
     pending = true;
     const saving = action === 'create' || action === 'join';
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
     try {
-      const response = await fetch('api/coop', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({...session, action, nonce:nonce(), ...params}),
-        signal: controller.signal,
-      });
+      const body = JSON.stringify({...session, action, nonce:nonce(), ...params});
+      const response = await sendPacket(body, action !== 'state');
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || '房间请求失败。');
       if (saving) {
         session = {room:data.room, secret:data.secret};
-        try { sessionStorage.setItem('guyuyizhang_coop', JSON.stringify(session)); } catch (_) {}
+        saved = [session, ...saved.filter(item => item.room !== session.room)];
+        try {
+          sessionStorage.setItem(storageKey, JSON.stringify(session));
+          localStorage.setItem(storageKey, JSON.stringify(saved));
+        } catch (_) {}
       }
-      if (current && data.lastFight && !data.fight && current.fight?.team.includes(data.seat)) {
-        $('notice').textContent = data.lastFight.victory ? '战斗获胜。战利品已分到背包。' : '这场战斗结束了。';
+      if (current?.fight?.id && !data.fight && data.lastFight?.id === current.fight.id) {
+        $('notice').textContent = data.lastFight.victory ? '战斗获胜。站到最后的旅者获得战利品。' : '这场战斗结束了。';
       } else if (action !== 'state') $('notice').textContent = '';
       current = data;
       lastReceived = Date.now();
@@ -72,12 +89,26 @@
     } catch (error) {
       if (action !== 'state' || !current || Date.now() - lastReceived > 3000) {
         $('notice').textContent = ['TypeError','SyntaxError','AbortError'].includes(error.name)
-          ? '双人房间服务暂不可达。请从双人服务地址打开，或稍后重试。'
+          ? '联机服务暂不可达，房间存档已保留。'
           : error.message;
       }
     } finally {
-      clearTimeout(timeout);
       pending = false;
+    }
+  }
+
+  async function sendPacket(body, retry) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+    try {
+      return await fetch(endpoint, {
+        method:'POST', headers:{'Content-Type':'application/json'}, body, signal:controller.signal,
+      });
+    } catch (error) {
+      if (!retry) throw error;
+      return sendPacket(body, false);
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
@@ -89,8 +120,11 @@
     const partner = data.players.find(p => p.seat !== data.seat);
     const enrolled = data.fight?.team.includes(me.seat);
     const busy = !!me.job || enrolled;
-    const samePlace = partner?.online && !partner.job && partner.zone === me.zone;
-    const signature = JSON.stringify([data.players, data.chest, data.fight, data.invite, data.lastFight]);
+    const samePlace = partner?.online && !partner.job && !partner.inCombat && partner.zone === me.zone;
+    $('partner-status').hidden = !partner;
+    if (partner) $('partner-status').textContent = partnerStatus(partner, data.places);
+    const visible = data.players.map(p => ({...p, job:p.job && [p.job.kind,p.job.zone,p.job.due]}));
+    const signature = JSON.stringify([visible, data.chest, data.fight, data.invite, data.lastFight]);
     if (signature !== key) {
       const details = [...$('inventory').querySelectorAll('details')].map(node => node.open);
       $('places').replaceChildren(...Object.entries(data.places).map(([id, [name]]) => {
@@ -107,6 +141,7 @@
         marker.style.top = MAP_ARROWS[p.zone].y - 3 + '%';
         marker.setAttribute('aria-label', p.name + '在' + data.places[p.zone][0]);
         marker.title = marker.getAttribute('aria-label');
+          marker.classList.toggle('offline', !p.online);
         return marker;
       }));
       $('party').replaceChildren(...data.players.map(p => {
@@ -117,7 +152,7 @@
           const name = p.job.kind === 'travel' ? '前往' + data.places[p.job.zone][0]
             : p.job.kind === 'craft' ? '制作' : '采集';
           const status = tag('p', name);
-          status.dataset.due = p.job.due;
+          status.dataset.seat = p.seat;
           status.dataset.name = name;
           member.append(status);
         }
@@ -125,17 +160,18 @@
       }));
       const actions = [];
       if (enrolled) {
-        actions.push(button('使用绷带', () => request('heal'), !me.hp || !me.bag.bandage || me.hp === 60));
-        actions.push(button('撤回营地', () => request('flee'), !me.hp));
+        const heal = button('使用绷带', () => request('heal', {fight:data.fight.id}), !me.hp || !me.bag.bandage || me.hp === 60);
+        if (!heal.disabled) heal.dataset.ready = me.healReady;
+        actions.push(heal, button('撤回营地', () => request('flee', {fight:data.fight.id}), !me.hp));
       } else if (me.zone === 'camp') {
-        actions.push(button('制作绷带', () => request('craft'), busy || !me.bag.wood || !me.bag.water));
+        actions.push(craftForm(me, busy));
         actions.push(button('营地休整', () => request('rest'), busy || me.hp === 60));
       } else {
         if (['forest','river','quarry'].includes(me.zone)) actions.push(button('采集', () => request('gather'), busy));
         if (['forest','cave'].includes(me.zone)) {
-          actions.push(button('邀请并肩作战', () => request('invite'), busy || !samePlace || !!data.fight || !!data.invite));
-          actions.push(button('独自迎战', () => request('solo'), busy || !!data.fight || !!data.invite));
-          if (data.invite?.by === me.seat) actions.push(button('取消邀请', () => request('cancel')));
+          actions.push(button('邀请并肩作战', () => request('invite'), busy || !samePlace || !!data.invite));
+          actions.push(button('独自迎战', () => request('solo'), busy));
+          if (data.invite?.by === me.seat) actions.push(button('取消邀请', () => request('cancel', {invite:data.invite.id})));
         }
       }
       $('actions').replaceChildren(...actions);
@@ -150,6 +186,37 @@
       if (!dialog.open) dialog.showModal();
     } else if (dialog.open) dialog.close();
     renderClock();
+  }
+
+  function partnerStatus(partner, places) {
+    if (!partner.online) return '队友离线';
+    const zone = places[partner.zone][0];
+    if (partner.inCombat) return '对方正在' + zone + '战斗';
+    if (partner.job?.kind === 'travel') return '对方正在赶往' + places[partner.job.zone][0];
+    if (partner.job?.kind === 'gather') return '对方正在' + zone + '采集';
+    if (partner.job?.kind === 'craft') return '对方正在' + zone + '制作';
+    return '对方在' + zone;
+  }
+
+  function craftForm(me, busy) {
+    const limit = Math.min(20, me.bag.wood, me.bag.water);
+    const form = tag('form', '', 'craft-form');
+    const count = tag('input');
+    count.type = 'number';
+    count.setAttribute('aria-label', '制作绷带的数量');
+    count.min = 1;
+    count.max = Math.max(1, limit);
+    count.value = Math.min(batch, Math.max(1, limit));
+    count.disabled = busy || !limit;
+    count.oninput = () => { if (count.validity.valid && count.value) batch = count.valueAsNumber; };
+    const submit = tag('button', '制作绷带');
+    submit.disabled = count.disabled;
+    form.onsubmit = event => {
+      event.preventDefault();
+      if (count.validity.valid && count.value) request('craft', {count:count.valueAsNumber});
+    };
+    form.append(count, submit);
+    return form;
   }
 
   function renderInventory(data, me, busy, previous) {
@@ -201,9 +268,9 @@
         targets.append(mark);
       }
       const buttons = tag('div', '', 'buttons');
-      const attack = button('攻击', () => request('attack', {target:foe.id}), !me.hp || !foe.hp || data.now < me.ready);
+      const attack = button('攻击', () => request('attack', {fight:fight.id, target:foe.id}), !me.hp || !foe.hp || data.now < me.ready);
       if (me.hp && foe.hp) attack.dataset.ready = me.ready;
-      buttons.append(button('选中', () => request('target', {target:foe.id}), !me.hp || !foe.hp), attack);
+      buttons.append(button('选中', () => request('target', {fight:fight.id, target:foe.id}), !me.hp || !foe.hp), attack);
       card.append(targets, buttons);
       for (const effect of fight.effects.filter(effect => effect.target === foe.id && effect.id > lastEffect && data.now - effect.at < 1.1)) {
         card.append(tag('i', '', 'hit ' + colors[effect.seat]));
@@ -219,106 +286,89 @@
     const elapsed = Math.max(0, Math.min(3, (Date.now() - lastReceived) / 1000));
     const now = current.now + elapsed;
     const edge = current.nextClockChange ?? Infinity;
-    const gameMinute = current.clockMinute + (Math.min(now, edge) - current.now) * current.clockRate;
+    const gameMinute = current.clockMinute + Math.max(0, Math.min(now, edge) - current.now) * current.clockRate;
     const minute = Math.floor(gameMinute);
     $('clock').textContent = '第 ' + (Math.floor(minute / 1440) + 1) + ' 日 · ' +
       String(Math.floor(minute / 60) % 24).padStart(2,'0') + ':' + String(minute % 60).padStart(2,'0');
-    document.querySelectorAll('[data-due]').forEach(node => {
-      node.textContent = node.dataset.name + ' · ' + Math.max(0,Math.ceil(node.dataset.due - now)) + ' 秒';
+    document.querySelectorAll('[data-seat]').forEach(node => {
+      const job = current.players[Number(node.dataset.seat)].job;
+      if (!job) return;
+      node.textContent = node.dataset.name + (job.due == null ? ' · 暂停' : ' · ' + Math.max(0, Math.ceil(job.due - now)) + ' 秒');
     });
     document.querySelectorAll('[data-ready]').forEach(node => { node.disabled = now < Number(node.dataset.ready); });
     renderWaiting(now, gameMinute);
   }
 
-  function availableAd() {
-    if (TapAds.supported()) return TapAds;
-    if (NativeAds.supported()) return NativeAds;
-    return null;
-  }
-
   function renderWaiting(now, gameMinute) {
     const job = current.players[current.seat].job;
-    if (pendingReward && pendingReward.until < now && !playingAd) {
-      pendingReward = null;
-      $('notice').textContent = '广告奖励领取已超时。';
-    }
-    const offer = job && job.due - now > 25 ? current.adOffer : null;
-    const reward = pendingReward || offer;
+    const ad = host?.adState();
+    const offer = job?.due && job.due - now > current.adWait;
     const row = $('job-progress');
-    row.hidden = !job && !pendingReward && !playingAd;
+    row.hidden = !job && !ad?.pending && !playingAd;
     if (row.hidden) return;
     $('job-bar').hidden = !job;
-    if (job) $('job-bar').value = Math.min(1, Math.max(0,
-      (gameMinute - job.startMinute) / (job.endMinute - job.startMinute)));
-    $('wait-ad').hidden = !reward && !playingAd;
-    $('ad-label').textContent = playingAd ? '正在处理' : pendingReward ? '领取广告奖励' : '看个广告吧';
-    $('ad-button').disabled = playingAd || (!pendingReward && !availableAd());
-    $('ad-button').setAttribute('aria-label', pendingReward ? '重试领取广告奖励' : '观看广告并领取房间物资');
-    $('ad-reward').textContent = !reward ? '' : !pendingReward && !availableAd()
-      ? '当前环境暂不可播放广告' : current.items[reward.item] + ' ×' + reward.quantity;
-  }
-
-  async function claimReward() {
-    const result = await request('claimAd', {ticket:pendingReward.token});
-    if (!result?.adReceipt?.claimed) return;
-    const {item, quantity} = result.adReceipt;
-    pendingReward = null;
-    $('notice').textContent = '领取了' + result.items[item] + ' ×' + quantity + '，已放入房间背包。';
+    if (job) $('job-bar').value = Math.min(1, job.progress + (gameMinute - current.clockMinute) / job.minutes);
+    $('wait-ad').hidden = !offer && !ad?.pending && !playingAd;
+    $('ad-label').textContent = playingAd ? '正在播放' : ad?.pending ? '领取广告奖励' : '看个广告吧';
+    $('ad-button').disabled = playingAd || !ad || (!ad.pending && !ad.available);
+    $('ad-reward').textContent = ad?.pending ? '点按重新入账' : ad?.available
+      ? ad.min + '–' + ad.max + ' ' + ad.currency : '当前环境暂不可播放广告';
   }
 
   async function watchAd() {
-    if (playingAd || submitting) return;
+    renderClock();
+    if (playingAd || $('ad-button').disabled || $('wait-ad').hidden) return;
     playingAd = true;
     renderClock();
     try {
-      if (pendingReward) {
-        await claimReward();
-        return;
-      }
-      const sdk = availableAd();
-      const job = current?.adOffer?.job;
-      if (!sdk || !job) return;
-      const reservation = await request('reserveAd', {job});
-      const receipt = reservation?.adReceipt;
-      if (!receipt) return;
-      const watched = await new Promise(resolve => {
-        if (!sdk.showRewardedVideo(resolve)) resolve({ok:false, reason:'当前无法播放广告。'});
-      });
-      if (watched.ok) {
-        pendingReward = receipt;
-        await claimReward();
-      } else {
-        await request('cancelAd', {ticket:receipt.token});
-        $('notice').textContent = watched.reason;
-      }
+      const result = await host.watchAd();
+      $('notice').textContent = result.ok ? '已到账 ' + result.amount + ' ' + result.currency + '。' : result.reason;
     } finally {
       playingAd = false;
+      if (session && !document.hidden) request('state');
       renderClock();
     }
   }
 
   $('create').onclick = () => request('create');
+  $('saved-rooms').onsubmit = event => {
+    event.preventDefault();
+    session = saved.find(s => s.room === $('saved-room').value);
+    if (!session) return;
+    try { sessionStorage.setItem(storageKey, JSON.stringify(session)); } catch (_) {}
+    request('state');
+  };
   $('join').onsubmit = event => { event.preventDefault(); request('join', {room:event.currentTarget.elements.code.value.trim().toUpperCase()}); };
   $('copy').onclick = async () => {
     try { await navigator.clipboard.writeText(current.room); $('notice').textContent = '房间码已复制。'; }
     catch (_) { $('notice').textContent = '房间码 ' + current.room; }
   };
-  $('leave').onclick = () => {
-    if (pending || submitting || playingAd) return;
-    pendingReward = null;
+  async function leave() {
+    if (submitting || playingAd) return false;
+    if (session) await request('leave');
     session = current = null;
     key = battleKey = '';
     lastEffect = 0;
-    try { sessionStorage.removeItem('guyuyizhang_coop'); } catch (_) {}
+    try { sessionStorage.removeItem(storageKey); } catch (_) {}
+    renderSavedRooms();
     $('room').hidden = true;
     $('lobby').hidden = false;
     $('clock').textContent = '';
-  };
-  $('accept').onclick = () => request('accept');
-  $('decline').onclick = () => request('decline');
+    return true;
+  }
+  $('leave').onclick = leave;
+  if (host) $('back').onclick = async event => { event.preventDefault(); if (await leave()) host.close(); };
+  $('accept').onclick = () => request('accept', {invite:current.invite?.id});
+  $('decline').onclick = () => request('decline', {invite:current.invite?.id});
   $('ad-button').onclick = watchAd;
-  $('invitation').addEventListener('cancel', event => { event.preventDefault(); request('decline'); });
+  $('invitation').addEventListener('cancel', event => { event.preventDefault(); $('decline').onclick(); });
   if (session) request('state');
-  setInterval(() => { if (session) request('state'); }, 500);
+  async function poll() {
+    const active = current?.fight || current?.invite || current?.players.some(p => p.job && p.online);
+    if (session && !document.hidden) await request('state');
+    setTimeout(poll, active ? 750 : 3000);
+  }
+  document.addEventListener('visibilitychange', () => { if (session && !document.hidden) request('state'); });
+  setTimeout(poll, 1500);
   setInterval(renderClock, 250);
 })();

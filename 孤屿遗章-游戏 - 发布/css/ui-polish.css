@@ -1084,8 +1084,8 @@ button.language-control:hover,button.language-control:focus-visible{background:t
 .story-links { display: flex; flex-wrap: wrap; gap: 6px; margin-block: 8px; }
 .story-shelf { margin-top: 12px; }
 
-.title-coop { align-self:center; padding:4px 0; color:inherit; font-size:13px; text-underline-offset:4px; }
-.title-coop:focus-visible { outline:2px solid #fff7e6; outline-offset:3px; }
+.coop-launch { width:100%; height:100%; max-width:none; max-height:none; border:0; padding:0; background:#14130f; }
+.coop-launch iframe { display:block; width:100%; height:100%; border:0; }
 .informant-speech { margin:5px 0 8px; font-size:13px; line-height:1.45; }
 
 .merchant-goods button { touch-action:pan-y; }

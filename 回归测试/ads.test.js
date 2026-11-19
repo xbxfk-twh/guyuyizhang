@@ -81,9 +81,8 @@ check('旧零魂码导入不会形成负魂点，正常消费流水保留',()=>{
  G.metaState().soul=0;G.metaState().adWallet={};const old=G.exportCode();G.metaState().soul=60;
  assert.equal(G.exchangeSoulForStars(4).ok,true);assert.equal(G.importCode(old).ok,true);assert.equal(G.metaState().soul,0);assert.equal(G.adCoinBalance(),4);
 });
-check('商城广告接口恢复，旧true参数仍不能免费备份或复活',()=>{
- assert.equal(typeof G.claimAdReward,'function');assert.equal(G.claimAdAction,undefined);assert.equal(typeof G.adRewardState,'function');
- assert.equal(fs.existsSync(path.join(root,'ads.js')),true);G.newGame('fisher','normal');G.metaState().backupPoints=0;G.metaState().soul=0;
+check('旧参数不能免费备份或复活',()=>{
+ G.newGame('fisher','normal');G.metaState().backupPoints=0;G.metaState().soul=0;
  assert.equal(G.backupSlot(0,true).ok,false);G.S().death='test';G.S().stats.hp=0;assert.equal(G.reviveToday(true).ok,false);
 });
 check('命名牌商城售价3星点，购买寄信可领取，余额不足不扣款',()=>{
@@ -110,4 +109,49 @@ check('广告奖励写盘失败不消耗次数且不发币，传奇禁止领取'
 });
 const independent=new Function('localStorage','window','document',source+'\nreturn Game;')(storage,{GUYU_CHANNEL:'standalone'},{});
 check('独立版仍用星点且禁止直接领取广告奖励',()=>{assert.equal(independent.adCurrencyName(),'星之点');assert.equal(independent.adRewardState().canClaim,false);});
-console.log(`通过 ${passed} 项，失败 0 项\nRESULT:PASS`);
+async function checkCoopWallet() {
+  let completed = true, shown = 0;
+  const provider = {
+    supported:()=>true, busy:()=>false,
+    onReward(callback) { assert.equal(callback,null); },
+    showRewardedVideo(done) {
+      shown++;
+      done({ok:completed, reason:'提前关闭'});
+      return true;
+    },
+  };
+  const game = new Function('localStorage','window','document','NativeAds',source+'\nreturn Game;')
+    (storage,{GUYU_CHANNEL:'standalone'},{},provider);
+  const previous = game.adCoinBalance();
+  const daily = JSON.stringify(game.metaState().adRewardDays);
+  assert.equal(game.S(),null);
+  completed = false;
+  assert.equal((await game.watchCoopAd()).ok,false);
+  assert.equal(game.adCoinBalance(),previous);
+  completed = true;
+  let earned = 0;
+  for (let i=0;i<8;i++) {
+    const result = await game.watchCoopAd();
+    assert.equal(result.ok,true);
+    assert.equal(result.currency,'星之点');
+    assert.ok(result.amount >= 3 && result.amount <= 6);
+    earned += result.amount;
+  }
+  assert.equal(game.adCoinBalance(),previous+earned);
+  assert.equal(JSON.stringify(game.metaState().adRewardDays),daily);
+  fail = true;
+  assert.equal((await game.watchCoopAd()).ok,false);
+  assert.equal(game.adCoinBalance(),previous+earned);
+  assert.equal(game.coopAdState().pending,true);
+  const retry = await game.watchCoopAd();
+  assert.equal(retry.ok,true);
+  assert.equal(game.adCoinBalance(),previous+earned+retry.amount);
+  assert.equal(shown,10);
+  assert.equal(game.coopAdState().pending,false);
+  console.log('OK 联机等待广告直入星点钱包，无次数限制，跳过不发奖，写盘失败可重试');
+}
+checkCoopWallet().then(()=>console.log(`通过 ${passed+1} 项，失败 0 项\nRESULT:PASS`)).catch(error=>{
+  console.error(error);
+  console.log('RESULT:FAIL');
+  process.exitCode=1;
+});

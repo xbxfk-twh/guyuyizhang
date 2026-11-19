@@ -205,7 +205,7 @@ Object.assign(DICTIONARY, {
   '每日限购 1 件':'Limit one per day',
   '今日的远古装置已经售出。':'Today’s Ancient Device has sold out.',
   '请到沉没之城的交易机购买。':'Visit the vending machine in the Sunken City.',
-  '双人试验':'Co-op trial',
+  '双人联机':'Co-op',
   '一键归仓':'Store surplus',
   '按类别排序':'Sort by type',
   '已按类别排序':'Sorted by type'
